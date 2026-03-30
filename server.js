@@ -11,12 +11,76 @@
 const express = require('express');
 const fetch = require('node-fetch');
 const path = require('path');
+const crypto = require('crypto');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+// ─── Auth helpers ──────────────────────────────────────────────────
+function getExpectedToken() {
+  const password = process.env.APP_PASSWORD || '';
+  const secret = process.env.APP_SECRET || 'goscm-session-secret';
+  return crypto.createHmac('sha256', secret).update(password).digest('hex');
+}
+
+function parseCookies(cookieHeader) {
+  const cookies = {};
+  if (!cookieHeader) return cookies;
+  cookieHeader.split(';').forEach(part => {
+    const [name, ...rest] = part.split('=');
+    if (name) cookies[name.trim()] = rest.join('=').trim();
+  });
+  return cookies;
+}
+
+function isAuthenticated(req) {
+  // If APP_PASSWORD is not set, auth is disabled
+  if (!process.env.APP_PASSWORD) return true;
+  const cookies = parseCookies(req.headers.cookie);
+  return cookies.goscm_session === getExpectedToken();
+}
+
+// ─── Auth middleware (before static files) ─────────────────────────
+const PUBLIC_PATHS = ['/login.html', '/api/auth', '/css/', '/logo-goscm.png', '/favicon.png'];
+
+app.use((req, res, next) => {
+  const isPublic = PUBLIC_PATHS.some(p => req.path === p || req.path.startsWith(p));
+  if (isPublic) return next();
+  if (!isAuthenticated(req)) {
+    if (req.path.startsWith('/api/')) {
+      return res.status(401).json({ error: 'No autorizado' });
+    }
+    return res.redirect('/login.html');
+  }
+  next();
+});
+
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
+
+// ─── POST /api/auth — Login ────────────────────────────────────────
+app.post('/api/auth', (req, res) => {
+  const expected = process.env.APP_PASSWORD;
+  if (!expected) {
+    return res.status(500).json({ error: 'APP_PASSWORD no configurado en el servidor' });
+  }
+  const { password } = req.body || {};
+  if (!password || password !== expected) {
+    return res.status(401).json({ error: 'Contraseña incorrecta' });
+  }
+  const token = getExpectedToken();
+  const isSecure = !!(process.env.VERCEL || process.env.NODE_ENV === 'production');
+  res.setHeader('Set-Cookie',
+    `goscm_session=${token}; HttpOnly; Path=/; SameSite=Strict${isSecure ? '; Secure' : ''}; Max-Age=86400`
+  );
+  res.json({ ok: true });
+});
+
+// ─── GET /api/logout ───────────────────────────────────────────────
+app.get('/api/logout', (_req, res) => {
+  res.setHeader('Set-Cookie', 'goscm_session=; HttpOnly; Path=/; Max-Age=0');
+  res.redirect('/login.html');
+});
 
 // ─── Proxy endpoint ───────────────────────────────────────────────
 // POST /api/proxy

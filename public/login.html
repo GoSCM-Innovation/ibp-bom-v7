@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GoSCM Applications Hub — Acceso</title>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="icon" type="image/png" href="favicon.png">
+  <style>
+    :root {
+      --bg: #0b1120;
+      --bg2: #0f1829;
+      --bg3: #131e33;
+      --surface: #182238;
+      --surface2: #1e2c47;
+      --border: #243350;
+      --border2: #2e4168;
+      --text: #dce6f5;
+      --text2: #7d9abf;
+      --accent: #F7A800;
+      --accent2: #E8622A;
+      --red: #ff6b6b;
+      --green: #34d399;
+      --font: 'DM Sans', sans-serif;
+      --mono: 'JetBrains Mono', monospace;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--font);
+      font-size: 13px;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 0;
+    }
+
+    /* Subtle grid background */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(41,171,226,.04) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(41,171,226,.04) 1px, transparent 1px);
+      background-size: 40px 40px;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .login-wrap {
+      position: relative;
+      z-index: 1;
+      width: 100%;
+      max-width: 400px;
+      padding: 0 20px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 32px;
+    }
+
+    .brand {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .brand img {
+      height: 44px;
+      filter: drop-shadow(0 0 12px rgba(247,168,0,.3));
+    }
+
+    .brand-title {
+      font-size: 20px;
+      font-weight: 700;
+      color: #fff;
+      letter-spacing: .01em;
+    }
+
+    .brand-sub {
+      font-size: 12px;
+      color: var(--text2);
+      font-family: var(--mono);
+      letter-spacing: .06em;
+    }
+
+    .login-card {
+      width: 100%;
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 32px 28px;
+      box-shadow: 0 8px 40px rgba(0,0,0,.5), 0 0 0 1px rgba(247,168,0,.06);
+    }
+
+    .card-label {
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--text2);
+      letter-spacing: .1em;
+      text-transform: uppercase;
+      margin-bottom: 20px;
+    }
+
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 7px;
+      margin-bottom: 20px;
+    }
+
+    .form-group label {
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--text2);
+    }
+
+    .form-group input {
+      background: var(--bg3);
+      border: 1px solid var(--border2);
+      border-radius: 8px;
+      color: var(--text);
+      font-family: var(--mono);
+      font-size: 13px;
+      padding: 10px 14px;
+      outline: none;
+      transition: border-color .15s, box-shadow .15s;
+      letter-spacing: .08em;
+    }
+
+    .form-group input:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(247,168,0,.12);
+    }
+
+    .btn-login {
+      width: 100%;
+      background: linear-gradient(135deg, var(--accent) 0%, var(--accent2) 100%);
+      border: none;
+      border-radius: 8px;
+      color: #0b1120;
+      font-family: var(--font);
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: .04em;
+      padding: 11px 20px;
+      cursor: pointer;
+      transition: opacity .15s, transform .1s;
+    }
+
+    .btn-login:hover { opacity: .92; }
+    .btn-login:active { transform: scale(.98); }
+    .btn-login:disabled { opacity: .5; cursor: not-allowed; }
+
+    .msg {
+      margin-top: 14px;
+      padding: 9px 14px;
+      border-radius: 7px;
+      font-size: 12px;
+      font-weight: 500;
+      display: none;
+    }
+
+    .msg.error {
+      background: rgba(255,107,107,.12);
+      border: 1px solid rgba(255,107,107,.3);
+      color: var(--red);
+    }
+
+    .msg.success {
+      background: rgba(52,211,153,.12);
+      border: 1px solid rgba(52,211,153,.3);
+      color: var(--green);
+    }
+
+    .footer-note {
+      font-size: 11px;
+      color: var(--text2);
+      opacity: .6;
+      font-family: var(--mono);
+    }
+  </style>
+</head>
+<body>
+
+  <div class="login-wrap">
+    <div class="brand">
+      <img src="logo-goscm.png" alt="GoSCM">
+      <div class="brand-title">Applications Hub</div>
+      <div class="brand-sub">PRODUCTION HIERARCHY &amp; SUPPLY NETWORK</div>
+    </div>
+
+    <div class="login-card">
+      <div class="card-label">Acceso restringido</div>
+      <form id="loginForm" onsubmit="doLogin(event)">
+        <div class="form-group">
+          <label for="pwd">Contraseña de acceso</label>
+          <input type="password" id="pwd" placeholder="••••••••" autocomplete="current-password" autofocus required>
+        </div>
+        <button type="submit" class="btn-login" id="btnLogin">Ingresar</button>
+        <div class="msg" id="msg"></div>
+      </form>
+    </div>
+
+    <div class="footer-note">go-scm.com</div>
+  </div>
+
+  <script>
+    async function doLogin(e) {
+      e.preventDefault();
+      const btn = document.getElementById('btnLogin');
+      const msgEl = document.getElementById('msg');
+      const pwd = document.getElementById('pwd').value;
+
+      btn.disabled = true;
+      btn.textContent = 'Verificando…';
+      msgEl.style.display = 'none';
+
+      try {
+        const res = await fetch('/api/auth', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ password: pwd })
+        });
+
+        if (res.ok) {
+          msgEl.className = 'msg success';
+          msgEl.textContent = 'Acceso concedido. Cargando…';
+          msgEl.style.display = 'block';
+          window.location.href = '/';
+        } else {
+          const data = await res.json().catch(() => ({}));
+          msgEl.className = 'msg error';
+          msgEl.textContent = data.error || 'Contraseña incorrecta';
+          msgEl.style.display = 'block';
+          btn.disabled = false;
+          btn.textContent = 'Ingresar';
+          document.getElementById('pwd').select();
+        }
+      } catch {
+        msgEl.className = 'msg error';
+        msgEl.textContent = 'Error de conexión con el servidor';
+        msgEl.style.display = 'block';
+        btn.disabled = false;
+        btn.textContent = 'Ingresar';
+      }
+    }
+  </script>
+</body>
+</html>
