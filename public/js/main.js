@@ -619,6 +619,8 @@
         setStatus('info', 'Preparando base de datos local...');
         await Promise.all(['bom_psh', 'bom_psi', 'bom_psr', 'bom_prd', 'bom_loc'].map(idbClear));
         RES_DESCR = {};
+        // Limpiar caches lazy — nueva carga invalida todo lo precargado
+        if (typeof bomClearCaches === 'function') bomClearCaches();
 
         // ── Header → IDB ───────────────────────────────────────────────────────
         setStatus('info', 'Descargando Production Source Header...');

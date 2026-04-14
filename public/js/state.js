@@ -21,15 +21,18 @@
     var selectedPrdid = '';
     var prodSuggestions = [];
     var prdIndex = {};
-    // BOM indexes (populated by doFetchAll streaming + finalizeHierarchy)
-    var HDR_BY_PRD = {};  // PRDID    -> [headers]
-    var HDR_BY_SID = {};  // SOURCEID -> header (P-type preferred)
-    var ITM_BY_SID = {};  // SOURCEID -> [items]
-    var RES_BY_SID = {};  // SOURCEID -> [RESID]
-    var CPR_BY_SID = {};  // SOURCEID -> [co-product objects]
-    var isCompAtLoc = {};  // "LOCID|PRDID" -> true  (built during item streaming)
-    // BOM enrichment lookups (populated during loadBomSubtree)
-    var LOC_BY_ID = {};   // locid → { LOCID, LOCDESCR }
-    var RES_DESCR = {};   // resid → RESDESCR
+    // BOM indexes — kept for legacy compat but no longer populated (lazy caches replace them)
+    var HDR_BY_PRD = {};
+    var HDR_BY_SID = {};
+    var ITM_BY_SID = {};
+    var RES_BY_SID = {};
+    var CPR_BY_SID = {};
+    var isCompAtLoc = {};
+    var LOC_BY_ID = {};
+    var RES_DESCR = {};   // resid → RESDESCR (still populated by doFetchAll)
+    // Lazy BOM caches — populated on-demand as the user expands nodes
+    var BOM_SID_CACHE = {}; // sourceid → { hdr, coprods, hasItems, items, resids }
+    var BOM_PRD_CACHE = {}; // prdid   → product master record
+    var BOM_LOC_CACHE = {}; // locid   → LOCDESCR string
 
 
