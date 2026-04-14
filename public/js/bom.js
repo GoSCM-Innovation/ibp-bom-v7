@@ -52,7 +52,7 @@
               HDR_BY_PRD[spid].push(h);
               // Queue new products for traversal (co-products and the main product at each level)
               if (!visitedPrds[spid]) {
-                if (visitedCount >= BOM_MAX_VISITED_PRDS) { BOM_TRUNCATED = true; continue; }
+                if (visitedCount >= BOM_MAX_VISITED_PRDS) { BOM_TRUNCATED = true; return; }
                 visitedPrds[spid] = true; visitedCount++; nextQueue.push(spid);
               }
             });
