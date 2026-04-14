@@ -1,6 +1,7 @@
 /* ═══════════════════════════════════════════════════════════════
        GLOBAL STATE
        ═══════════════════════════════════════════════════════════════ */
+    var IBP_SERVICE = 'MASTER_DATA_API_SRV'; // server-validated against ALLOWED_SERVICES
     var CFG = { url: '', user: '', pass: '', pa: '', service: '', pver: '', paEntities: [] };
     var IS_CONNECTED = false;
     var ENTITIES = [];       // [{name, fields:[]}]
@@ -34,5 +35,6 @@
     var BOM_SID_CACHE = {}; // sourceid → { hdr, coprods, hasItems, items, resids }
     var BOM_PRD_CACHE = {}; // prdid   → product master record
     var BOM_LOC_CACHE = {}; // locid   → LOCDESCR string
+    var PSISUB_BY_SID = {}; // SOURCEID -> [{PRDFR, SPRDFR}] (Production Source Item Sub)
 
 

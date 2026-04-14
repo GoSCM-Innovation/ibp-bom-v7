@@ -84,7 +84,7 @@
       CFG.pass = document.getElementById('inpPass').value;
       CFG.pa = document.getElementById('inpPA').value.toUpperCase().trim();
       CFG.pver = document.getElementById('inpPver').value.toUpperCase().trim();
-      CFG.service = document.getElementById('inpService').value;
+      CFG.service = IBP_SERVICE;
 
       if (!CFG.url || !CFG.user || !CFG.pass || !CFG.pa) {
         log(logEl, 'err', 'Completa URL, usuario, contraseña y Planning Area');
@@ -308,6 +308,7 @@
       return {
         header: best(['LOCID', 'PRDID', 'SOURCEID'], ['SOURCETYPE', 'OUTPUTCOEFFICIENT'], ['sourceprod', 'sourceproduction', 'prodhead']),
         item: best(['PRDID', 'SOURCEID', 'COMPONENTCOEFFICIENT'], [], ['sourceitem', 'proditem', 'sourceproditem', 'productionsourceitm']),
+        itemSub: best(['SOURCEID', 'PRDFR', 'SPRDFR'], [], ['sourceitemsub', 'proditemsub', 'itemsub', 'productionsourceitmsubstitution', 'itmsubstitution']),
         resource: best(['RESID', 'SOURCEID'], [], ['sourceres', 'prodres', 'sourceresource', 'productionresource']),
         product: best(['PRDID'], ['PRDDESCR', 'MATTYPEID'], ['product', 'material']),
         locMaster: best(['LOCID'], ['LOCDESCR', 'LOCTYPE'], ['location', 'loc'], ['LOCFR', 'PRDID', 'SOURCEID']),
@@ -320,6 +321,7 @@
       var pairs = [
         { id: 'selHeader', fields: 'fieldsHeader', val: detected.header },
         { id: 'selItem', fields: 'fieldsItem', val: detected.item },
+        { id: 'selItemSub', fields: 'fieldsItemSub', val: detected.itemSub },
         { id: 'selResource', fields: 'fieldsResource', val: detected.resource },
         { id: 'selProduct', fields: 'fieldsProduct', val: detected.product },
         { id: 'selBomLocMaster', fields: 'fieldsBomLocMaster', val: detected.locMaster },
@@ -451,6 +453,7 @@
       var pairs = [
         { id: 'selPAHeader', fields: 'fieldsPAHeader', val: detectedBom.header },
         { id: 'selPAItem', fields: 'fieldsPAItem', val: detectedBom.item },
+        { id: 'selPAItemSub', fields: 'fieldsPAItemSub', val: detectedBom.itemSub },
         { id: 'selPAResource', fields: 'fieldsPAResource', val: detectedBom.resource },
         { id: 'selPAProduct', fields: 'fieldsPAProduct', val: detectedBom.product },
         { id: 'selPALocMaster', fields: 'fieldsPALocMaster', val: detectedBom.locMaster },
@@ -592,6 +595,7 @@
 
       var headerEntity = document.getElementById('selHeader').value;
       var itemEntity = document.getElementById('selItem').value;
+      var itemSubEntity = document.getElementById('selItemSub').value;
       var resourceEntity = document.getElementById('selResource').value;
       var productEntity = document.getElementById('selProduct').value;
       var bomLocEntity = document.getElementById('selBomLocMaster').value;
@@ -617,7 +621,7 @@
         // Open IDB and wipe previous BOM data
         if (!IDB) IDB = await openDB();
         setStatus('info', 'Preparando base de datos local...');
-        await Promise.all(['bom_psh', 'bom_psi', 'bom_psr', 'bom_prd', 'bom_loc'].map(idbClear));
+        await Promise.all(['bom_psh', 'bom_psi', 'bom_psisub', 'bom_psr', 'bom_prd', 'bom_loc'].map(idbClear));
         RES_DESCR = {};
         // Limpiar caches lazy — nueva carga invalida todo lo precargado
         if (typeof bomClearCaches === 'function') bomClearCaches();
@@ -635,9 +639,22 @@
         setStatus('info', 'Descargando Production Source Item...');
         log(logEl, 'info', 'GET → ' + baseOData + itemEntity + (paFilter ? ' [filtro PA/Ver]' : ''));
         var nItm = await fetchAndIndex(baseOData + itemEntity, logEl, paFilter,
-          'SOURCEID,PRDID,COMPONENTCOEFFICIENT',
+          'SOURCEID,PRDID,COMPONENTCOEFFICIENT,ISALTITEM',
           function (rows) { return idbBulkPut('bom_psi', rows); });
         log(logEl, 'ok', 'Item: ' + nItm + ' registros → IDB');
+        setProgress(45);
+
+        // ── Item Sub → IDB ────────────────────────────────────────────────────
+        if (itemSubEntity) {
+          setStatus('info', 'Descargando Production Source Item Sub...');
+          log(logEl, 'info', 'GET → ' + baseOData + itemSubEntity + (paFilter ? ' [filtro PA/Ver]' : ''));
+          var nItmSub = await fetchAndIndex(baseOData + itemSubEntity, logEl, paFilter,
+            'SOURCEID,PRDFR,SPRDFR',
+            function (rows) { return idbBulkPut('bom_psisub', rows); });
+          log(logEl, 'ok', 'Item Sub: ' + nItmSub + ' registros → IDB');
+        } else {
+          log(logEl, 'warn', 'Item Sub: sin entidad configurada');
+        }
         setProgress(50);
 
         // ── Resource → IDB ─────────────────────────────────────────────────────
@@ -731,10 +748,23 @@
     }
 
 
-    /* ── Feedback ── */
-    emailjs.init('DoHbN3x-66upumtbm');
+    /* ── Feedback tooltip ── */
+    function dismissFeedbackTip() {
+      var tip = document.getElementById('feedbackTooltip');
+      if (tip) tip.style.display = 'none';
+      try { localStorage.setItem('fbTipDismissed', '1'); } catch(e) {}
+    }
+    (function showFeedbackTip() {
+      try { if (localStorage.getItem('fbTipDismissed')) return; } catch(e) {}
+      setTimeout(function() {
+        var tip = document.getElementById('feedbackTooltip');
+        if (tip) tip.style.display = 'block';
+      }, 1500);
+    })();
 
+    /* ── Feedback ── */
     function openFeedback() {
+      dismissFeedbackTip();
       document.getElementById('feedbackOverlay').style.display = 'block';
       document.getElementById('feedbackPanel').style.transform = 'translateX(0)';
       document.getElementById('fbName').focus();
@@ -752,18 +782,28 @@
       var msg = document.getElementById('fbMsg');
       if (!name || !desc) { msg.style.color = '#EF4444'; msg.textContent = 'Nombre y descripción son obligatorios.'; return; }
       btn.disabled = true; btn.textContent = 'Enviando…'; msg.textContent = '';
-      emailjs.send('service_tw7qns4', 'template_hd02kde', { from_name: name, app: app, type: type, description: desc })
-        .then(function () {
-          msg.style.color = '#10B981';
-          msg.textContent = '✓ Enviado correctamente. ¡Gracias!';
-          btn.textContent = 'Enviar';
-          btn.disabled = false;
-          document.getElementById('fbName').value = '';
-          document.getElementById('fbDesc').value = '';
-          setTimeout(closeFeedback, 1800);
-        }, function (err) {
+      fetch('/api/send-feedback', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: name, app: app, type: type, description: desc })
+      })
+        .then(function (r) { return r.json(); })
+        .then(function (data) {
+          if (data.ok) {
+            msg.style.color = '#10B981';
+            msg.textContent = '✓ Enviado correctamente. ¡Gracias!';
+            btn.textContent = 'Enviar';
+            btn.disabled = false;
+            document.getElementById('fbName').value = '';
+            document.getElementById('fbDesc').value = '';
+            setTimeout(closeFeedback, 1800);
+          } else {
+            throw new Error(data.error || 'Error desconocido');
+          }
+        })
+        .catch(function () {
           msg.style.color = '#EF4444';
-          msg.textContent = '✕ Error al enviar: ' + (err.text || JSON.stringify(err));
+          msg.textContent = '✕ Error al enviar. Intenta de nuevo.';
           btn.textContent = 'Enviar';
           btn.disabled = false;
         });
@@ -808,7 +848,7 @@
       function popList(key, listId) {
         var arr = JSON.parse(localStorage.getItem(key) || '[]');
         var dl = document.getElementById(listId);
-        if (dl) dl.innerHTML = arr.map(function(v) { return '<option value="' + v + '">'; }).join('');
+        if (dl) dl.innerHTML = arr.map(function(v) { return '<option value="' + escH(v) + '">'; }).join('');
       }
       popList('ibp_h_url', 'urlsList');
       popList('ibp_h_pa', 'paList');

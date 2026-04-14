@@ -5,7 +5,7 @@
        ═══════════════════════════════════════════════════════════════ */
     function openDB() {
       return new Promise(function (resolve, reject) {
-        var req = indexedDB.open('ibp_data', 2);
+        var req = indexedDB.open('ibp_data', 4);
         req.onupgradeneeded = function (e) {
           var db = e.target.result;
           // BOM stores
@@ -24,6 +24,10 @@
           }
           if (!db.objectStoreNames.contains('bom_prd')) {
             db.createObjectStore('bom_prd', { keyPath: 'PRDID' });
+          }
+          if (!db.objectStoreNames.contains('bom_psisub')) {
+            db.createObjectStore('bom_psisub', { autoIncrement: true })
+              .createIndex('by_sourceid', 'SOURCEID', { unique: false });
           }
           // BOM Location master (lookup for LOCID→LOCDESCR in BOM tab)
           if (!db.objectStoreNames.contains('bom_loc')) {
@@ -71,6 +75,10 @@
             var paPsi = db.createObjectStore('pa_psi', { autoIncrement: true });
             paPsi.createIndex('by_sourceid', 'SOURCEID', { unique: false });
             paPsi.createIndex('by_prdid', 'PRDID', { unique: false });
+          }
+          if (!db.objectStoreNames.contains('pa_psisub')) {
+            db.createObjectStore('pa_psisub', { autoIncrement: true })
+              .createIndex('by_sourceid', 'SOURCEID', { unique: false });
           }
           if (!db.objectStoreNames.contains('pa_psr')) {
             db.createObjectStore('pa_psr', { autoIncrement: true })
@@ -185,8 +193,56 @@
     /* ═══════════════════════════════════════════════════════════════
        API HELPERS
        ═══════════════════════════════════════════════════════════════ */
+
+    // Decomposes a full OData URL into structured components for the server proxy.
+    // Prevents client-side manipulation of the OData path prefix and service name
+    // from reaching the server as-is; the server validates each component separately.
+    function decomposeODataUrl(fullUrl) {
+      var parsed = new URL(fullUrl);
+      var base  = parsed.origin;
+      var parts = parsed.pathname.split('/');
+      // pathname always: /sap/opu/odata/{NS}/{service}/{entity}
+      // parts[0]='' parts[1]='sap' parts[2]='opu' parts[3]='odata' parts[4]=NS parts[5]=service parts[6+]=entity
+      var ns      = parts[4] ? parts[4].toUpperCase() : '';
+      var prefix  = ns === 'IBP' ? 'IBP' : 'SAP';
+      var service = parts[5] || '';                           // may include ;v=0002
+      var ePath   = parts.slice(6).join('/') || '$metadata';
+      var query   = parsed.search ? parsed.search.substring(1) : '';
+      return { base: base, service: service, path: ePath, query: query, prefix: prefix };
+    }
+
     async function apiJson(url) {
+      var d = decomposeODataUrl(url);
       var resp = await fetch('/api/proxy', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ base: d.base, service: d.service, path: d.path, query: d.query, prefix: d.prefix, user: CFG.user, password: CFG.pass })
+      });
+      if (!resp.ok) {
+        var err = await resp.json().catch(function () { return { error: resp.statusText }; });
+        throw new Error(err.error || resp.statusText);
+      }
+      return resp.json();
+    }
+
+    async function apiXml(url) {
+      var d = decomposeODataUrl(url);
+      var resp = await fetch('/api/proxy-xml', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ base: d.base, service: d.service, prefix: d.prefix, user: CFG.user, password: CFG.pass })
+      });
+      if (!resp.ok) {
+        var err = await resp.json().catch(function () { return { error: resp.statusText }; });
+        throw new Error(err.error || resp.statusText);
+      }
+      return resp.text();
+    }
+
+    // Used exclusively for SAP-provided pagination links (__next / @odata.nextLink).
+    // These are full URLs returned by the SAP server, not constructed by the client.
+    async function apiJsonNext(url) {
+      var resp = await fetch('/api/proxy-next', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ url: url, user: CFG.user, password: CFG.pass })
@@ -198,19 +254,6 @@
       return resp.json();
     }
 
-    async function apiXml(url) {
-      var resp = await fetch('/api/proxy-xml', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ url: url, user: CFG.user, password: CFG.pass })
-      });
-      if (!resp.ok) {
-        var err = await resp.json().catch(function () { return { error: resp.statusText }; });
-        throw new Error(err.error || resp.statusText);
-      }
-      return resp.text();
-    }
-
 
     async function fetchAllPages(entityUrl, logEl, pverFilter, selectFields) {
       var all = [];
@@ -219,13 +262,14 @@
       var filterParam = pverFilter ? '&$filter=' + encodeURIComponent(pverFilter) : '';
       var selectParam = selectFields ? '&$select=' + selectFields : '';
       var url = entityUrl + '?$format=json&$top=' + PAGE_SIZE + filterParam + selectParam;
+      var isNextLink = false;
 
       while (url) {
         page++;
         if (page > 1) {
           log(logEl, 'info', '  ↳ Pág.' + page + ' GET → ' + url);
         }
-        var data = await apiJson(url);
+        var data = await (isNextLink ? apiJsonNext(url) : apiJson(url));
         var results = (data.d && data.d.results) ? data.d.results : (data.value || []);
         all = all.concat(results);
 
@@ -239,10 +283,12 @@
 
         if (next) {
           url = (next.indexOf('http') === 0) ? next : (CFG.url + next);
+          isNextLink = true;
         } else if (results.length === PAGE_SIZE) {
           // Página completa sin link → fallback $skip para no perder registros
           var skip = all.length;
           url = entityUrl + '?$format=json&$top=' + PAGE_SIZE + '&$skip=' + skip + filterParam + selectParam;
+          isNextLink = false;
           log(logEl, 'warn', '  ↳ Sin __next, fallback $skip=' + skip + ' → ' + url);
         } else {
           // Página parcial → fin de datos
