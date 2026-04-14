@@ -3,7 +3,7 @@
        Populates the small in-memory BOM indexes for ONE selected product.
        Traverses the full tree: co-products and multi-level components.
        ═══════════════════════════════════════════════════════════════ */
-    var BOM_MAX_VISITED_PRDS = 2000;  // safety limit for BFS traversal
+    var BOM_MAX_VISITED_PRDS = 5000;  // safety limit for BFS traversal
     var BOM_TRUNCATED = false;        // flag: true if BFS was cut short
 
     async function loadBomSubtree(prdid) {
@@ -119,7 +119,9 @@
          1. Enriches co-product descriptions (requires prdIndex)
          2. Builds root trees (requires isCompAtLoc + all indexes)
        ═══════════════════════════════════════════════════════════════ */
-    function finalizeHierarchy() {
+    /* forcePrdid: the product the user explicitly searched — always built as root
+       regardless of isCompAtLoc (it may legitimately be both root and component). */
+    function finalizeHierarchy(forcePrdid) {
       // Enrich co-product descriptions using the already-built prdIndex
       Object.keys(CPR_BY_SID).forEach(function (sid) {
         CPR_BY_SID[sid].forEach(function (cp) {
@@ -145,7 +147,9 @@
       Object.keys(HDR_BY_PRD).sort().forEach(function (pid) {
         HDR_BY_PRD[pid].forEach(function (h) {
           var sid = str(h.SOURCEID), loc = str(h.LOCID);
-          if (isCompAtLoc[loc + '|' + pid]) return;  // component at this plant — skip as root
+          // forcePrdid is never filtered — the user searched for it explicitly, even if
+          // it also appears as a component in another BOM discovered during BFS.
+          if (pid !== forcePrdid && isCompAtLoc[loc + '|' + pid]) return;
           var srcKey = loc + '|' + sid;
           if (seenRootSrcs[srcKey]) return;           // already built this source as a root
           seenRootSrcs[srcKey] = true;
@@ -562,7 +566,7 @@
       var tab = bomGetTab(tabId);
       if (tab && tab.prdid && (!tab.tree || tab.tree._prdid !== tab.prdid)) {
         await loadBomSubtree(tab.prdid);
-        finalizeHierarchy();
+        finalizeHierarchy(tab.prdid);
         TREE._prdid = tab.prdid; // tag so we know which product TREE holds
         tab.tree = TREE;
         bomRenderTable(tabId);
@@ -633,7 +637,7 @@
         return;
       }
       currentLoc = '';
-      finalizeHierarchy();
+      finalizeHierarchy(prdid);
       // Store reference to TREE — no deep clone needed.
       // Each tab switch rebuilds from IDB if the product differs.
       TREE._prdid = prdid;
