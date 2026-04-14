@@ -3,14 +3,19 @@
        Populates the small in-memory BOM indexes for ONE selected product.
        Traverses the full tree: co-products and multi-level components.
        ═══════════════════════════════════════════════════════════════ */
+    var BOM_MAX_VISITED_PRDS = 2000;  // safety limit for BFS traversal
+    var BOM_TRUNCATED = false;        // flag: true if BFS was cut short
+
     async function loadBomSubtree(prdid) {
       // Reset BOM indexes — will hold only this product's subtree
       HDR_BY_PRD = {}; HDR_BY_SID = {}; ITM_BY_SID = {};
       RES_BY_SID = {}; CPR_BY_SID = {}; PSISUB_BY_SID = {};
       isCompAtLoc = {}; prdIndex = {}; LOC_BY_ID = {};
+      BOM_TRUNCATED = false;
 
       var visitedPrds = {}; visitedPrds[prdid] = true;
       var visitedSids = {};
+      var visitedCount = 1;
       var queue = [prdid];
 
       while (queue.length > 0) {
@@ -46,7 +51,10 @@
               if (!HDR_BY_PRD[spid]) HDR_BY_PRD[spid] = [];
               HDR_BY_PRD[spid].push(h);
               // Queue new products for traversal (co-products and the main product at each level)
-              if (!visitedPrds[spid]) { visitedPrds[spid] = true; nextQueue.push(spid); }
+              if (!visitedPrds[spid]) {
+                if (visitedCount >= BOM_MAX_VISITED_PRDS) { BOM_TRUNCATED = true; continue; }
+                visitedPrds[spid] = true; visitedCount++; nextQueue.push(spid);
+              }
             });
 
             // 3. Get PSI rows for this SOURCEID (component items)
@@ -62,7 +70,10 @@
                 isCompAtLoc[str(parentHdr.LOCID) + '|' + compPrd] = true;
               }
               // Queue component products
-              if (compPrd && !visitedPrds[compPrd]) { visitedPrds[compPrd] = true; nextQueue.push(compPrd); }
+              if (compPrd && !visitedPrds[compPrd]) {
+                if (visitedCount >= BOM_MAX_VISITED_PRDS) { BOM_TRUNCATED = true; }
+                else { visitedPrds[compPrd] = true; visitedCount++; nextQueue.push(compPrd); }
+              }
             });
 
             // 4. Get PSR rows for this SOURCEID (resources)
@@ -129,6 +140,8 @@
       var roots = {};
       var seenRootSrcs = {}; // (locid|sourceid) → true, prevents duplicate root nodes
 
+      BOM_NODE_COUNT = 0; // reset for this tree build
+
       Object.keys(HDR_BY_PRD).sort().forEach(function (pid) {
         HDR_BY_PRD[pid].forEach(function (h) {
           var sid = str(h.SOURCEID), loc = str(h.LOCID);
@@ -136,7 +149,7 @@
           var srcKey = loc + '|' + sid;
           if (seenRootSrcs[srcKey]) return;           // already built this source as a root
           seenRootSrcs[srcKey] = true;
-          var node = buildSourceNode(sid, 1, {}, pid);
+          var node = buildSourceNode(sid, 1, {}, pid, undefined, BOM_LAZY_DEPTH);
           if (node) {
             node.type = 'MAIN';
             allLocids[loc] = true;
@@ -161,12 +174,21 @@
     /* Builds a tree node starting from a SOURCEID.
        visitedSids : set of SOURCEIDs already on the current path (cycle detection).
        displayPrdid: override which product to show at this node (C-type multi-output sources).
-       rootLocid   : LOCID of the level-1 source; only follow sub-components at this same plant. */
-    function buildSourceNode(sid, level, visitedSids, displayPrdid, rootLocid) {
+       rootLocid   : LOCID of the level-1 source; only follow sub-components at this same plant.
+       depthBudget : how many more levels to recurse (0 = create node but defer children). */
+    var BOM_LAZY_DEPTH = 1;     // levels to pre-build below each expansion point
+    var BOM_NODE_COUNT = 0;     // running total of nodes created in current tree build
+    var BOM_MAX_NODES = 10000;  // safety cap — stop building beyond this
+
+    function buildSourceNode(sid, level, visitedSids, displayPrdid, rootLocid, depthBudget) {
+      if (depthBudget === undefined) depthBudget = BOM_LAZY_DEPTH;
       if (visitedSids[sid]) return null;   // cycle
+      if (BOM_NODE_COUNT >= BOM_MAX_NODES) return null; // safety cap
 
       var h = HDR_BY_SID[sid];
       if (!h) return null;
+
+      BOM_NODE_COUNT++;
 
       var newVis = {};
       for (var k in visitedSids) newVis[k] = true;
@@ -219,7 +241,19 @@
         children: []
       };
 
-      // Expand components — respect same plant (curRootLocid).
+      // ── Lazy loading: if depthBudget exhausted, defer children ──
+      if (depthBudget <= 0) {
+        var items = ITM_BY_SID[sid] || [];
+        if (items.length > 0) {
+          // Mark as lazy — children will be materialized on first expand
+          node._lazy = true;
+          node._lazyVis = newVis;
+          node._lazyRootLocid = curRootLocid;
+        }
+        return node;
+      }
+
+      // ── Expand components — respect same plant (curRootLocid) ──
       // seenCompSids is shared across ALL items of this node: if the same SOURCEID
       // supplies multiple items (e.g. source 53_2043 produces both PRDID=2020029 as P-type
       // and PRDID=2020031 as C-type, and the parent consumes both), we only recurse into
@@ -274,7 +308,7 @@
             // Pasar compPrd (PSI.PRDID) como displayPrdid: el nodo hijo muestra el material
             // que vincula los niveles (PSI.PRDID = PSH.PRDID del hijo), que puede ser C-type.
             // El filtro de coprods (cp.prdid !== pid) evita que aparezca duplicado.
-            var childNode = buildSourceNode(str(ch.SOURCEID), level + 1, newVis, compPrd, curRootLocid);
+            var childNode = buildSourceNode(str(ch.SOURCEID), level + 1, newVis, compPrd, curRootLocid, depthBudget - 1);
             if (childNode) {
               childNode.inputCoeff = compCoeff;   // PSI — consumed by parent
               childNode.uomid = compUom;     // UOM from component master
@@ -295,8 +329,72 @@
       return node;
     }
 
+    /* Materializes lazy children of a node (called on first expand).
+       Builds one more level of depth and marks deeper nodes as lazy again. */
+    function bomMaterializeLazy(node) {
+      if (!node._lazy) return;
+      var sid = node.sourceid;
+      var visitedSids = node._lazyVis || {};
+      var curRootLocid = node._lazyRootLocid || node.locid;
+
+      var seenCompSids = {};
+      (ITM_BY_SID[sid] || []).forEach(function (it) {
+        var compPrd = str(it.PRDID);
+        if (!compPrd) return;
+
+        var compInfo = prdIndex[compPrd] || {};
+        var compCoeff = it.COMPONENTCOEFFICIENT || '';
+        var compUom = str(compInfo.UOMDESCR || compInfo.UOMID || '');
+        var compDescr = str(compInfo.PRDDESCR || '');
+
+        var compHdrs = (HDR_BY_PRD[compPrd] || []).filter(function (ch) {
+          return str(ch.LOCID) === curRootLocid;
+        });
+        var uniqueCompHdrs = compHdrs.filter(function (ch) {
+          var cSid = str(ch.SOURCEID);
+          if (seenCompSids[cSid]) return false;
+          seenCompSids[cSid] = true;
+          return true;
+        });
+
+        var leafFallback = {
+          id: sid + '_leaf_' + compPrd + '_L' + (node.level + 1),
+          locid: curRootLocid, sourceid: '', prdid: compPrd,
+          prddescr: compDescr, mattypeid: str(compInfo.MATTYPEID),
+          uomid: compUom, coefficient: '', inputCoeff: compCoeff,
+          isAltItem: str(it.ISALTITEM), type: 'LEAF',
+          level: node.level + 1, resids: [], coprods: [], children: []
+        };
+
+        if (uniqueCompHdrs.length > 0) {
+          var anyAdded = false;
+          uniqueCompHdrs.forEach(function (ch) {
+            var childNode = buildSourceNode(str(ch.SOURCEID), node.level + 1, visitedSids, compPrd, curRootLocid, BOM_LAZY_DEPTH);
+            if (childNode) {
+              childNode.inputCoeff = compCoeff;
+              childNode.uomid = compUom;
+              childNode.type = 'COMPONENT';
+              childNode.isAltItem = str(it.ISALTITEM);
+              node.children.push(childNode);
+              anyAdded = true;
+            }
+          });
+          if (!anyAdded) node.children.push(leafFallback);
+        } else {
+          node.children.push(leafFallback);
+        }
+      });
+
+      // Clean up lazy metadata — children are now materialized
+      node._lazy = false;
+      delete node._lazyVis;
+      delete node._lazyRootLocid;
+    }
+
     function getDepth(node) {
-      if (!node.children || !node.children.length) return node.level;
+      // Only counts materialized depth — lazy children are not traversed
+      if ((!node.children || !node.children.length) && !node._lazy) return node.level;
+      if (node._lazy) return node.level + 1; // at least one more level exists
       var maxD = node.level;
       node.children.forEach(function (c) {
         var d = getDepth(c);
@@ -543,7 +641,9 @@
       tab.prdid = prdid;
       tab.expandedIds = {};
       tab.inverted = false;
-      setStatus('ok', '¡Listo! ' + TREE.locids.length + ' plantas · profundidad máx: ' + maxDepthGlobal());
+      var statusMsg = '¡Listo! ' + TREE.locids.length + ' plantas · profundidad máx: ' + maxDepthGlobal();
+      if (BOM_TRUNCATED) statusMsg += ' ⚠ BOM muy extenso — algunos ramales fueron truncados';
+      setStatus(BOM_TRUNCATED ? 'warn' : 'ok', statusMsg);
 
       // Lookup product description from IDB (no in-memory array)
       var p = await idbGetProduct(prdid);
@@ -563,13 +663,22 @@
       // Restore globals from tab state
       bomRestoreGlobals(tab);
       tab.expandedIds = {};
+      var nodeCount = 0;
+      var MAX_EXPAND = 5000; // safety cap for expand-all
       function expNode(node) {
-        if (node.children && node.children.length > 0) {
+        if (nodeCount >= MAX_EXPAND) return;
+        var hasKids = (node.children && node.children.length > 0) || node._lazy;
+        if (hasKids) {
+          if (node._lazy) bomMaterializeLazy(node);
           tab.expandedIds[node.id] = true;
-          node.children.forEach(expNode);
+          nodeCount++;
+          if (node.children) node.children.forEach(expNode);
         }
       }
       bomGetRoots(tab).forEach(expNode);
+      if (nodeCount >= MAX_EXPAND) {
+        setStatus('warn', 'Expandir todo: se alcanzó el límite de ' + MAX_EXPAND + ' nodos. Algunos nodos permanecen colapsados.');
+      }
       bomRenderTable(tabId);
     }
 
@@ -651,6 +760,14 @@
         children: []
       };
 
+      // Preserve lazy metadata so expansion still works in inverted view
+      if (node._lazy) {
+        inv._lazy = true;
+        inv._lazyVis = node._lazyVis;
+        inv._lazyRootLocid = node._lazyRootLocid;
+        return inv;
+      }
+
       if (!node.children || !node.children.length) {
         return inv; // leaf stays as leaf
       }
@@ -659,7 +776,7 @@
       var leafPaths = [];
       function collectPaths(n, path) {
         var cur = path.concat([n]);
-        if (!n.children || !n.children.length) {
+        if (n._lazy || !n.children || !n.children.length) {
           leafPaths.push(cur);
         } else {
           n.children.forEach(function (c) { collectPaths(c, cur); });
@@ -751,7 +868,7 @@
       rows.forEach(function (r) {
         var n = r.node;
         var indent = (n.level - 1) * 20;
-        var hasKids = n.children && n.children.length > 0;
+        var hasKids = (n.children && n.children.length > 0) || n._lazy;
         var isExp = !!tab.expandedIds[n.id];
 
         var rowClass = 'rt-leaf';
@@ -826,8 +943,12 @@
           });
         }
         if (hasKids && isExp) {
+          var childCount = n.children ? n.children.length : 0;
+          var divLabel = childCount > 0
+            ? '↓ Componentes PSI (' + childCount + ')'
+            : '↓ Componentes PSI (cargando...)';
           html += '<tr class="tr-comp-divider"><td style="padding-left:' + (indent + 28) + 'px"></td>';
-          html += '<td colspan="9"><span class="divider-lbl">↓ Componentes PSI (' + n.children.length + ')</span></td></tr>';
+          html += '<td colspan="9"><span class="divider-lbl">' + divLabel + '</span></td></tr>';
         }
       });
 
@@ -843,8 +964,9 @@
     function bomFlatten(roots, rows, expIds) {
       roots.forEach(function (node) {
         rows.push({ node: node });
-        if (expIds[node.id] && node.children) {
-          bomFlattenChildren(node.children, rows, expIds);
+        if (expIds[node.id]) {
+          if (node._lazy) bomMaterializeLazy(node);
+          if (node.children) bomFlattenChildren(node.children, rows, expIds);
         }
       });
     }
@@ -852,8 +974,9 @@
     function bomFlattenChildren(children, rows, expIds) {
       sortedNodes(children).forEach(function (node) {
         rows.push({ node: node });
-        if (expIds[node.id] && node.children) {
-          bomFlattenChildren(node.children, rows, expIds);
+        if (expIds[node.id]) {
+          if (node._lazy) bomMaterializeLazy(node);
+          if (node.children) bomFlattenChildren(node.children, rows, expIds);
         }
       });
     }
