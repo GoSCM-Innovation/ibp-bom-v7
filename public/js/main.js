@@ -709,13 +709,13 @@
         }
         setProgress(90);
 
-        // Build product suggestion list from IDB (unique PRDIDs + descriptions)
+        // Count unique products in IDB (no large array in memory)
         setStatus('info', 'Indexando lista de productos...');
-        prodSuggestions = await idbBuildProdSuggestions();
-        prodSuggestions.sort(function (a, b) { return a.prdid.localeCompare(b.prdid); });
+        var prodCount = await idbCountProducts();
+        prodSuggestions = []; // kept empty — searches go to IDB on demand
         setProgress(100);
 
-        var summary = '¡Listo! ' + prodSuggestions.length + ' productos en caché local. Selecciona uno para ver su BOM.';
+        var summary = '¡Listo! ' + prodCount + ' productos en caché local. Selecciona uno para ver su BOM.';
         log(logEl, 'ok', summary);
         setStatus('ok', summary);
 

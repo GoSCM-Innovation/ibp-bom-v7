@@ -189,6 +189,109 @@
       });
     }
 
+    /* On-demand search: scans unique PRDID keys in bom_psh via cursor,
+       matches against query string, returns first `limit` results.
+       No large array held in memory — each key is tested and discarded. */
+    function idbSearchProducts(query, limit) {
+      limit = limit || 30;
+      var q = (query || '').toLowerCase().trim();
+      return new Promise(function (resolve, reject) {
+        if (!q) { resolve([]); return; }
+        var tx = IDB.transaction(['bom_psh', 'bom_prd'], 'readonly');
+        var pshIdx = tx.objectStore('bom_psh').index('by_prdid');
+        var prdStore = tx.objectStore('bom_prd');
+        var results = [];
+        var pending = 0;
+        var done = false;
+        var curReq = pshIdx.openKeyCursor(null, 'nextunique');
+        curReq.onsuccess = function (e) {
+          var cursor = e.target.result;
+          if (!cursor || done) {
+            // No more keys — wait for pending lookups then resolve
+            if (pending === 0) resolve(results);
+            return;
+          }
+          var pid = String(cursor.key);
+          // Quick check: if PRDID itself matches, look up description
+          if (pid.toLowerCase().indexOf(q) >= 0) {
+            pending++;
+            var gr = prdStore.get(pid);
+            gr.onsuccess = function (e2) {
+              pending--;
+              if (!done) {
+                var p = e2.target.result || {};
+                results.push({ prdid: pid, prddescr: String(p.PRDDESCR || '').trim() });
+                if (results.length >= limit) { done = true; resolve(results); return; }
+              }
+              if (pending === 0 && done) resolve(results);
+            };
+            cursor.continue();
+          } else {
+            // PRDID doesn't match — check description
+            pending++;
+            var gr2 = prdStore.get(pid);
+            gr2.onsuccess = function (e2) {
+              pending--;
+              if (!done) {
+                var p = e2.target.result || {};
+                var desc = String(p.PRDDESCR || '').trim().toLowerCase();
+                if (desc.indexOf(q) >= 0) {
+                  results.push({ prdid: pid, prddescr: String(p.PRDDESCR || '').trim() });
+                  if (results.length >= limit) { done = true; resolve(results); return; }
+                }
+              }
+              if (pending === 0 && done) resolve(results);
+            };
+            cursor.continue();
+          }
+        };
+        curReq.onerror = function (e) { reject(e.target.error); };
+        tx.oncomplete = function () { if (!done) resolve(results); };
+      });
+    }
+
+    /* Counts unique PRDID keys in bom_psh — lightweight, no array allocation. */
+    function idbCountProducts() {
+      return new Promise(function (resolve, reject) {
+        var tx = IDB.transaction('bom_psh', 'readonly');
+        var pshIdx = tx.objectStore('bom_psh').index('by_prdid');
+        var count = 0;
+        var curReq = pshIdx.openKeyCursor(null, 'nextunique');
+        curReq.onsuccess = function (e) {
+          var cursor = e.target.result;
+          if (!cursor) { resolve(count); return; }
+          count++;
+          cursor.continue();
+        };
+        curReq.onerror = function (e) { reject(e.target.error); };
+      });
+    }
+
+    /* Batch-get multiple keys from a store in a single transaction. */
+    function idbGetBatch(storeName, keys) {
+      return new Promise(function (resolve, reject) {
+        var tx = IDB.transaction(storeName, 'readonly');
+        var store = tx.objectStore(storeName);
+        var results = {};
+        var pending = keys.length;
+        if (pending === 0) { resolve(results); return; }
+        keys.forEach(function (key) {
+          var req = store.get(key);
+          req.onsuccess = function (e) {
+            if (e.target.result) results[key] = e.target.result;
+            pending--;
+            if (pending === 0) resolve(results);
+          };
+        });
+        tx.onerror = function (e) { reject(e.target.error); };
+      });
+    }
+
+    /* Lookup a single product by PRDID from bom_prd. */
+    function idbGetProduct(prdid) {
+      return idbGet('bom_prd', prdid);
+    }
+
 
     /* ═══════════════════════════════════════════════════════════════
        API HELPERS

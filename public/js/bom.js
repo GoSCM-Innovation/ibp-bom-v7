@@ -86,24 +86,17 @@
         queue = nextQueue;
       }
 
-      // 5. Load product master for all visited products
+      // 5. Batch-load product master for all visited products (single IDB transaction)
       var allPids = Object.keys(visitedPrds);
-      for (var k = 0; k < allPids.length; k++) {
-        var p = await idbGet('bom_prd', allPids[k]);
-        if (p) prdIndex[allPids[k]] = p;
-      }
+      prdIndex = await idbGetBatch('bom_prd', allPids);
 
-      // 6. Load Location master for all LOCIDs seen in PSH headers
+      // 6. Batch-load Location master for all LOCIDs seen in PSH headers
       var seenLocs = {};
       Object.keys(HDR_BY_SID).forEach(function (sid) {
         var locid = str(HDR_BY_SID[sid].LOCID);
         if (locid) seenLocs[locid] = true;
       });
-      var allLocids = Object.keys(seenLocs);
-      for (var li = 0; li < allLocids.length; li++) {
-        var locRec = await idbGet('bom_loc', allLocids[li]);
-        if (locRec) LOC_BY_ID[allLocids[li]] = locRec;
-      }
+      LOC_BY_ID = await idbGetBatch('bom_loc', Object.keys(seenLocs));
     }
 
     /* ═══════════════════════════════════════════════════════════════
@@ -327,7 +320,7 @@
     var BOM_TABS = [];       // [{id, prdid, expandedIds, tree, inverted, qualityOpen}]
     var BOM_ACTIVE_TAB = null;
     var BOM_TAB_SEQ = 0;
-    var BOM_MAX_TABS = 15;
+    var BOM_MAX_TABS = 8;
 
     function bomInitTabs() {
       document.getElementById('bomTabsBar').classList.remove('hidden');
@@ -452,25 +445,37 @@
       if (BOM_TABS.length < BOM_MAX_TABS) {
         var addBtn = document.createElement('button');
         addBtn.className = 'bom-tab-add';
-        addBtn.title = 'Nueva pestaña (máx 15)';
+        addBtn.title = 'Nueva pestaña (máx 8)';
         addBtn.textContent = '+';
         addBtn.addEventListener('click', function () { bomAddTab(); });
         scroll.appendChild(addBtn);
       }
     }
 
-    function bomSwitchTab(tabId) {
+    async function bomSwitchTab(tabId) {
       BOM_ACTIVE_TAB = tabId;
       BOM_TABS.forEach(function (t) {
         var pane = bomGetPane(t.id);
         if (pane) pane.classList.toggle('active', t.id === tabId);
       });
       bomRenderTabBar();
+
+      // Rebuild tree from IDB if this tab has a product and TREE is stale
+      var tab = bomGetTab(tabId);
+      if (tab && tab.prdid && (!tab.tree || tab.tree._prdid !== tab.prdid)) {
+        await loadBomSubtree(tab.prdid);
+        finalizeHierarchy();
+        TREE._prdid = tab.prdid; // tag so we know which product TREE holds
+        tab.tree = TREE;
+        bomRenderTable(tabId);
+      }
     }
 
     function bomCloseTab(tabId) {
       var idx = BOM_TABS.findIndex(function (t) { return t.id === tabId; });
       if (idx < 0) return;
+      // Free tree reference to allow GC
+      BOM_TABS[idx].tree = null;
       var pane = bomGetPane(tabId);
       if (pane) pane.remove();
       BOM_TABS.splice(idx, 1);
@@ -483,6 +488,8 @@
     }
 
     /* ── Search within tab ── */
+    var _bomSearchSeq = 0; // debounce sequence counter
+
     function bomOnSearch(tabId) {
       var pane = bomGetPane(tabId);
       if (!pane) return;
@@ -495,24 +502,25 @@
         if (tab && tab.prdid) { tab.prdid = ''; tab.expandedIds = {}; bomRenderTable(tabId); bomRenderTabBar(); }
         return;
       }
-      var f = val.toLowerCase();
-      var matches = prodSuggestions.filter(function (p) {
-        return p.prdid.toLowerCase().indexOf(f) >= 0 || p.prddescr.toLowerCase().indexOf(f) >= 0;
-      }).slice(0, 30);
-      list.innerHTML = '';
-      if (!matches.length) {
-        list.innerHTML = '<div class="ss-none">Sin coincidencias</div>';
-      } else {
-        matches.forEach(function (p) {
-          var div = document.createElement('div');
-          div.className = 'ss-opt';
-          div.innerHTML = '<span style="color:var(--accent);font-weight:600">' + escH(p.prdid) + '</span>' +
-            (p.prddescr ? ' <span style="color:var(--text3);font-size:10px">· ' + escH(p.prddescr) + '</span>' : '');
-          div.dataset.prdid = p.prdid;
-          list.appendChild(div);
-        });
-      }
-      list.classList.add('open');
+      // Debounce: only render results from the latest keystroke
+      var seq = ++_bomSearchSeq;
+      idbSearchProducts(val, 30).then(function (matches) {
+        if (seq !== _bomSearchSeq) return; // stale result — discard
+        list.innerHTML = '';
+        if (!matches.length) {
+          list.innerHTML = '<div class="ss-none">Sin coincidencias</div>';
+        } else {
+          matches.forEach(function (p) {
+            var div = document.createElement('div');
+            div.className = 'ss-opt';
+            div.innerHTML = '<span style="color:var(--accent);font-weight:600">' + escH(p.prdid) + '</span>' +
+              (p.prddescr ? ' <span style="color:var(--text3);font-size:10px">· ' + escH(p.prddescr) + '</span>' : '');
+            div.dataset.prdid = p.prdid;
+            list.appendChild(div);
+          });
+        }
+        list.classList.add('open');
+      });
     }
 
     async function bomSelectProduct(tabId, prdid) {
@@ -528,14 +536,19 @@
       }
       currentLoc = '';
       finalizeHierarchy();
-      tab.tree = JSON.parse(JSON.stringify(TREE));
+      // Store reference to TREE — no deep clone needed.
+      // Each tab switch rebuilds from IDB if the product differs.
+      TREE._prdid = prdid;
+      tab.tree = TREE;
       tab.prdid = prdid;
       tab.expandedIds = {};
       tab.inverted = false;
       setStatus('ok', '¡Listo! ' + TREE.locids.length + ' plantas · profundidad máx: ' + maxDepthGlobal());
 
-      var p = prodSuggestions.find(function (x) { return x.prdid === prdid; });
-      pane.querySelector('.bom-search-inp').value = prdid + (p && p.prddescr ? '  ·  ' + p.prddescr : '');
+      // Lookup product description from IDB (no in-memory array)
+      var p = await idbGetProduct(prdid);
+      var descr = p ? String(p.PRDDESCR || '').trim() : '';
+      pane.querySelector('.bom-search-inp').value = prdid + (descr ? '  ·  ' + descr : '');
       pane.querySelector('.bom-sugg-list').classList.remove('open');
       // Also set globals for compatibility
       selectedPrdid = prdid;
