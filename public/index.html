@@ -101,6 +101,35 @@
           <button type="button" class="btn btn-secondary" onclick="showConnStep(2)">&#8592; Volver</button>
         </div>
       </div>
+      <!-- Panel: conexión activa (visible cuando IS_CONNECTED=true) -->
+      <div class="conn-step" id="connPanelActive">
+        <div class="conn-active-status">
+          <span class="status-dot on" style="width:10px;height:10px;flex-shrink:0;"></span>
+          Conexión activa
+        </div>
+        <div class="conn-active-grid">
+          <div class="conn-active-row">
+            <span class="conn-active-label">URL</span>
+            <span class="conn-active-value" id="connInfoUrl"></span>
+          </div>
+          <div class="conn-active-row">
+            <span class="conn-active-label">Usuario</span>
+            <span class="conn-active-value" id="connInfoUser"></span>
+          </div>
+          <div class="conn-active-row">
+            <span class="conn-active-label">Planning Area</span>
+            <span class="conn-active-value" id="connInfoPA"></span>
+          </div>
+          <div class="conn-active-row">
+            <span class="conn-active-label">Versión</span>
+            <span class="conn-active-value" id="connInfoPver"></span>
+          </div>
+        </div>
+        <div class="btn-row" style="margin-top:20px;">
+          <button type="button" class="btn btn-primary" onclick="closeConnectDialog()">Cerrar</button>
+          <button type="button" class="btn btn-secondary" onclick="startNewConnection()">Nueva conexión</button>
+        </div>
+      </div>
       <!-- Inputs ocultos — leídos por doConnect() internamente -->
       <input type="hidden" id="inpPA">
       <input type="hidden" id="inpPver">

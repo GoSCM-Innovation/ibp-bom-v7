@@ -1820,6 +1820,52 @@ button[disabled][title]:hover::after {
   animation: panel-in var(--dur-std) var(--ease-out) forwards;
 }
 
+/* ── Connected-state panel ── */
+.conn-active-status {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  font-weight: 600;
+  font-size: var(--text-base);
+  color: var(--green);
+  margin-bottom: var(--sp-4);
+}
+
+.conn-active-grid {
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  overflow: hidden;
+}
+
+.conn-active-row {
+  display: grid;
+  grid-template-columns: 130px 1fr;
+  gap: var(--sp-3);
+  padding: var(--sp-2) var(--sp-4);
+  border-bottom: 1px solid var(--border);
+  align-items: center;
+}
+.conn-active-row:last-child {
+  border-bottom: none;
+}
+
+.conn-active-label {
+  font-size: var(--text-sm);
+  color: var(--text3);
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  white-space: nowrap;
+}
+
+.conn-active-value {
+  font-size: var(--text-sm);
+  color: var(--text);
+  font-family: var(--mono);
+  word-break: break-all;
+}
+
 /* ── Select dropdown for connection wizard ── */
 .conn-select {
   width: 100%;

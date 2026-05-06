@@ -1,7 +1,8 @@
     /* ═══════════════════════════════════════════════════════════════
        CONNECTION WIZARD CACHE
        ═══════════════════════════════════════════════════════════════ */
-    var CONN_CACHE = { metaText: null, vsmt: [] };
+    var CONN_CACHE      = { metaText: null, vsmt: [] };
+    var CONN_SAVED_CFG  = null; // snapshot de la conexión previa al iniciar una reconexión
 
     /* ═══════════════════════════════════════════════════════════════
        TAB NAVIGATION
@@ -205,6 +206,9 @@
           var btn = document.getElementById('tabBtn-' + t);
           if (el) el.classList.toggle('visible', btn && btn.classList.contains('active'));
         });
+        // Conexión exitosa: descartar snapshot y cerrar dialog
+        CONN_SAVED_CFG = null;
+        closeConnectDialog();
       } catch (e) {
         log(logEl, 'err', 'Error: ' + e.message);
         setConnStatus('err', 'Error: ' + e.message);
@@ -219,6 +223,18 @@
        ═══════════════════════════════════════════════════════════════ */
 
     function showConnStep(n) {
+      // n=0: panel de conexión activa  |  n=1/2/3: pasos del wizard
+      var isWizard = n > 0;
+
+      // Stepper: visible solo en modo wizard
+      var stepper = document.querySelector('.conn-wizard-stepper');
+      if (stepper) stepper.style.display = isWizard ? '' : 'none';
+
+      // Panel de conexión activa
+      var activePanel = document.getElementById('connPanelActive');
+      if (activePanel) activePanel.classList.toggle('active', n === 0);
+
+      // Paneles del wizard
       [1, 2, 3].forEach(function (i) {
         var panel = document.getElementById('connStep' + i);
         if (panel) panel.classList.toggle('active', i === n);
@@ -236,12 +252,32 @@
         }
       });
 
+      // Al volver al paso 1 (desde wizard), limpiar status y logs
       if (n === 1) {
         var st = document.getElementById('connStatus');
         if (st) st.style.display = 'none';
         var lg = document.getElementById('logConnect');
         if (lg) { lg.classList.add('hidden'); lg.innerHTML = ''; }
       }
+    }
+
+    function showConnectedPanel() {
+      document.getElementById('connInfoUrl').textContent  = CFG.url  || '-';
+      document.getElementById('connInfoUser').textContent = CFG.user || '-';
+      document.getElementById('connInfoPA').textContent   = CFG.pa   || '-';
+      document.getElementById('connInfoPver').textContent = CFG.pver || 'Baseline';
+      showConnStep(0);
+    }
+
+    function startNewConnection() {
+      // Guardar snapshot para restaurar si el usuario cancela
+      CONN_SAVED_CFG = { url: CFG.url, user: CFG.user, pass: CFG.pass,
+                         pa: CFG.pa, pver: CFG.pver, service: CFG.service };
+      // Precargar campos con datos actuales para comodidad (contraseña no por seguridad)
+      document.getElementById('inpUrl').value  = CFG.url  || '';
+      document.getElementById('inpUser').value = CFG.user || '';
+      document.getElementById('inpPass').value = '';
+      showConnStep(1);
     }
 
     async function doConnStep1() {
@@ -986,12 +1022,27 @@
       var d = document.getElementById('connectDialog');
       if (d) d.showModal();
       closeTechReqDialog();
-      showConnStep(1);
+      if (IS_CONNECTED) {
+        showConnectedPanel();
+      } else {
+        showConnStep(1);
+      }
     }
 
     function closeConnectDialog() {
       var d = document.getElementById('connectDialog');
       if (d && d.open) d.close();
+      // Si había una reconexión en curso (con o sin éxito parcial), restaurar la conexión anterior
+      if (CONN_SAVED_CFG) {
+        CFG.url     = CONN_SAVED_CFG.url;
+        CFG.user    = CONN_SAVED_CFG.user;
+        CFG.pass    = CONN_SAVED_CFG.pass;
+        CFG.pa      = CONN_SAVED_CFG.pa;
+        CFG.pver    = CONN_SAVED_CFG.pver;
+        CFG.service = CONN_SAVED_CFG.service || IBP_SERVICE;
+        setConnected(true);
+        CONN_SAVED_CFG = null;
+      }
     }
 
     function openTechReqDialog() {
@@ -1043,6 +1094,17 @@
       popList('ibp_h_pa', 'paList');
       popList('ibp_h_pver', 'pverList');
     } catch(e) {}
+
+    // Interceptar Escape para que la restauración del snapshot siempre pase por closeConnectDialog
+    (function () {
+      var dlg = document.getElementById('connectDialog');
+      if (dlg) {
+        dlg.addEventListener('cancel', function (e) {
+          e.preventDefault();
+          closeConnectDialog();
+        });
+      }
+    }());
 
     // Default tab on load
     switchTab('bom');
