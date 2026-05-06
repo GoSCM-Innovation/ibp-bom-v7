@@ -55,6 +55,8 @@ async function doProductionAnalysis() {
   var fLoc    = paFilter;
   var fLocSrc = paFilter;
 
+  var PA_EXEC_META = { generatedAt: new Date(), paFilter: paFilter, entities: [] };
+
   var PA_PRD = {}, PA_LOC = {}, PA_RES = {}, PA_RES_LOC = {};
   var pshBySid = {}, pshPrdSet = {};
 
@@ -89,6 +91,7 @@ async function doProductionAnalysis() {
         return idbBulkPut('pa_psh', rows);
       });
     log(logEl, 'ok', timer.fmt() + ' PSH: ' + nPsh + ' reg (' + Object.keys(pshBySid).length + ' SOURCEIDs)');
+    PA_EXEC_META.entities.push({ name: 'Production Source Header', entityName: ent.psh, downloaded: nPsh, note: 'Excluye PINVALID=X' });
     progEl.style.width = '12%';
 
     if (ent.psi) {
@@ -100,6 +103,7 @@ async function doProductionAnalysis() {
           return idbBulkPut('pa_psi', validRows);
         });
       log(logEl, 'ok', timer.fmt() + ' PSI: ' + nPsi + ' reg');
+      PA_EXEC_META.entities.push({ name: 'Production Source Item', entityName: ent.psi, downloaded: nPsi, note: 'Solo SOURCEIDs activos en PSH' });
     }
     progEl.style.width = '18%';
 
@@ -112,6 +116,7 @@ async function doProductionAnalysis() {
           return idbBulkPut('pa_psisub', validRows);
         });
       log(logEl, 'ok', timer.fmt() + ' PSI Sub: ' + nPsiSub + ' reg');
+      PA_EXEC_META.entities.push({ name: 'Production Source Item Sub', entityName: ent.psiSub, downloaded: nPsiSub, note: 'Solo SOURCEIDs activos en PSH' });
     }
     progEl.style.width = '22%';
 
@@ -124,6 +129,7 @@ async function doProductionAnalysis() {
           return idbBulkPut('pa_psr', validRows);
         });
       log(logEl, 'ok', timer.fmt() + ' PSR: ' + nPsr + ' reg');
+      PA_EXEC_META.entities.push({ name: 'Production Source Resource', entityName: ent.psr, downloaded: nPsr, note: 'Solo SOURCEIDs activos en PSH' });
     }
     progEl.style.width = '32%';
 
@@ -136,6 +142,7 @@ async function doProductionAnalysis() {
           return Promise.resolve();
         });
       log(logEl, 'ok', timer.fmt() + ' Product: ' + nPrd + ' reg');
+      PA_EXEC_META.entities.push({ name: 'Product', entityName: ent.prd, downloaded: nPrd });
     }
     progEl.style.width = '44%';
 
@@ -149,6 +156,7 @@ async function doProductionAnalysis() {
           return Promise.resolve();
         });
       log(logEl, 'ok', timer.fmt() + ' Location: ' + nLoc + ' reg');
+      PA_EXEC_META.entities.push({ name: 'Location', entityName: ent.loc, downloaded: nLoc, note: 'Excluye LOCVALID=X' });
     }
     progEl.style.width = '54%';
 
@@ -161,6 +169,7 @@ async function doProductionAnalysis() {
           return Promise.resolve();
         });
       log(logEl, 'ok', timer.fmt() + ' Resource: ' + nRes + ' reg');
+      PA_EXEC_META.entities.push({ name: 'Resource', entityName: ent.res, downloaded: nRes });
     }
     progEl.style.width = '60%';
 
@@ -180,6 +189,7 @@ async function doProductionAnalysis() {
           return Promise.resolve();
         });
       log(logEl, 'ok', timer.fmt() + ' Resource Location: ' + nResLoc + ' reg');
+      PA_EXEC_META.entities.push({ name: 'Resource Location', entityName: ent.resLoc, downloaded: nResLoc });
     }
     progEl.style.width = '64%';
 
@@ -189,6 +199,7 @@ async function doProductionAnalysis() {
         'LOCID,PRDID',
         function(rows) { return idbBulkPut('pa_loc_prod', rows); });
       log(logEl, 'ok', timer.fmt() + ' Location Product: ' + nLp + ' reg');
+      PA_EXEC_META.entities.push({ name: 'Location Product', entityName: ent.locPrd, downloaded: nLp });
     }
     progEl.style.width = '68%';
 
@@ -201,6 +212,7 @@ async function doProductionAnalysis() {
           return idbBulkPut('pa_loc_src', rows);
         });
       log(logEl, 'ok', timer.fmt() + ' Location Source: ' + nLs + ' reg');
+      PA_EXEC_META.entities.push({ name: 'Location Source', entityName: ent.locSrc, downloaded: nLs, note: 'Excluye TINVALID=X' });
     }
     progEl.style.width = '75%';
 
@@ -213,7 +225,7 @@ async function doProductionAnalysis() {
     await paAnalyzeAndExport(
       ent, PA_PRD, PA_LOC, PA_RES, PA_RES_LOC,
       pshBySid, pshPrdSet,
-      timer, logEl, setStatusPA, progEl
+      timer, logEl, setStatusPA, progEl, PA_EXEC_META
     );
 
     progEl.style.width = '100%';
@@ -399,7 +411,7 @@ function paModeChange() {} // kept for compatibility — no-op
 async function paAnalyzeAndExport(
   ent, PA_PRD, PA_LOC, PA_RES, PA_RES_LOC,
   pshBySid, pshPrdSet,
-  timer, logEl, setStatusPA, progEl
+  timer, logEl, setStatusPA, progEl, execMeta
 ) {
   /* ── Helpers de lookup ── */
   function pd(id)  { var p = PA_PRD[id] || {}; return str(p.PRDDESCR  || ''); }
@@ -1953,6 +1965,25 @@ async function paAnalyzeAndExport(
     S0.addRow([d.num, d.key, s.total, s.red, s.yel, s.ok, pct + '%'], fill);
   });
   S0.finalize();
+
+  if (execMeta) {
+    var prdStat = STATS['Product'] || {};
+    buildResumenMeta(S0.ws, {
+      analyzer: 'Production Hierarchy Analyzer',
+      generatedAt: execMeta.generatedAt,
+      fileName: 'ProductionHierarchyAnalysis_' + today + '.xlsx',
+      cfg: CFG,
+      paFilter: execMeta.paFilter,
+      entities: execMeta.entities,
+      mattypeCfg: MATTYPE_CFG,
+      kpis: [
+        { label: 'Total productos en maestro',         value: Object.keys(PA_PRD).length.toLocaleString('es-CL') },
+        { label: 'Productos analizados (incluidos)',   value: (prdStat.total || 0).toLocaleString('es-CL') },
+        { label: 'Productos sin hallazgos (OK)',       value: (prdStat.ok || 0).toLocaleString('es-CL') },
+        { label: 'SOURCEIDs activos (PSH)',            value: Object.keys(pshBySid).length.toLocaleString('es-CL') }
+      ]
+    });
+  }
 
   /* ── EXPORT ── */
   setStatusPA('Generando archivo Excel...', 99);
