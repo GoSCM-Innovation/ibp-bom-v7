@@ -1,4 +1,10 @@
     /* ═══════════════════════════════════════════════════════════════
+       CONNECTION WIZARD CACHE
+       ═══════════════════════════════════════════════════════════════ */
+    var CONN_CACHE      = { metaText: null, vsmt: [] };
+    var CONN_SAVED_CFG  = null; // snapshot de la conexión previa al iniciar una reconexión
+
+    /* ═══════════════════════════════════════════════════════════════
        TAB NAVIGATION
        ═══════════════════════════════════════════════════════════════ */
     var TAB_BANNERS = { bom: 'infoBannerBom', network: 'infoBannerNetwork', visualizer: 'infoBannerVisualizer', pa: 'infoBannerPA', docs: 'infoBannerDocs', explorer: 'infoBannerExplorer' };
@@ -81,10 +87,11 @@
       setConnStatus('info', 'Conectando a SAP IBP...');
       log(logEl, 'info', 'Conectando a SAP IBP...');
 
-      CFG.url = document.getElementById('inpUrl').value.replace(/\/+$/, '');
-      CFG.user = document.getElementById('inpUser').value;
-      CFG.pass = document.getElementById('inpPass').value;
-      CFG.pa = document.getElementById('inpPA').value.toUpperCase().trim();
+      CFG.url  = document.getElementById('inpUrl').value.replace(/\/+$/, '') || CFG.url;
+      CFG.user = document.getElementById('inpUser').value || CFG.user;
+      // Los navegadores pueden borrar campos password ocultos — preservar el valor ya fijado por el wizard
+      CFG.pass = document.getElementById('inpPass').value || CFG.pass;
+      CFG.pa   = document.getElementById('inpPA').value.toUpperCase().trim();
       CFG.pver = document.getElementById('inpPver').value.toUpperCase().trim();
       CFG.service = IBP_SERVICE;
 
@@ -111,13 +118,18 @@
       document.getElementById('btnConnect').disabled = true;
 
       try {
-        // Fetch $metadata
-        setConnStatus('info', 'Leyendo metadatos OData...');
-        var metaUrl = CFG.url + '/sap/opu/odata/IBP/' + CFG.service + '/$metadata';
-        log(logEl, 'info', 'GET $metadata → ' + metaUrl);
-
-        var resp = await apiXml(metaUrl);
-        log(logEl, 'ok', '$metadata recibido (' + resp.length + ' bytes)');
+        // Fetch $metadata — usa cache del wizard si está disponible
+        var resp;
+        if (CONN_CACHE.metaText) {
+          resp = CONN_CACHE.metaText;
+          log(logEl, 'info', 'Usando $metadata en caché (' + resp.length + ' bytes)');
+        } else {
+          setConnStatus('info', 'Leyendo metadatos OData...');
+          var metaUrl = CFG.url + '/sap/opu/odata/IBP/' + CFG.service + '/$metadata';
+          log(logEl, 'info', 'GET $metadata → ' + metaUrl);
+          resp = await apiXml(metaUrl);
+          log(logEl, 'ok', '$metadata recibido (' + resp.length + ' bytes)');
+        }
 
         // Parse XML to find EntityTypes
         setConnStatus('info', 'Detectando entidades...');
@@ -186,6 +198,11 @@
         populatePAMDTPanel(detected, detectedSN);
         document.getElementById('panelPAMDT').classList.remove('hidden');
 
+        // Limpiar snapshot ANTES de setConnected — setConnected llama closeConnectDialog
+        // internamente, y closeConnectDialog restauraría el CFG anterior si el snapshot existe.
+        CONN_SAVED_CFG = null;
+        CONN_CACHE.metaText = null;
+        CONN_CACHE.vsmt = [];
         setConnected(true);
         setConnStatus('ok', 'Conectado — ' + ENTITIES.length + ' entidades · PA: ' + CFG.pa + (CFG.pver ? ' / ' + CFG.pver : ' (Baseline)'));
         document.getElementById('panelMDT').classList.remove('hidden');
@@ -202,6 +219,176 @@
       }
 
       document.getElementById('btnConnect').disabled = false;
+    }
+
+    /* ═══════════════════════════════════════════════════════════════
+       CONNECTION WIZARD — STEPS 1 / 2 / 3
+       ═══════════════════════════════════════════════════════════════ */
+
+    function showConnStep(n) {
+      // n=0: panel de conexión activa  |  n=1/2/3: pasos del wizard
+      var isWizard = n > 0;
+
+      // Stepper: visible solo en modo wizard
+      var stepper = document.querySelector('.conn-wizard-stepper');
+      if (stepper) stepper.style.display = isWizard ? '' : 'none';
+
+      // Panel de conexión activa
+      var activePanel = document.getElementById('connPanelActive');
+      if (activePanel) activePanel.classList.toggle('active', n === 0);
+
+      // Paneles del wizard
+      [1, 2, 3].forEach(function (i) {
+        var panel = document.getElementById('connStep' + i);
+        if (panel) panel.classList.toggle('active', i === n);
+
+        var dot = document.getElementById('connStepDot' + i);
+        if (dot) {
+          dot.classList.remove('active', 'completed');
+          if (i < n) dot.classList.add('completed');
+          else if (i === n) dot.classList.add('active');
+        }
+
+        if (i < 3) {
+          var conn = document.getElementById('connStepConn' + i);
+          if (conn) conn.classList.toggle('completed', i < n);
+        }
+      });
+
+      // Al volver al paso 1 (desde wizard), limpiar status y logs
+      if (n === 1) {
+        var st = document.getElementById('connStatus');
+        if (st) st.style.display = 'none';
+        var lg = document.getElementById('logConnect');
+        if (lg) { lg.classList.add('hidden'); lg.innerHTML = ''; }
+      }
+    }
+
+    function showConnectedPanel() {
+      document.getElementById('connInfoUrl').textContent  = CFG.url  || '-';
+      document.getElementById('connInfoUser').textContent = CFG.user || '-';
+      document.getElementById('connInfoPA').textContent   = CFG.pa   || '-';
+      document.getElementById('connInfoPver').textContent = CFG.pver || 'Baseline';
+      showConnStep(0);
+    }
+
+    function startNewConnection() {
+      // Guardar snapshot para restaurar si el usuario cancela
+      CONN_SAVED_CFG = { url: CFG.url, user: CFG.user, pass: CFG.pass,
+                         pa: CFG.pa, pver: CFG.pver, service: CFG.service };
+      // Precargar campos con datos actuales para comodidad (contraseña no por seguridad)
+      document.getElementById('inpUrl').value  = CFG.url  || '';
+      document.getElementById('inpUser').value = CFG.user || '';
+      document.getElementById('inpPass').value = '';
+      showConnStep(1);
+    }
+
+    async function doConnStep1() {
+      var logEl = document.getElementById('logConnect');
+      logEl.classList.add('hidden');
+      logEl.innerHTML = '';
+      var connStatusEl = document.getElementById('connStatus');
+      connStatusEl.style.cssText = 'display:flex;font-size:12px;margin-top:6px;align-items:center;gap:8px;';
+
+      var url  = document.getElementById('inpUrl').value.replace(/\/+$/, '').trim();
+      var user = document.getElementById('inpUser').value.trim();
+      var pass = document.getElementById('inpPass').value;
+
+      if (!url || !user || !pass) {
+        setConnStatus('err', 'Completa URL, usuario y contraseña');
+        return;
+      }
+
+      CFG.url  = url;
+      CFG.user = user;
+      CFG.pass = pass;
+
+      var btn = document.getElementById('btnConnStep1');
+      btn.disabled = true;
+      btn.textContent = 'Verificando...';
+
+      CONN_CACHE.metaText = null;
+      CONN_CACHE.vsmt = [];
+
+      try {
+        setConnStatus('info', 'Verificando credenciales...');
+        var metaUrl = url + '/sap/opu/odata/IBP/' + IBP_SERVICE + '/$metadata';
+        log(logEl, 'info', 'GET $metadata → ' + metaUrl);
+        CONN_CACHE.metaText = await apiXml(metaUrl);
+        log(logEl, 'ok', '$metadata OK (' + CONN_CACHE.metaText.length + ' bytes)');
+
+        setConnStatus('info', 'Cargando Planning Areas...');
+        var vsmtUrl = url + '/sap/opu/odata/IBP/' + IBP_SERVICE + '/VersionSpecificMasterDataTypes';
+        CONN_CACHE.vsmt = await fetchAllPages(vsmtUrl, logEl, '', 'PlanningAreaID,VersionID');
+        log(logEl, 'ok', CONN_CACHE.vsmt.length + ' registros VSMT recibidos');
+
+        var seen = {};
+        var pas  = [];
+        CONN_CACHE.vsmt.forEach(function (r) {
+          var pa = (r.PlanningAreaID || '').trim();
+          if (pa && !seen[pa]) { seen[pa] = true; pas.push(pa); }
+        });
+        pas.sort();
+
+        if (pas.length === 0) throw new Error('No se encontraron Planning Areas para este usuario');
+
+        var sel = document.getElementById('selPA');
+        sel.innerHTML = pas.map(function (pa) {
+          return '<option value="' + escH(pa) + '">' + escH(pa) + '</option>';
+        }).join('');
+
+        try {
+          var arr = JSON.parse(localStorage.getItem('ibp_h_url') || '[]');
+          var idx = arr.indexOf(url);
+          if (idx !== -1) arr.splice(idx, 1);
+          arr.unshift(url);
+          if (arr.length > 5) arr.pop();
+          localStorage.setItem('ibp_h_url', JSON.stringify(arr));
+          var dl = document.getElementById('urlsList');
+          if (dl) dl.innerHTML = arr.map(function (v) { return '<option value="' + escH(v) + '">'; }).join('');
+        } catch (e) {}
+
+        setConnStatus('ok', pas.length + ' Planning Areas encontradas');
+        showConnStep(2);
+
+      } catch (e) {
+        log(logEl, 'err', 'Error: ' + e.message);
+        setConnStatus('err', 'Error: ' + e.message);
+      }
+
+      btn.disabled = false;
+      btn.textContent = 'Continuar →';
+    }
+
+    function doConnStep2() {
+      var pa = document.getElementById('selPA').value;
+      if (!pa) { setConnStatus('err', 'Selecciona una Planning Area'); return; }
+
+      var seen    = {};
+      var versions = [];
+      CONN_CACHE.vsmt.forEach(function (r) {
+        if ((r.PlanningAreaID || '').trim() !== pa) return;
+        var v = (r.VersionID || '').trim();
+        if (v && !seen[v]) { seen[v] = true; versions.push(v); }
+      });
+      versions.sort();
+
+      var sel = document.getElementById('selPver');
+      var opts = '<option value="">Baseline (vacío)</option>';
+      opts += versions.map(function (v) {
+        return '<option value="' + escH(v) + '">' + escH(v) + '</option>';
+      }).join('');
+      sel.innerHTML = opts;
+
+      showConnStep(3);
+    }
+
+    function doConnStep3() {
+      var pa   = document.getElementById('selPA').value;
+      var pver = document.getElementById('selPver').value;
+      document.getElementById('inpPA').value   = pa;
+      document.getElementById('inpPver').value = pver;
+      doConnect(null);
     }
 
     function derivePrefix(mdtIds) {
@@ -838,11 +1025,27 @@
       var d = document.getElementById('connectDialog');
       if (d) d.showModal();
       closeTechReqDialog();
+      if (IS_CONNECTED) {
+        showConnectedPanel();
+      } else {
+        showConnStep(1);
+      }
     }
 
     function closeConnectDialog() {
       var d = document.getElementById('connectDialog');
       if (d && d.open) d.close();
+      // Si había una reconexión en curso (con o sin éxito parcial), restaurar la conexión anterior
+      if (CONN_SAVED_CFG) {
+        CFG.url     = CONN_SAVED_CFG.url;
+        CFG.user    = CONN_SAVED_CFG.user;
+        CFG.pass    = CONN_SAVED_CFG.pass;
+        CFG.pa      = CONN_SAVED_CFG.pa;
+        CFG.pver    = CONN_SAVED_CFG.pver;
+        CFG.service = CONN_SAVED_CFG.service || IBP_SERVICE;
+        setConnected(true);
+        CONN_SAVED_CFG = null;
+      }
     }
 
     function openTechReqDialog() {
@@ -894,6 +1097,17 @@
       popList('ibp_h_pa', 'paList');
       popList('ibp_h_pver', 'pverList');
     } catch(e) {}
+
+    // Interceptar Escape para que la restauración del snapshot siempre pase por closeConnectDialog
+    (function () {
+      var dlg = document.getElementById('connectDialog');
+      if (dlg) {
+        dlg.addEventListener('cancel', function (e) {
+          e.preventDefault();
+          closeConnectDialog();
+        });
+      }
+    }());
 
     // Default tab on load
     switchTab('bom');

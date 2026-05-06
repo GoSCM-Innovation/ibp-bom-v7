@@ -1801,6 +1801,96 @@ button[disabled][title]:hover::after {
   width: min(900px, 96vw);
 }
 
+/* ── Connection wizard stepper bar ── */
+.conn-wizard-stepper {
+  display: flex;
+  align-items: center;
+  padding: var(--sp-3) var(--sp-6);
+  border-bottom: 1px solid var(--border);
+  background: var(--bg);
+  gap: 0;
+}
+
+/* ── Connection wizard step panels ── */
+.conn-step {
+  display: none;
+}
+.conn-step.active {
+  display: block;
+  animation: panel-in var(--dur-std) var(--ease-out) forwards;
+}
+
+/* ── Connected-state panel ── */
+.conn-active-status {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  font-weight: 600;
+  font-size: var(--text-base);
+  color: var(--green);
+  margin-bottom: var(--sp-4);
+}
+
+.conn-active-grid {
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  overflow: hidden;
+}
+
+.conn-active-row {
+  display: grid;
+  grid-template-columns: 130px 1fr;
+  gap: var(--sp-3);
+  padding: var(--sp-2) var(--sp-4);
+  border-bottom: 1px solid var(--border);
+  align-items: center;
+}
+.conn-active-row:last-child {
+  border-bottom: none;
+}
+
+.conn-active-label {
+  font-size: var(--text-sm);
+  color: var(--text3);
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  white-space: nowrap;
+}
+
+.conn-active-value {
+  font-size: var(--text-sm);
+  color: var(--text);
+  font-family: var(--mono);
+  word-break: break-all;
+}
+
+/* ── Select dropdown for connection wizard ── */
+.conn-select {
+  width: 100%;
+  padding: var(--sp-2) var(--sp-3);
+  background: var(--bg3);
+  border: 1px solid var(--border2);
+  border-radius: var(--r-sm);
+  color: var(--text);
+  font-family: var(--mono);
+  font-size: var(--text-base);
+  cursor: pointer;
+  appearance: auto;
+  min-height: 38px;
+}
+.conn-select:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px rgba(247,168,0,.15);
+}
+.conn-select option {
+  background: var(--bg3);
+  color: var(--text);
+  padding: 4px 8px;
+}
+
 /* ── TechReq dialog header ── */
 .tech-req-header {
   display: flex;

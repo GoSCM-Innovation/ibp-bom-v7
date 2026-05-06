@@ -37,8 +37,26 @@
       <span class="connect-dialog-title">Conexión a SAP IBP</span>
       <button type="button" class="dialog-close-btn" onclick="closeConnectDialog()" aria-label="Cerrar">✕</button>
     </div>
+    <!-- Wizard step indicator -->
+    <div class="conn-wizard-stepper">
+      <div class="stepper-step active" id="connStepDot1">
+        <div class="step-circle">1</div>
+        <span class="step-label">Credenciales</span>
+      </div>
+      <div class="stepper-connector" id="connStepConn1"></div>
+      <div class="stepper-step" id="connStepDot2">
+        <div class="step-circle">2</div>
+        <span class="step-label">Planning Area</span>
+      </div>
+      <div class="stepper-connector" id="connStepConn2"></div>
+      <div class="stepper-step" id="connStepDot3">
+        <div class="step-circle">3</div>
+        <span class="step-label">Versión</span>
+      </div>
+    </div>
     <div class="connect-dialog-body">
-      <form id="connectForm" onsubmit="doConnect(event)">
+      <!-- Paso 1: Credenciales -->
+      <div class="conn-step active" id="connStep1">
         <div class="form-grid" style="max-width:800px;">
           <div class="form-group full">
             <label>API Base URL</label>
@@ -52,27 +70,69 @@
           </div>
           <div class="form-group">
             <label>Contraseña</label>
-            <input type="password" id="inpPass" name="password" autocomplete="current-password" placeholder="••••••••"
-              required>
-          </div>
-          <div class="form-group">
-            <label>Planning Area</label>
-            <input type="text" id="inpPA" name="planning_area" list="paList" autocomplete="on"
-              placeholder="ID del área de planificación" style="font-family:var(--mono);" required>
-            <datalist id="paList"></datalist>
-          </div>
-          <div class="form-group">
-            <label>Versión</label>
-            <input type="text" id="inpPver" name="pver" list="pverList" autocomplete="on"
-              placeholder="ID de la versión (vacío = Baseline)" style="font-family:var(--mono);">
-            <datalist id="pverList"></datalist>
+            <input type="password" id="inpPass" name="password" autocomplete="current-password" placeholder="••••••••" required>
           </div>
         </div>
         <div class="btn-row" style="margin-top:20px;">
-          <button type="submit" class="btn btn-primary" id="btnConnect">Conectar y detectar entidades</button>
+          <button type="button" class="btn btn-primary" id="btnConnStep1" onclick="doConnStep1()">Continuar &#8594;</button>
           <button type="button" class="btn btn-secondary" onclick="closeConnectDialog()">Cancelar</button>
         </div>
-      </form>
+      </div>
+      <!-- Paso 2: Planning Area -->
+      <div class="conn-step" id="connStep2">
+        <div class="form-group" style="max-width:420px;">
+          <label>Planning Area</label>
+          <select id="selPA" class="conn-select" required></select>
+        </div>
+        <div class="btn-row" style="margin-top:20px;">
+          <button type="button" class="btn btn-primary" id="btnConnStep2" onclick="doConnStep2()">Continuar &#8594;</button>
+          <button type="button" class="btn btn-secondary" onclick="showConnStep(1)">&#8592; Volver</button>
+        </div>
+      </div>
+      <!-- Paso 3: Versión -->
+      <div class="conn-step" id="connStep3">
+        <div class="form-group" style="max-width:420px;">
+          <label>Versión</label>
+          <select id="selPver" class="conn-select"></select>
+          <p style="font-size:11px;color:var(--text3);margin:6px 0 0;">"Baseline (vacío)" ejecuta sin filtro de versión.</p>
+        </div>
+        <div class="btn-row" style="margin-top:20px;">
+          <button type="button" class="btn btn-primary" id="btnConnect" onclick="doConnStep3()">Conectar y detectar entidades</button>
+          <button type="button" class="btn btn-secondary" onclick="showConnStep(2)">&#8592; Volver</button>
+        </div>
+      </div>
+      <!-- Panel: conexión activa (visible cuando IS_CONNECTED=true) -->
+      <div class="conn-step" id="connPanelActive">
+        <div class="conn-active-status">
+          <span class="status-dot on" style="width:10px;height:10px;flex-shrink:0;"></span>
+          Conexión activa
+        </div>
+        <div class="conn-active-grid">
+          <div class="conn-active-row">
+            <span class="conn-active-label">URL</span>
+            <span class="conn-active-value" id="connInfoUrl"></span>
+          </div>
+          <div class="conn-active-row">
+            <span class="conn-active-label">Usuario</span>
+            <span class="conn-active-value" id="connInfoUser"></span>
+          </div>
+          <div class="conn-active-row">
+            <span class="conn-active-label">Planning Area</span>
+            <span class="conn-active-value" id="connInfoPA"></span>
+          </div>
+          <div class="conn-active-row">
+            <span class="conn-active-label">Versión</span>
+            <span class="conn-active-value" id="connInfoPver"></span>
+          </div>
+        </div>
+        <div class="btn-row" style="margin-top:20px;">
+          <button type="button" class="btn btn-primary" onclick="closeConnectDialog()">Cerrar</button>
+          <button type="button" class="btn btn-secondary" onclick="startNewConnection()">Nueva conexión</button>
+        </div>
+      </div>
+      <!-- Inputs ocultos — leídos por doConnect() internamente -->
+      <input type="hidden" id="inpPA">
+      <input type="hidden" id="inpPver">
       <div id="connStatus" style="display:none;font-size:12px;margin-top:12px;align-items:center;gap:8px;">
         <span id="connStatusText"></span>
         <button id="btnToggleConnLogs" class="btn btn-secondary btn-small" style="padding:2px 8px;font-size:11px;"
