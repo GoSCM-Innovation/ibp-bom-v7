@@ -87,10 +87,11 @@
       setConnStatus('info', 'Conectando a SAP IBP...');
       log(logEl, 'info', 'Conectando a SAP IBP...');
 
-      CFG.url = document.getElementById('inpUrl').value.replace(/\/+$/, '');
-      CFG.user = document.getElementById('inpUser').value;
-      CFG.pass = document.getElementById('inpPass').value;
-      CFG.pa = document.getElementById('inpPA').value.toUpperCase().trim();
+      CFG.url  = document.getElementById('inpUrl').value.replace(/\/+$/, '') || CFG.url;
+      CFG.user = document.getElementById('inpUser').value || CFG.user;
+      // Los navegadores pueden borrar campos password ocultos — preservar el valor ya fijado por el wizard
+      CFG.pass = document.getElementById('inpPass').value || CFG.pass;
+      CFG.pa   = document.getElementById('inpPA').value.toUpperCase().trim();
       CFG.pver = document.getElementById('inpPver').value.toUpperCase().trim();
       CFG.service = IBP_SERVICE;
 
@@ -197,6 +198,11 @@
         populatePAMDTPanel(detected, detectedSN);
         document.getElementById('panelPAMDT').classList.remove('hidden');
 
+        // Limpiar snapshot ANTES de setConnected — setConnected llama closeConnectDialog
+        // internamente, y closeConnectDialog restauraría el CFG anterior si el snapshot existe.
+        CONN_SAVED_CFG = null;
+        CONN_CACHE.metaText = null;
+        CONN_CACHE.vsmt = [];
         setConnected(true);
         setConnStatus('ok', 'Conectado — ' + ENTITIES.length + ' entidades · PA: ' + CFG.pa + (CFG.pver ? ' / ' + CFG.pver : ' (Baseline)'));
         document.getElementById('panelMDT').classList.remove('hidden');
@@ -206,9 +212,6 @@
           var btn = document.getElementById('tabBtn-' + t);
           if (el) el.classList.toggle('visible', btn && btn.classList.contains('active'));
         });
-        // Conexión exitosa: descartar snapshot y cerrar dialog
-        CONN_SAVED_CFG = null;
-        closeConnectDialog();
       } catch (e) {
         log(logEl, 'err', 'Error: ' + e.message);
         setConnStatus('err', 'Error: ' + e.message);
