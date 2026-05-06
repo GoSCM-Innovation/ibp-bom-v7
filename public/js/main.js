@@ -1,4 +1,9 @@
     /* ═══════════════════════════════════════════════════════════════
+       CONNECTION WIZARD CACHE
+       ═══════════════════════════════════════════════════════════════ */
+    var CONN_CACHE = { metaText: null, vsmt: [] };
+
+    /* ═══════════════════════════════════════════════════════════════
        TAB NAVIGATION
        ═══════════════════════════════════════════════════════════════ */
     var TAB_BANNERS = { bom: 'infoBannerBom', network: 'infoBannerNetwork', visualizer: 'infoBannerVisualizer', pa: 'infoBannerPA', docs: 'infoBannerDocs', explorer: 'infoBannerExplorer' };
@@ -111,13 +116,18 @@
       document.getElementById('btnConnect').disabled = true;
 
       try {
-        // Fetch $metadata
-        setConnStatus('info', 'Leyendo metadatos OData...');
-        var metaUrl = CFG.url + '/sap/opu/odata/IBP/' + CFG.service + '/$metadata';
-        log(logEl, 'info', 'GET $metadata → ' + metaUrl);
-
-        var resp = await apiXml(metaUrl);
-        log(logEl, 'ok', '$metadata recibido (' + resp.length + ' bytes)');
+        // Fetch $metadata — usa cache del wizard si está disponible
+        var resp;
+        if (CONN_CACHE.metaText) {
+          resp = CONN_CACHE.metaText;
+          log(logEl, 'info', 'Usando $metadata en caché (' + resp.length + ' bytes)');
+        } else {
+          setConnStatus('info', 'Leyendo metadatos OData...');
+          var metaUrl = CFG.url + '/sap/opu/odata/IBP/' + CFG.service + '/$metadata';
+          log(logEl, 'info', 'GET $metadata → ' + metaUrl);
+          resp = await apiXml(metaUrl);
+          log(logEl, 'ok', '$metadata recibido (' + resp.length + ' bytes)');
+        }
 
         // Parse XML to find EntityTypes
         setConnStatus('info', 'Detectando entidades...');
@@ -202,6 +212,144 @@
       }
 
       document.getElementById('btnConnect').disabled = false;
+    }
+
+    /* ═══════════════════════════════════════════════════════════════
+       CONNECTION WIZARD — STEPS 1 / 2 / 3
+       ═══════════════════════════════════════════════════════════════ */
+
+    function showConnStep(n) {
+      [1, 2, 3].forEach(function (i) {
+        var panel = document.getElementById('connStep' + i);
+        if (panel) panel.classList.toggle('active', i === n);
+
+        var dot = document.getElementById('connStepDot' + i);
+        if (dot) {
+          dot.classList.remove('active', 'completed');
+          if (i < n) dot.classList.add('completed');
+          else if (i === n) dot.classList.add('active');
+        }
+
+        if (i < 3) {
+          var conn = document.getElementById('connStepConn' + i);
+          if (conn) conn.classList.toggle('completed', i < n);
+        }
+      });
+
+      if (n === 1) {
+        var st = document.getElementById('connStatus');
+        if (st) st.style.display = 'none';
+        var lg = document.getElementById('logConnect');
+        if (lg) { lg.classList.add('hidden'); lg.innerHTML = ''; }
+      }
+    }
+
+    async function doConnStep1() {
+      var logEl = document.getElementById('logConnect');
+      logEl.classList.add('hidden');
+      logEl.innerHTML = '';
+      var connStatusEl = document.getElementById('connStatus');
+      connStatusEl.style.cssText = 'display:flex;font-size:12px;margin-top:6px;align-items:center;gap:8px;';
+
+      var url  = document.getElementById('inpUrl').value.replace(/\/+$/, '').trim();
+      var user = document.getElementById('inpUser').value.trim();
+      var pass = document.getElementById('inpPass').value;
+
+      if (!url || !user || !pass) {
+        setConnStatus('err', 'Completa URL, usuario y contraseña');
+        return;
+      }
+
+      CFG.url  = url;
+      CFG.user = user;
+      CFG.pass = pass;
+
+      var btn = document.getElementById('btnConnStep1');
+      btn.disabled = true;
+      btn.textContent = 'Verificando...';
+
+      CONN_CACHE.metaText = null;
+      CONN_CACHE.vsmt = [];
+
+      try {
+        setConnStatus('info', 'Verificando credenciales...');
+        var metaUrl = url + '/sap/opu/odata/IBP/' + IBP_SERVICE + '/$metadata';
+        log(logEl, 'info', 'GET $metadata → ' + metaUrl);
+        CONN_CACHE.metaText = await apiXml(metaUrl);
+        log(logEl, 'ok', '$metadata OK (' + CONN_CACHE.metaText.length + ' bytes)');
+
+        setConnStatus('info', 'Cargando Planning Areas...');
+        var vsmtUrl = url + '/sap/opu/odata/IBP/' + IBP_SERVICE + '/VersionSpecificMasterDataTypes';
+        CONN_CACHE.vsmt = await fetchAllPages(vsmtUrl, logEl, '', 'PlanningAreaID,VersionID');
+        log(logEl, 'ok', CONN_CACHE.vsmt.length + ' registros VSMT recibidos');
+
+        var seen = {};
+        var pas  = [];
+        CONN_CACHE.vsmt.forEach(function (r) {
+          var pa = (r.PlanningAreaID || '').trim();
+          if (pa && !seen[pa]) { seen[pa] = true; pas.push(pa); }
+        });
+        pas.sort();
+
+        if (pas.length === 0) throw new Error('No se encontraron Planning Areas para este usuario');
+
+        var sel = document.getElementById('selPA');
+        sel.innerHTML = pas.map(function (pa) {
+          return '<option value="' + escH(pa) + '">' + escH(pa) + '</option>';
+        }).join('');
+
+        try {
+          var arr = JSON.parse(localStorage.getItem('ibp_h_url') || '[]');
+          var idx = arr.indexOf(url);
+          if (idx !== -1) arr.splice(idx, 1);
+          arr.unshift(url);
+          if (arr.length > 5) arr.pop();
+          localStorage.setItem('ibp_h_url', JSON.stringify(arr));
+          var dl = document.getElementById('urlsList');
+          if (dl) dl.innerHTML = arr.map(function (v) { return '<option value="' + escH(v) + '">'; }).join('');
+        } catch (e) {}
+
+        setConnStatus('ok', pas.length + ' Planning Areas encontradas');
+        showConnStep(2);
+
+      } catch (e) {
+        log(logEl, 'err', 'Error: ' + e.message);
+        setConnStatus('err', 'Error: ' + e.message);
+      }
+
+      btn.disabled = false;
+      btn.textContent = 'Continuar →';
+    }
+
+    function doConnStep2() {
+      var pa = document.getElementById('selPA').value;
+      if (!pa) { setConnStatus('err', 'Selecciona una Planning Area'); return; }
+
+      var seen    = {};
+      var versions = [];
+      CONN_CACHE.vsmt.forEach(function (r) {
+        if ((r.PlanningAreaID || '').trim() !== pa) return;
+        var v = (r.VersionID || '').trim();
+        if (v && !seen[v]) { seen[v] = true; versions.push(v); }
+      });
+      versions.sort();
+
+      var sel = document.getElementById('selPver');
+      var opts = '<option value="">Baseline (vacío)</option>';
+      opts += versions.map(function (v) {
+        return '<option value="' + escH(v) + '">' + escH(v) + '</option>';
+      }).join('');
+      sel.innerHTML = opts;
+
+      showConnStep(3);
+    }
+
+    function doConnStep3() {
+      var pa   = document.getElementById('selPA').value;
+      var pver = document.getElementById('selPver').value;
+      document.getElementById('inpPA').value   = pa;
+      document.getElementById('inpPver').value = pver;
+      doConnect(null);
     }
 
     function derivePrefix(mdtIds) {
@@ -838,6 +986,7 @@
       var d = document.getElementById('connectDialog');
       if (d) d.showModal();
       closeTechReqDialog();
+      showConnStep(1);
     }
 
     function closeConnectDialog() {
