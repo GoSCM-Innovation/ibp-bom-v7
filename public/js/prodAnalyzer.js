@@ -67,10 +67,10 @@ async function doProductionAnalysis() {
       { role: 'Production Source Item Sub', entityName: ent.psiSub, required: true,  selectorId: 'selPAItemSub', fields: ['SOURCEID','PRDFR','SPRDFR'] },
       { role: 'Location Source',            entityName: ent.locSrc, required: true,  selectorId: 'selPALocSrc',  fields: ['PRDID','LOCFR','LOCID','TLEADTIME','TINVALID'] },
     ];
-    var _paIssues = validateEntityFields(_paChecks);
-    if (_paIssues.length) {
+    var _paResult = validateEntityFields(_paChecks);
+    if (_paResult.issues.length || _paResult.applied.length) {
       document.getElementById('btnFetchPA').disabled = false;
-      await fmShowCorrectionPanel(_paIssues, 'fmPanelPA');
+      await fmShowCorrectionPanel(_paResult.issues, _paResult.applied, 'fmPanelPA');
       document.getElementById('btnFetchPA').disabled = true;
       // Re-leer ent por si el usuario seleccionó entidades en el panel
       ent.psh    = document.getElementById('selPAHeader').value;

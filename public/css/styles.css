@@ -3230,6 +3230,51 @@ button[disabled][title]:hover::after {
   color: #f59e0b;
 }
 
+.fm-entity-card--applied {
+  border-color: rgba(41,171,226,0.3);
+  background: rgba(41,171,226,0.05);
+}
+
+.fm-badge-applied {
+  background: rgba(41,171,226,0.15);
+  color: #29ABE2;
+}
+
+.fm-section-label--applied {
+  color: #29ABE2;
+}
+
+.fm-applied-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 6px var(--sp-4) 4px;
+}
+
+.fm-applied-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+}
+
+.fm-applied-arrow {
+  color: var(--text2);
+  font-size: 14px;
+}
+
+.fm-applied-value {
+  font-family: monospace;
+  font-size: 12px;
+  color: #29ABE2;
+}
+
+.fm-applied-null {
+  color: var(--text2);
+  font-style: italic;
+  font-family: inherit;
+}
+
 .fm-entity-techname {
   font-size: 11px;
   color: var(--text2);

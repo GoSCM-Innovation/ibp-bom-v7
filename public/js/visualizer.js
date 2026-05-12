@@ -175,12 +175,12 @@
           { role: 'Ubicación maestra',        entityName: cfg.locMaster,  required: true,  selectorId: 'selVizLocMaster',  fields: ['LOCID','LOCDESCR','LOCTYPE','LOCVALID'] },
           { role: 'Cliente maestra',          entityName: cfg.custMaster, required: true,  selectorId: 'selVizCustMaster', fields: ['CUSTID','CUSTDESCR','CUSTVALID'] },
         ];
-        var _vizIssues = validateEntityFields(_vizChecks);
-        if (_vizIssues.length) {
+        var _vizResult = validateEntityFields(_vizChecks);
+        if (_vizResult.issues.length || _vizResult.applied.length) {
           btnLoad.disabled = false;
           btnLoad.textContent = '▶ Cargar red';
           btnLoad.style.opacity = '';
-          await fmShowCorrectionPanel(_vizIssues, 'fmPanelViz');
+          await fmShowCorrectionPanel(_vizResult.issues, _vizResult.applied, 'fmPanelViz');
           btnLoad.disabled = true;
           btnLoad.style.opacity = '0.7';
           // Re-leer cfg por si el usuario seleccionó entidades en el panel

@@ -134,18 +134,20 @@ function _fmGetSchemaFields(entityName) {
 
 /* ── Validación pre-fetch ── */
 
-// checks: [{ role, entityName, required, fields }]
-//   role      — etiqueta legible para el panel (opcional)
+// checks: [{ role, entityName, required, selectorId, fields }]
+//   role       — etiqueta legible para el panel
 //   entityName — nombre del EntitySet; null/'' si no fue detectada
-//   required  — false → no reportar entity_missing (default: true)
-//   fields    — campos canónicos esperados
+//   required   — false → no reportar entity_missing (default: true)
+//   selectorId — ID del input hidden del selector MDT (para entity_missing)
+//   fields     — campos canónicos esperados
 //
-// Tipos de issue devueltos:
-//   entity_missing      — entityName vacío y required != false
-//   entity_not_in_schema — entityName dado pero ausente en $metadata
-//   field_missing       — campo canónico no existe en el schema
+// Retorna { issues, applied }
+//   issues  — problemas nuevos: entity_missing, entity_not_in_schema, field_missing
+//   applied — correcciones ya guardadas en FIELD_MAP que se están aplicando
+//             [{ role, entityName, field, mappedTo }]
 function validateEntityFields(checks) {
-  var issues = [];
+  var issues  = [];
+  var applied = [];
   checks.forEach(function (chk) {
 
     // Caso 1: entidad no detectada / no seleccionada
@@ -179,10 +181,19 @@ function validateEntityFields(checks) {
       return;
     }
 
-    // Caso 3: campo canónico ausente del schema
+    // Caso 3: campo canónico — nuevo o ya corregido
     var emap = FIELD_MAP[chk.entityName] || {};
     chk.fields.forEach(function (f) {
-      if (f in emap) return;
+      if (f in emap) {
+        // Corrección guardada — registrar como aplicada para mostrar al usuario
+        applied.push({
+          role:       chk.role || chk.entityName,
+          entityName: chk.entityName,
+          field:      f,
+          mappedTo:   emap[f]   // null = no existe, string = nombre real
+        });
+        return;
+      }
       if (schema.indexOf(f) >= 0) return;
       issues.push({
         type:       'field_missing',
@@ -194,7 +205,7 @@ function validateEntityFields(checks) {
       });
     });
   });
-  return issues;
+  return { issues: issues, applied: applied };
 }
 
 /* ── Panel de corrección ── */
@@ -204,9 +215,11 @@ var _fmPanelCallback   = null; // resolve() de la Promise
 var _fmPanelSelections = {};   // { entityName_field: 'actualName' | '__null__' }
 
 // Muestra el panel de corrección y retorna una Promise que resuelve cuando
-// el usuario confirma. Si no hay issues, resuelve inmediatamente.
-function fmShowCorrectionPanel(issues, containerId) {
-  if (!issues.length) return Promise.resolve();
+// el usuario confirma. Si no hay issues ni applied, resuelve inmediatamente.
+// applied: lista de correcciones ya guardadas que se están aplicando (solo info).
+function fmShowCorrectionPanel(issues, applied, containerId) {
+  applied = applied || [];
+  if (!issues.length && !applied.length) return Promise.resolve();
   return new Promise(function (resolve) {
     _fmPendingIssues   = issues;
     _fmPanelCallback   = resolve;
@@ -225,13 +238,16 @@ function fmShowCorrectionPanel(issues, containerId) {
     var container = document.getElementById(containerId);
     if (!container) { resolve(); return; }
 
-    container.innerHTML = _fmRenderPanel(issues);
+    container.innerHTML = _fmRenderPanel(issues, applied);
     container.style.display = 'block';
     container.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
   });
 }
 
-function _fmRenderPanel(issues) {
+function _fmRenderPanel(issues, applied) {
+  applied = applied || [];
+  var hasIssues = issues.length > 0;
+
   var entityIssues = issues.filter(function(i) { return i.type !== 'field_missing'; });
   var fieldIssues  = issues.filter(function(i) { return i.type === 'field_missing'; });
 
@@ -242,17 +258,40 @@ function _fmRenderPanel(issues) {
     byEntity[iss.entityName].push(iss);
   });
 
-  var total = issues.length;
+  // Agrupar applied por entidad
+  var byEntityApplied = {};
+  applied.forEach(function (a) {
+    var key = a.entityName + '||' + a.role;
+    if (!byEntityApplied[key]) byEntityApplied[key] = { role: a.role, entityName: a.entityName, fields: [] };
+    byEntityApplied[key].fields.push(a);
+  });
+
   var html = '<div class="fm-panel">';
   html += '<div class="fm-panel-header">';
-  html += '<span class="fm-panel-icon">&#9888;</span>';
+  html += '<span class="fm-panel-icon">' + (hasIssues ? '&#9888;' : '&#9432;') + '</span>';
   html += '<div>';
-  html += '<div class="fm-panel-title">Corrección requerida</div>';
-  html += '<div class="fm-panel-subtitle">Se encontraron ' + total + ' problema' + (total !== 1 ? 's' : '') +
-          ' de compatibilidad con el schema de este sistema SAP IBP. ' +
-          'Confirma cómo debe tratarlos la aplicación antes de continuar.</div>';
+  if (hasIssues) {
+    var total = issues.length;
+    html += '<div class="fm-panel-title">Corrección requerida</div>';
+    html += '<div class="fm-panel-subtitle">Se encontraron ' + total + ' problema' + (total !== 1 ? 's' : '') +
+            ' de compatibilidad con el schema de este sistema SAP IBP. ' +
+            'Confirma cómo debe tratarlos la aplicación antes de continuar.</div>';
+  } else {
+    html += '<div class="fm-panel-title">Correcciones activas</div>';
+    html += '<div class="fm-panel-subtitle">La aplicación está usando las siguientes correcciones guardadas ' +
+            'para adaptar los campos a tu sistema SAP IBP. Revísalas antes de continuar.</div>';
+  }
   html += '</div></div>';
 
+  // Sección: correcciones ya guardadas (siempre visible si existen)
+  if (Object.keys(byEntityApplied).length) {
+    html += '<div class="fm-section-label fm-section-label--applied">Correcciones activas</div>';
+    Object.keys(byEntityApplied).forEach(function(key) {
+      html += _fmRenderAppliedCard(byEntityApplied[key]);
+    });
+  }
+
+  // Sección: problemas nuevos que requieren acción
   if (entityIssues.length) {
     html += '<div class="fm-section-label">Entidades</div>';
     entityIssues.forEach(function(iss) { html += _fmRenderEntityIssueCard(iss); });
@@ -266,7 +305,40 @@ function _fmRenderPanel(issues) {
   }
 
   html += '<div class="fm-panel-actions">';
-  html += '<button class="btn btn-primary" onclick="fmConfirmCorrections()">Aplicar y continuar</button>';
+  if (hasIssues) {
+    html += '<button class="btn btn-primary" onclick="fmConfirmCorrections()">Aplicar y continuar</button>';
+  } else {
+    html += '<button class="btn btn-primary" onclick="fmConfirmCorrections()">Continuar</button>';
+  }
+  html += '</div></div>';
+  return html;
+}
+
+// Card de solo lectura para correcciones ya guardadas
+function _fmRenderAppliedCard(group) {
+  var count = group.fields.length;
+  var label = count + ' corrección' + (count !== 1 ? 'es' : '') + ' activa' + (count !== 1 ? 's' : '');
+
+  var html = '<div class="fm-entity-card fm-entity-card--applied">';
+  html += '<div class="fm-entity-header">';
+  html += '<span class="fm-entity-name">' + escH(group.role) + '</span>';
+  html += '<span class="fm-entity-badge fm-badge-applied">' + escH(label) + '</span>';
+  html += '</div>';
+  if (group.role !== group.entityName) {
+    html += '<div class="fm-entity-techname">' + escH(group.entityName) + '</div>';
+  }
+  html += '<div class="fm-applied-list">';
+  group.fields.forEach(function (a) {
+    html += '<div class="fm-applied-row">';
+    html += '<span class="fm-field-tag">' + escH(a.field) + '</span>';
+    html += '<span class="fm-applied-arrow">&#8594;</span>';
+    if (a.mappedTo === null) {
+      html += '<span class="fm-applied-value fm-applied-null">no existe en este sistema (omitido)</span>';
+    } else {
+      html += '<span class="fm-applied-value">' + escH(a.mappedTo) + '</span>';
+    }
+    html += '</div>';
+  });
   html += '</div></div>';
   return html;
 }

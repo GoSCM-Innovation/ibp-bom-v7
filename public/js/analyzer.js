@@ -234,10 +234,10 @@
           { role: 'Location Product',         entityName: locProdEntity,    required: true,  selectorId: 'selSNLocProd',    fields: ['LOCID','PRDID'] },
           { role: 'Customer Product',         entityName: custProdEntity,   required: true,  selectorId: 'selSNCustProd',   fields: ['CUSTID','PRDID'] },
         ];
-        var _snIssues = validateEntityFields(_snChecks);
-        if (_snIssues.length) {
+        var _snResult = validateEntityFields(_snChecks);
+        if (_snResult.issues.length || _snResult.applied.length) {
           document.getElementById('btnFetchSN').disabled = false;
-          await fmShowCorrectionPanel(_snIssues, 'fmPanelSN');
+          await fmShowCorrectionPanel(_snResult.issues, _snResult.applied, 'fmPanelSN');
           document.getElementById('btnFetchSN').disabled = true;
           // Re-leer entidades por si el usuario las seleccionó en el panel
           locationEntity   = document.getElementById('selSNLocation').value;

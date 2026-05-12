@@ -826,10 +826,10 @@
           { role: 'Producto',                   entityName: productEntity, required: true,  selectorId: 'selProduct',      fields: ['PRDID','PRDDESCR','MATTYPEID','UOMID','UOMDESCR'] },
           { role: 'Ubicación maestra',          entityName: bomLocEntity,  required: true,  selectorId: 'selBomLocMaster', fields: ['LOCID','LOCDESCR','LOCVALID'] },
         ];
-        var _bomIssues = validateEntityFields(_bomChecks);
-        if (_bomIssues.length) {
+        var _bomResult = validateEntityFields(_bomChecks);
+        if (_bomResult.issues.length || _bomResult.applied.length) {
           document.getElementById('btnFetch').disabled = false;
-          await fmShowCorrectionPanel(_bomIssues, 'fmPanelBOM');
+          await fmShowCorrectionPanel(_bomResult.issues, _bomResult.applied, 'fmPanelBOM');
           document.getElementById('btnFetch').disabled = true;
           // Re-leer entidades por si el usuario las seleccionó en el panel
           headerEntity  = document.getElementById('selHeader').value;
