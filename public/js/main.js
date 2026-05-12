@@ -819,17 +819,26 @@
       // Pre-validar entidades y campos contra schema antes de fetch
       if (typeof validateEntityFields === 'function') {
         var _bomChecks = [
-          { role: 'Production Source Header',   entityName: headerEntity,  required: true,  fields: ['PRDID','SOURCEID','LOCID','SOURCETYPE','OUTPUTCOEFFICIENT','PINVALID'] },
-          { role: 'Production Source Item',     entityName: itemEntity,    required: true,  fields: ['SOURCEID','PRDID','COMPONENTCOEFFICIENT','ISALTITEM'] },
-          { role: 'Production Source Item Sub', entityName: itemSubEntity, required: false, fields: ['SOURCEID','PRDFR','SPRDFR'] },
-          { role: 'Producto',                   entityName: productEntity, required: true,  fields: ['PRDID','PRDDESCR','MATTYPEID','UOMID','UOMDESCR'] },
-          { role: 'Ubicación maestra',          entityName: bomLocEntity,  required: true,  fields: ['LOCID','LOCDESCR','LOCVALID'] },
+          { role: 'Production Source Header',   entityName: headerEntity,  required: true,  selectorId: 'selHeader',       fields: ['PRDID','SOURCEID','LOCID','SOURCETYPE','OUTPUTCOEFFICIENT','PINVALID'] },
+          { role: 'Production Source Item',     entityName: itemEntity,    required: true,  selectorId: 'selItem',         fields: ['SOURCEID','PRDID','COMPONENTCOEFFICIENT','ISALTITEM'] },
+          { role: 'Production Source Item Sub', entityName: itemSubEntity, required: true,  selectorId: 'selItemSub',      fields: ['SOURCEID','PRDFR','SPRDFR'] },
+          { role: 'Production Source Resource', entityName: resourceEntity, required: true, selectorId: 'selResource',     fields: ['SOURCEID','RESID'] },
+          { role: 'Producto',                   entityName: productEntity, required: true,  selectorId: 'selProduct',      fields: ['PRDID','PRDDESCR','MATTYPEID','UOMID','UOMDESCR'] },
+          { role: 'Ubicación maestra',          entityName: bomLocEntity,  required: true,  selectorId: 'selBomLocMaster', fields: ['LOCID','LOCDESCR','LOCVALID'] },
         ];
         var _bomIssues = validateEntityFields(_bomChecks);
         if (_bomIssues.length) {
           document.getElementById('btnFetch').disabled = false;
           await fmShowCorrectionPanel(_bomIssues, 'fmPanelBOM');
           document.getElementById('btnFetch').disabled = true;
+          // Re-leer entidades por si el usuario las seleccionó en el panel
+          headerEntity  = document.getElementById('selHeader').value;
+          itemEntity    = document.getElementById('selItem').value;
+          itemSubEntity = document.getElementById('selItemSub').value;
+          resourceEntity = document.getElementById('selResource').value;
+          productEntity = document.getElementById('selProduct').value;
+          bomLocEntity  = document.getElementById('selBomLocMaster').value;
+          bomResEntity  = document.getElementById('selBomResMaster').value;
         }
       }
 

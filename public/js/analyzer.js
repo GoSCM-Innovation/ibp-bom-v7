@@ -225,20 +225,29 @@
       // Pre-validar entidades y campos contra schema antes de fetch
       if (typeof validateEntityFields === 'function') {
         var _snChecks = [
-          { role: 'Location Source',          entityName: locationEntity,   required: true,  fields: ['PRDID','LOCFR','LOCID','TLEADTIME','TINVALID'] },
-          { role: 'Customer Source',          entityName: customerEntity,   required: true,  fields: ['PRDID','LOCID','CUSTID','CLEADTIME','CINVALID'] },
-          { role: 'Production Source Header', entityName: sourceProdEntity, required: true,  fields: ['SOURCEID','PRDID','LOCID','PLEADTIME','PRATIO','PINVALID'] },
-          { role: 'Production Source Item',   entityName: sourceItemEntity, required: false, fields: ['SOURCEID','PRDID','COMPONENTCOEFFICIENT'] },
-          { role: 'Ubicación maestra',        entityName: locMasterEntity,  required: true,  fields: ['LOCID','LOCDESCR','LOCTYPE','LOCVALID'] },
-          { role: 'Cliente maestra',          entityName: custMasterEntity, required: true,  fields: ['CUSTID','CUSTDESCR','CUSTVALID'] },
-          { role: 'Location Product',         entityName: locProdEntity,    required: false, fields: ['LOCID','PRDID'] },
-          { role: 'Customer Product',         entityName: custProdEntity,   required: false, fields: ['CUSTID','PRDID'] },
+          { role: 'Location Source',          entityName: locationEntity,   required: true,  selectorId: 'selSNLocation',   fields: ['PRDID','LOCFR','LOCID','TLEADTIME','TINVALID'] },
+          { role: 'Customer Source',          entityName: customerEntity,   required: true,  selectorId: 'selSNCustomer',   fields: ['PRDID','LOCID','CUSTID','CLEADTIME','CINVALID'] },
+          { role: 'Production Source Header', entityName: sourceProdEntity, required: true,  selectorId: 'selSNSourceProd', fields: ['SOURCEID','PRDID','LOCID','PLEADTIME','PRATIO','PINVALID'] },
+          { role: 'Production Source Item',   entityName: sourceItemEntity, required: true,  selectorId: 'selSNSourceItem', fields: ['SOURCEID','PRDID','COMPONENTCOEFFICIENT'] },
+          { role: 'Ubicación maestra',        entityName: locMasterEntity,  required: true,  selectorId: 'selSNLocMaster',  fields: ['LOCID','LOCDESCR','LOCTYPE','LOCVALID'] },
+          { role: 'Cliente maestra',          entityName: custMasterEntity, required: true,  selectorId: 'selSNCustMaster', fields: ['CUSTID','CUSTDESCR','CUSTVALID'] },
+          { role: 'Location Product',         entityName: locProdEntity,    required: true,  selectorId: 'selSNLocProd',    fields: ['LOCID','PRDID'] },
+          { role: 'Customer Product',         entityName: custProdEntity,   required: true,  selectorId: 'selSNCustProd',   fields: ['CUSTID','PRDID'] },
         ];
         var _snIssues = validateEntityFields(_snChecks);
         if (_snIssues.length) {
           document.getElementById('btnFetchSN').disabled = false;
           await fmShowCorrectionPanel(_snIssues, 'fmPanelSN');
           document.getElementById('btnFetchSN').disabled = true;
+          // Re-leer entidades por si el usuario las seleccionó en el panel
+          locationEntity   = document.getElementById('selSNLocation').value;
+          customerEntity   = document.getElementById('selSNCustomer').value;
+          sourceProdEntity = document.getElementById('selSNSourceProd').value;
+          sourceItemEntity = document.getElementById('selSNSourceItem').value;
+          locMasterEntity  = document.getElementById('selSNLocMaster').value;
+          custMasterEntity = document.getElementById('selSNCustMaster').value;
+          locProdEntity    = document.getElementById('selSNLocProd').value;
+          custProdEntity   = document.getElementById('selSNCustProd').value;
         }
       }
 

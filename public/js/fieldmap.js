@@ -157,7 +157,8 @@ function validateEntityFields(checks) {
           entityName: null,
           field:      null,
           suggestion: null,
-          allFields:  []
+          allFields:  [],
+          selectorId: chk.selectorId || null
         });
       }
       return;
@@ -211,11 +212,14 @@ function fmShowCorrectionPanel(issues, containerId) {
     _fmPanelCallback   = resolve;
     _fmPanelSelections = {};
 
-    // Inicializar selecciones con sugerencias (solo para field_missing)
+    // Inicializar selecciones por tipo de issue
     issues.forEach(function (iss) {
-      if (iss.type !== 'field_missing') return;
-      var key = iss.entityName + '||' + iss.field;
-      _fmPanelSelections[key] = iss.suggestion ? iss.suggestion : '__null__';
+      if (iss.type === 'field_missing') {
+        var key = iss.entityName + '||' + iss.field;
+        _fmPanelSelections[key] = iss.suggestion ? iss.suggestion : '__null__';
+      } else if (iss.type === 'entity_missing') {
+        _fmPanelSelections['entity||' + iss.role] = '__null__';
+      }
     });
 
     var container = document.getElementById(containerId);
@@ -281,14 +285,51 @@ function _fmRenderEntityIssueCard(iss) {
   if (iss.entityName) {
     html += '<div class="fm-entity-techname">' + escH(iss.entityName) + '</div>';
   }
+
   if (iss.type === 'entity_missing') {
-    html += '<div class="fm-entity-warning">La auto-detección no encontró ninguna entidad para este rol. ' +
-            'Puedes seleccionarla manualmente en el panel de configuración. ' +
-            'Si no existe en tu sistema, la funcionalidad relacionada quedará sin datos.</div>';
+    var key = 'entity||' + iss.role;
+    var keyAttr = escH(key);
+    var dropId  = 'fmEntDrop_' + key.replace(/[^a-zA-Z0-9]/g, '_');
+    var currentSel = _fmPanelSelections[key] || '__null__';
+    var isNull = currentSel === '__null__';
+
+    html += '<div class="fm-entity-warning" style="margin-bottom:8px">' +
+            'La auto-detección no encontró ninguna entidad para este rol. ' +
+            'Indica si existe en tu sistema IBP o confirma que no está disponible.</div>';
+
+    html += '<label class="fm-radio-label">';
+    html += '<input type="radio" name="fmEnt_' + keyAttr + '" value="__null__"' +
+            (isNull ? ' checked' : '') +
+            ' onchange="fmSetEntitySelection(\'' + keyAttr + '\',\'__null__\')">';
+    html += '<span>No existe en este sistema &mdash; omitir esta funcionalidad</span>';
+    html += '</label>';
+
+    html += '<label class="fm-radio-label">';
+    html += '<input type="radio" name="fmEnt_' + keyAttr + '" value="__exists__"' +
+            (!isNull ? ' checked' : '') +
+            ' onchange="fmSetEntitySelection(\'' + keyAttr + '\',\'__exists__\')">';
+    html += '<span>Sí existe &mdash; seleccionar entidad:</span>';
+    html += '</label>';
+
+    var entityList = (typeof ENTITIES !== 'undefined')
+      ? ENTITIES.slice().sort(function (a, b) { return a.name < b.name ? -1 : 1; })
+      : [];
+    html += '<div class="fm-dropdown-wrap" id="' + escH(dropId) + '" style="' +
+            (isNull ? 'opacity:0.4;pointer-events:none' : '') + '">';
+    html += '<select class="fm-select" onchange="fmSetEntityValue(\'' + keyAttr + '\',this.value)">';
+    html += '<option value="">(selecciona entidad)</option>';
+    entityList.forEach(function (e) {
+      var setName = e.name + 'Set';
+      var sel = (currentSel === setName) ? ' selected' : '';
+      html += '<option value="' + escH(setName) + '"' + sel + '>' + escH(setName) + '</option>';
+    });
+    html += '</select></div>';
+
   } else {
     html += '<div class="fm-entity-warning">Esta entidad no aparece en el <code>$metadata</code> del sistema. ' +
             'Es posible que el nombre sea incorrecto. Verifica en el panel de configuración.</div>';
   }
+
   html += '</div>';
   return html;
 }
@@ -362,6 +403,27 @@ function _fmRenderFieldRow(iss) {
 
 /* ── Handlers del panel (llamados desde HTML inline) ── */
 
+function fmSetEntitySelection(key, value) {
+  _fmPanelSelections[key] = value; // '__null__' o '__exists__'
+  var dropId = 'fmEntDrop_' + key.replace(/[^a-zA-Z0-9]/g, '_');
+  var drop = document.getElementById(dropId);
+  if (drop) {
+    drop.style.opacity      = (value === '__null__') ? '0.4' : '1';
+    drop.style.pointerEvents = (value === '__null__') ? 'none' : '';
+  }
+}
+
+function fmSetEntityValue(key, value) {
+  _fmPanelSelections[key] = value || '__null__';
+}
+
+function fmUpdateSelector(selectorId, value) {
+  var hiddenEl = document.getElementById(selectorId);
+  var visEl    = document.getElementById('ssVis-' + selectorId);
+  if (hiddenEl) hiddenEl.value = value;
+  if (visEl)    visEl.value    = value;
+}
+
 function fmSetSelection(key, value) {
   if (value === '__null__') {
     _fmPanelSelections[key] = '__null__';
@@ -384,17 +446,22 @@ function fmSetFieldValue(key, value) {
 }
 
 function fmConfirmCorrections() {
-  // Solo los issues de tipo field_missing escriben a FIELD_MAP.
-  // entity_missing / entity_not_in_schema son informativos: solo se confirman.
   _fmPendingIssues.forEach(function (iss) {
-    if (iss.type !== 'field_missing') return;
-    var key = iss.entityName + '||' + iss.field;
-    var sel = _fmPanelSelections[key];
-    if (!FIELD_MAP[iss.entityName]) FIELD_MAP[iss.entityName] = {};
-    if (sel === '__null__' || !sel || sel === '__map__') {
-      FIELD_MAP[iss.entityName][iss.field] = null;
-    } else {
-      FIELD_MAP[iss.entityName][iss.field] = sel;
+    if (iss.type === 'field_missing') {
+      var key = iss.entityName + '||' + iss.field;
+      var sel = _fmPanelSelections[key];
+      if (!FIELD_MAP[iss.entityName]) FIELD_MAP[iss.entityName] = {};
+      if (sel === '__null__' || !sel || sel === '__map__') {
+        FIELD_MAP[iss.entityName][iss.field] = null;
+      } else {
+        FIELD_MAP[iss.entityName][iss.field] = sel;
+      }
+    } else if (iss.type === 'entity_missing' && iss.selectorId) {
+      var key = 'entity||' + iss.role;
+      var sel = _fmPanelSelections[key];
+      if (sel && sel !== '__null__' && sel !== '__exists__') {
+        fmUpdateSelector(iss.selectorId, sel);
+      }
     }
   });
   fmSave();

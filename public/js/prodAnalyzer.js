@@ -62,16 +62,27 @@ async function doProductionAnalysis() {
 
   if (typeof validateEntityFields === 'function') {
     var _paChecks = [
-      { role: 'Production Source Header',   entityName: ent.psh,    required: true,  fields: ['PRDID','SOURCEID','LOCID','SOURCETYPE','PLEADTIME','OUTPUTCOEFFICIENT','PRATIO','PINVALID'] },
-      { role: 'Production Source Item',     entityName: ent.psi,    required: false, fields: ['SOURCEID','PRDID','COMPONENTCOEFFICIENT','ISALTITEM'] },
-      { role: 'Production Source Item Sub', entityName: ent.psiSub, required: false, fields: ['SOURCEID','PRDFR','SPRDFR'] },
-      { role: 'Location Source',            entityName: ent.locSrc, required: false, fields: ['PRDID','LOCFR','LOCID','TLEADTIME','TINVALID'] },
+      { role: 'Production Source Header',   entityName: ent.psh,    required: true,  selectorId: 'selPAHeader',  fields: ['PRDID','SOURCEID','LOCID','SOURCETYPE','PLEADTIME','OUTPUTCOEFFICIENT','PRATIO','PINVALID'] },
+      { role: 'Production Source Item',     entityName: ent.psi,    required: true,  selectorId: 'selPAItem',    fields: ['SOURCEID','PRDID','COMPONENTCOEFFICIENT','ISALTITEM'] },
+      { role: 'Production Source Item Sub', entityName: ent.psiSub, required: true,  selectorId: 'selPAItemSub', fields: ['SOURCEID','PRDFR','SPRDFR'] },
+      { role: 'Location Source',            entityName: ent.locSrc, required: true,  selectorId: 'selPALocSrc',  fields: ['PRDID','LOCFR','LOCID','TLEADTIME','TINVALID'] },
     ];
     var _paIssues = validateEntityFields(_paChecks);
     if (_paIssues.length) {
       document.getElementById('btnFetchPA').disabled = false;
       await fmShowCorrectionPanel(_paIssues, 'fmPanelPA');
       document.getElementById('btnFetchPA').disabled = true;
+      // Re-leer ent por si el usuario seleccionó entidades en el panel
+      ent.psh    = document.getElementById('selPAHeader').value;
+      ent.psi    = document.getElementById('selPAItem').value;
+      ent.psiSub = document.getElementById('selPAItemSub').value;
+      ent.psr    = document.getElementById('selPAResource').value;
+      ent.prd    = document.getElementById('selPAProduct').value;
+      ent.loc    = document.getElementById('selPALocMaster').value;
+      ent.res    = document.getElementById('selPAResMaster').value;
+      ent.locPrd = document.getElementById('selPALocProd').value;
+      ent.locSrc = document.getElementById('selPALocSrc').value;
+      ent.resLoc = document.getElementById('selPAResLoc').value;
     }
   }
 

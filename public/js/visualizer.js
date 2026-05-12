@@ -169,11 +169,11 @@
       // Pre-validar entidades y campos contra schema antes de fetch
       if (typeof validateEntityFields === 'function') {
         var _vizChecks = [
-          { role: 'Location Source',          entityName: cfg.location,   required: true,  fields: ['PRDID','LOCFR','LOCID','TLEADTIME','TINVALID'] },
-          { role: 'Customer Source',          entityName: cfg.customer,   required: true,  fields: ['PRDID','LOCID','CUSTID','CLEADTIME','CINVALID'] },
-          { role: 'Production Source Header', entityName: cfg.sourceProd, required: true,  fields: ['SOURCEID','PRDID','LOCID','PLEADTIME','PINVALID'] },
-          { role: 'Ubicación maestra',        entityName: cfg.locMaster,  required: true,  fields: ['LOCID','LOCDESCR','LOCTYPE','LOCVALID'] },
-          { role: 'Cliente maestra',          entityName: cfg.custMaster, required: true,  fields: ['CUSTID','CUSTDESCR','CUSTVALID'] },
+          { role: 'Location Source',          entityName: cfg.location,   required: true,  selectorId: 'selVizLocation',   fields: ['PRDID','LOCFR','LOCID','TLEADTIME','TINVALID'] },
+          { role: 'Customer Source',          entityName: cfg.customer,   required: true,  selectorId: 'selVizCustomer',   fields: ['PRDID','LOCID','CUSTID','CLEADTIME','CINVALID'] },
+          { role: 'Production Source Header', entityName: cfg.sourceProd, required: true,  selectorId: 'selVizSourceProd', fields: ['SOURCEID','PRDID','LOCID','PLEADTIME','PINVALID'] },
+          { role: 'Ubicación maestra',        entityName: cfg.locMaster,  required: true,  selectorId: 'selVizLocMaster',  fields: ['LOCID','LOCDESCR','LOCTYPE','LOCVALID'] },
+          { role: 'Cliente maestra',          entityName: cfg.custMaster, required: true,  selectorId: 'selVizCustMaster', fields: ['CUSTID','CUSTDESCR','CUSTVALID'] },
         ];
         var _vizIssues = validateEntityFields(_vizChecks);
         if (_vizIssues.length) {
@@ -183,6 +183,12 @@
           await fmShowCorrectionPanel(_vizIssues, 'fmPanelViz');
           btnLoad.disabled = true;
           btnLoad.style.opacity = '0.7';
+          // Re-leer cfg por si el usuario seleccionó entidades en el panel
+          cfg.location   = document.getElementById('selVizLocation').value;
+          cfg.customer   = document.getElementById('selVizCustomer').value;
+          cfg.sourceProd = document.getElementById('selVizSourceProd').value;
+          cfg.locMaster  = document.getElementById('selVizLocMaster').value;
+          cfg.custMaster = document.getElementById('selVizCustMaster').value;
         }
       }
 
