@@ -62,12 +62,12 @@ async function doProductionAnalysis() {
 
   if (typeof validateEntityFields === 'function') {
     var _paChecks = [
-      { entityName: ent.psh,    fields: ['PRDID','SOURCEID','LOCID','SOURCETYPE','PLEADTIME','OUTPUTCOEFFICIENT','PRATIO','PINVALID'] },
+      { role: 'Production Source Header',   entityName: ent.psh,    required: true,  fields: ['PRDID','SOURCEID','LOCID','SOURCETYPE','PLEADTIME','OUTPUTCOEFFICIENT','PRATIO','PINVALID'] },
+      { role: 'Production Source Item',     entityName: ent.psi,    required: false, fields: ['SOURCEID','PRDID','COMPONENTCOEFFICIENT','ISALTITEM'] },
+      { role: 'Production Source Item Sub', entityName: ent.psiSub, required: false, fields: ['SOURCEID','PRDFR','SPRDFR'] },
+      { role: 'Location Source',            entityName: ent.locSrc, required: false, fields: ['PRDID','LOCFR','LOCID','TLEADTIME','TINVALID'] },
     ];
-    if (ent.psi)    _paChecks.push({ entityName: ent.psi,    fields: ['SOURCEID','PRDID','COMPONENTCOEFFICIENT','ISALTITEM'] });
-    if (ent.psiSub) _paChecks.push({ entityName: ent.psiSub, fields: ['SOURCEID','PRDFR','SPRDFR'] });
-    if (ent.locSrc) _paChecks.push({ entityName: ent.locSrc, fields: ['PRDID','LOCFR','LOCID','TLEADTIME','TINVALID'] });
-    var _paIssues = validateEntityFields(_paChecks.filter(function(c){ return !!c.entityName; }));
+    var _paIssues = validateEntityFields(_paChecks);
     if (_paIssues.length) {
       document.getElementById('btnFetchPA').disabled = false;
       await fmShowCorrectionPanel(_paIssues, 'fmPanelPA');

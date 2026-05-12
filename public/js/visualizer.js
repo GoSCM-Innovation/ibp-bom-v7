@@ -166,16 +166,16 @@
       var fCustSrc = prdFilter;
       var fPsh     = prdFilter;
 
-      // Pre-validar campos contra schema
+      // Pre-validar entidades y campos contra schema antes de fetch
       if (typeof validateEntityFields === 'function') {
         var _vizChecks = [
-          { entityName: cfg.location,   fields: ['PRDID','LOCFR','LOCID','TLEADTIME','TINVALID'] },
-          { entityName: cfg.customer,   fields: ['PRDID','LOCID','CUSTID','CLEADTIME','CINVALID'] },
-          { entityName: cfg.sourceProd, fields: ['SOURCEID','PRDID','LOCID','PLEADTIME','PINVALID'] },
-          { entityName: cfg.locMaster,  fields: ['LOCID','LOCDESCR','LOCTYPE','LOCVALID'] },
-          { entityName: cfg.custMaster, fields: ['CUSTID','CUSTDESCR','CUSTVALID'] },
+          { role: 'Location Source',          entityName: cfg.location,   required: true,  fields: ['PRDID','LOCFR','LOCID','TLEADTIME','TINVALID'] },
+          { role: 'Customer Source',          entityName: cfg.customer,   required: true,  fields: ['PRDID','LOCID','CUSTID','CLEADTIME','CINVALID'] },
+          { role: 'Production Source Header', entityName: cfg.sourceProd, required: true,  fields: ['SOURCEID','PRDID','LOCID','PLEADTIME','PINVALID'] },
+          { role: 'Ubicación maestra',        entityName: cfg.locMaster,  required: true,  fields: ['LOCID','LOCDESCR','LOCTYPE','LOCVALID'] },
+          { role: 'Cliente maestra',          entityName: cfg.custMaster, required: true,  fields: ['CUSTID','CUSTDESCR','CUSTVALID'] },
         ];
-        var _vizIssues = validateEntityFields(_vizChecks.filter(function(c){ return !!c.entityName; }));
+        var _vizIssues = validateEntityFields(_vizChecks);
         if (_vizIssues.length) {
           btnLoad.disabled = false;
           btnLoad.textContent = '▶ Cargar red';

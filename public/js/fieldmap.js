@@ -134,23 +134,62 @@ function _fmGetSchemaFields(entityName) {
 
 /* ── Validación pre-fetch ── */
 
-// Recibe un array de { entityName, fields: [] } y devuelve un array de issues
-// sin resolver (no están ya en FIELD_MAP).
-// issue = { entityName, field, suggestion, allFields }
+// checks: [{ role, entityName, required, fields }]
+//   role      — etiqueta legible para el panel (opcional)
+//   entityName — nombre del EntitySet; null/'' si no fue detectada
+//   required  — false → no reportar entity_missing (default: true)
+//   fields    — campos canónicos esperados
+//
+// Tipos de issue devueltos:
+//   entity_missing      — entityName vacío y required != false
+//   entity_not_in_schema — entityName dado pero ausente en $metadata
+//   field_missing       — campo canónico no existe en el schema
 function validateEntityFields(checks) {
   var issues = [];
   checks.forEach(function (chk) {
+
+    // Caso 1: entidad no detectada / no seleccionada
+    if (!chk.entityName) {
+      if (chk.required !== false) {
+        issues.push({
+          type:       'entity_missing',
+          role:       chk.role || '(sin rol)',
+          entityName: null,
+          field:      null,
+          suggestion: null,
+          allFields:  []
+        });
+      }
+      return;
+    }
+
     var schema = _fmGetSchemaFields(chk.entityName);
-    if (!schema.length) return; // entidad no en metadata → ignorar aquí
+
+    // Caso 2: nombre de entidad configurado pero ausente en $metadata
+    if (!schema.length) {
+      issues.push({
+        type:       'entity_not_in_schema',
+        role:       chk.role || chk.entityName,
+        entityName: chk.entityName,
+        field:      null,
+        suggestion: null,
+        allFields:  []
+      });
+      return;
+    }
+
+    // Caso 3: campo canónico ausente del schema
     var emap = FIELD_MAP[chk.entityName] || {};
     chk.fields.forEach(function (f) {
-      if (f in emap) return;           // ya resuelto
-      if (schema.indexOf(f) >= 0) return; // existe, no hay issue
+      if (f in emap) return;
+      if (schema.indexOf(f) >= 0) return;
       issues.push({
+        type:       'field_missing',
+        role:       chk.role || chk.entityName,
         entityName: chk.entityName,
         field:      f,
         suggestion: suggestField(chk.entityName, f),
-        allFields:  schema,
+        allFields:  schema
       });
     });
   });
@@ -172,8 +211,9 @@ function fmShowCorrectionPanel(issues, containerId) {
     _fmPanelCallback   = resolve;
     _fmPanelSelections = {};
 
-    // Inicializar selecciones con sugerencias
+    // Inicializar selecciones con sugerencias (solo para field_missing)
     issues.forEach(function (iss) {
+      if (iss.type !== 'field_missing') return;
       var key = iss.entityName + '||' + iss.field;
       _fmPanelSelections[key] = iss.suggestion ? iss.suggestion : '__null__';
     });
@@ -188,56 +228,93 @@ function fmShowCorrectionPanel(issues, containerId) {
 }
 
 function _fmRenderPanel(issues) {
-  // Agrupar issues por entidad
+  var entityIssues = issues.filter(function(i) { return i.type !== 'field_missing'; });
+  var fieldIssues  = issues.filter(function(i) { return i.type === 'field_missing'; });
+
+  // Agrupar issues de campo por entidad
   var byEntity = {};
-  issues.forEach(function (iss) {
+  fieldIssues.forEach(function (iss) {
     if (!byEntity[iss.entityName]) byEntity[iss.entityName] = [];
     byEntity[iss.entityName].push(iss);
   });
 
+  var total = issues.length;
   var html = '<div class="fm-panel">';
   html += '<div class="fm-panel-header">';
   html += '<span class="fm-panel-icon">&#9888;</span>';
   html += '<div>';
-  html += '<div class="fm-panel-title">Corrección de campos requerida</div>';
-  html += '<div class="fm-panel-subtitle">Se encontraron ' + issues.length + ' campo' + (issues.length !== 1 ? 's' : '') +
-          ' que no existen en el schema de tu sistema SAP IBP. ' +
-          'Indica si existen con otro nombre o si no aplican en este sistema.</div>';
+  html += '<div class="fm-panel-title">Corrección requerida</div>';
+  html += '<div class="fm-panel-subtitle">Se encontraron ' + total + ' problema' + (total !== 1 ? 's' : '') +
+          ' de compatibilidad con el schema de este sistema SAP IBP. ' +
+          'Confirma cómo debe tratarlos la aplicación antes de continuar.</div>';
   html += '</div></div>';
 
-  Object.keys(byEntity).forEach(function (entityName) {
-    var entityIssues = byEntity[entityName];
-    var allMissing = entityIssues.length > 1;
-    html += _fmRenderEntityCard(entityName, entityIssues, allMissing);
-  });
+  if (entityIssues.length) {
+    html += '<div class="fm-section-label">Entidades</div>';
+    entityIssues.forEach(function(iss) { html += _fmRenderEntityIssueCard(iss); });
+  }
+
+  if (Object.keys(byEntity).length) {
+    html += '<div class="fm-section-label">Campos ausentes</div>';
+    Object.keys(byEntity).forEach(function(entityName) {
+      html += _fmRenderEntityCard(entityName, byEntity[entityName]);
+    });
+  }
 
   html += '<div class="fm-panel-actions">';
-  html += '<button class="btn btn-primary" onclick="fmConfirmCorrections()">';
-  html += 'Aplicar correcciones y continuar</button>';
+  html += '<button class="btn btn-primary" onclick="fmConfirmCorrections()">Aplicar y continuar</button>';
   html += '</div></div>';
   return html;
 }
 
-function _fmRenderEntityCard(entityName, issues, allMissing) {
-  var allSuggestions = issues.filter(function (i) { return i.suggestion; });
-  var label = issues.length + ' campo' + (issues.length !== 1 ? 's' : '') + ' requiere' + (issues.length === 1 ? '' : 'n') + ' atención';
+// Card para entity_missing / entity_not_in_schema
+function _fmRenderEntityIssueCard(iss) {
+  var html = '<div class="fm-entity-card fm-entity-card--alert">';
+  html += '<div class="fm-entity-header">';
+  html += '<span class="fm-entity-name">' + escH(iss.role) + '</span>';
+  if (iss.type === 'entity_missing') {
+    html += '<span class="fm-entity-badge fm-badge-alert">No detectada</span>';
+  } else {
+    html += '<span class="fm-entity-badge fm-badge-alert">Fuera de schema</span>';
+  }
+  html += '</div>';
+  if (iss.entityName) {
+    html += '<div class="fm-entity-techname">' + escH(iss.entityName) + '</div>';
+  }
+  if (iss.type === 'entity_missing') {
+    html += '<div class="fm-entity-warning">La auto-detección no encontró ninguna entidad para este rol. ' +
+            'Puedes seleccionarla manualmente en el panel de configuración. ' +
+            'Si no existe en tu sistema, la funcionalidad relacionada quedará sin datos.</div>';
+  } else {
+    html += '<div class="fm-entity-warning">Esta entidad no aparece en el <code>$metadata</code> del sistema. ' +
+            'Es posible que el nombre sea incorrecto. Verifica en el panel de configuración.</div>';
+  }
+  html += '</div>';
+  return html;
+}
+
+// Card para field_missing (agrupados por entidad)
+function _fmRenderEntityCard(entityName, issues) {
+  var label = issues.length + ' campo' + (issues.length !== 1 ? 's' : '');
+  var role = (issues[0] && issues[0].role && issues[0].role !== entityName) ? issues[0].role : null;
 
   var html = '<div class="fm-entity-card">';
   html += '<div class="fm-entity-header">';
-  html += '<span class="fm-entity-name">' + escH(entityName) + '</span>';
+  html += '<span class="fm-entity-name">' + escH(role || entityName) + '</span>';
   html += '<span class="fm-entity-badge">' + escH(label) + '</span>';
   html += '</div>';
+  if (role) {
+    html += '<div class="fm-entity-techname">' + escH(entityName) + '</div>';
+  }
 
-  if (allMissing && !allSuggestions.length) {
-    html += '<div class="fm-entity-warning">La app espera los campos: ' +
+  var noSuggestions = issues.every(function(i) { return !i.suggestion; });
+  if (issues.length > 1 && noSuggestions) {
+    html += '<div class="fm-entity-warning">La app espera: ' +
       escH(issues.map(function (i) { return i.field; }).join(', ')) +
       '. Ninguno se encontró en el schema. Esta entidad puede tener un rol diferente en tu sistema.</div>';
   }
 
-  issues.forEach(function (iss) {
-    html += _fmRenderFieldRow(iss);
-  });
-
+  issues.forEach(function (iss) { html += _fmRenderFieldRow(iss); });
   html += '</div>';
   return html;
 }
@@ -307,8 +384,10 @@ function fmSetFieldValue(key, value) {
 }
 
 function fmConfirmCorrections() {
-  // Guardar todos los mapeos
+  // Solo los issues de tipo field_missing escriben a FIELD_MAP.
+  // entity_missing / entity_not_in_schema son informativos: solo se confirman.
   _fmPendingIssues.forEach(function (iss) {
+    if (iss.type !== 'field_missing') return;
     var key = iss.entityName + '||' + iss.field;
     var sel = _fmPanelSelections[key];
     if (!FIELD_MAP[iss.entityName]) FIELD_MAP[iss.entityName] = {};

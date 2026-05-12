@@ -222,19 +222,19 @@
         return;
       }
 
-      // Pre-validar campos contra schema
+      // Pre-validar entidades y campos contra schema antes de fetch
       if (typeof validateEntityFields === 'function') {
         var _snChecks = [
-          { entityName: locationEntity,   fields: ['PRDID','LOCFR','LOCID','TLEADTIME','TINVALID'] },
-          { entityName: customerEntity,   fields: ['PRDID','LOCID','CUSTID','CLEADTIME','CINVALID'] },
-          { entityName: sourceProdEntity, fields: ['SOURCEID','PRDID','LOCID','PLEADTIME','PRATIO','PINVALID'] },
-          { entityName: sourceItemEntity, fields: ['SOURCEID','PRDID','COMPONENTCOEFFICIENT'] },
-          { entityName: locMasterEntity,  fields: ['LOCID','LOCDESCR','LOCTYPE','LOCVALID'] },
-          { entityName: custMasterEntity, fields: ['CUSTID','CUSTDESCR','CUSTVALID'] },
-          { entityName: locProdEntity,    fields: ['LOCID','PRDID'] },
-          { entityName: custProdEntity,   fields: ['CUSTID','PRDID'] },
+          { role: 'Location Source',          entityName: locationEntity,   required: true,  fields: ['PRDID','LOCFR','LOCID','TLEADTIME','TINVALID'] },
+          { role: 'Customer Source',          entityName: customerEntity,   required: true,  fields: ['PRDID','LOCID','CUSTID','CLEADTIME','CINVALID'] },
+          { role: 'Production Source Header', entityName: sourceProdEntity, required: true,  fields: ['SOURCEID','PRDID','LOCID','PLEADTIME','PRATIO','PINVALID'] },
+          { role: 'Production Source Item',   entityName: sourceItemEntity, required: false, fields: ['SOURCEID','PRDID','COMPONENTCOEFFICIENT'] },
+          { role: 'Ubicación maestra',        entityName: locMasterEntity,  required: true,  fields: ['LOCID','LOCDESCR','LOCTYPE','LOCVALID'] },
+          { role: 'Cliente maestra',          entityName: custMasterEntity, required: true,  fields: ['CUSTID','CUSTDESCR','CUSTVALID'] },
+          { role: 'Location Product',         entityName: locProdEntity,    required: false, fields: ['LOCID','PRDID'] },
+          { role: 'Customer Product',         entityName: custProdEntity,   required: false, fields: ['CUSTID','PRDID'] },
         ];
-        var _snIssues = validateEntityFields(_snChecks.filter(function(c){ return !!c.entityName; }));
+        var _snIssues = validateEntityFields(_snChecks);
         if (_snIssues.length) {
           document.getElementById('btnFetchSN').disabled = false;
           await fmShowCorrectionPanel(_snIssues, 'fmPanelSN');

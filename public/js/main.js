@@ -207,6 +207,26 @@
         // Cargar mapeos de campos guardados para este PA
         if (typeof fmLoad === 'function') fmLoad();
         setConnected(true);
+
+        // Validación de entidades y campos inmediatamente tras la conexión
+        if (typeof validateEntityFields === 'function') {
+          var _connChecks = [
+            { role: 'BOM · Production Source Header',   entityName: detected.header,       required: true,  fields: ['PRDID','SOURCEID','LOCID','SOURCETYPE','OUTPUTCOEFFICIENT','PINVALID'] },
+            { role: 'BOM · Production Source Item',     entityName: detected.item,         required: true,  fields: ['SOURCEID','PRDID','COMPONENTCOEFFICIENT','ISALTITEM'] },
+            { role: 'BOM · Production Source Item Sub', entityName: detected.itemSub,      required: false, fields: ['SOURCEID','PRDFR','SPRDFR'] },
+            { role: 'BOM · Producto',                   entityName: detected.product,      required: true,  fields: ['PRDID','PRDDESCR','MATTYPEID','UOMID','UOMDESCR'] },
+            { role: 'BOM · Ubicación maestra',          entityName: detected.locMaster,    required: true,  fields: ['LOCID','LOCDESCR','LOCVALID'] },
+            { role: 'SN · Location Source',             entityName: detectedSN.location,   required: true,  fields: ['PRDID','LOCFR','LOCID','TLEADTIME','TINVALID'] },
+            { role: 'SN · Customer Source',             entityName: detectedSN.customer,   required: true,  fields: ['PRDID','LOCID','CUSTID','CLEADTIME','CINVALID'] },
+            { role: 'SN · Production Source Header',    entityName: detectedSN.sourceProd, required: true,  fields: ['SOURCEID','PRDID','LOCID','PLEADTIME','PRATIO','PINVALID'] },
+            { role: 'SN · Ubicación maestra',           entityName: detectedSN.locMaster,  required: true,  fields: ['LOCID','LOCDESCR','LOCTYPE','LOCVALID'] },
+            { role: 'SN · Cliente maestra',             entityName: detectedSN.custMaster, required: true,  fields: ['CUSTID','CUSTDESCR','CUSTVALID'] },
+          ];
+          var _connIssues = validateEntityFields(_connChecks);
+          if (_connIssues.length) {
+            await fmShowCorrectionPanel(_connIssues, 'fmPanelBOM');
+          }
+        }
         setConnStatus('ok', 'Conectado — ' + ENTITIES.length + ' entidades · PA: ' + CFG.pa + (CFG.pver ? ' / ' + CFG.pver : ' (Baseline)'));
         document.getElementById('panelMDT').classList.remove('hidden');
         document.getElementById('panelSNMDT').classList.remove('hidden');
@@ -816,16 +836,16 @@
       var locFilter = paFilter;
       var bomValidSids = {};
 
-      // Pre-validar campos contra schema y mostrar panel de corrección si hay issues
+      // Pre-validar entidades y campos contra schema antes de fetch
       if (typeof validateEntityFields === 'function') {
         var _bomChecks = [
-          { entityName: headerEntity,  fields: ['PRDID','SOURCEID','LOCID','SOURCETYPE','OUTPUTCOEFFICIENT','PINVALID'] },
-          { entityName: itemEntity,    fields: ['SOURCEID','PRDID','COMPONENTCOEFFICIENT','ISALTITEM'] },
-          { entityName: productEntity, fields: ['PRDID','PRDDESCR','MATTYPEID','UOMID','UOMDESCR'] },
-          { entityName: bomLocEntity,  fields: ['LOCID','LOCDESCR','LOCVALID'] },
+          { role: 'Production Source Header',   entityName: headerEntity,  required: true,  fields: ['PRDID','SOURCEID','LOCID','SOURCETYPE','OUTPUTCOEFFICIENT','PINVALID'] },
+          { role: 'Production Source Item',     entityName: itemEntity,    required: true,  fields: ['SOURCEID','PRDID','COMPONENTCOEFFICIENT','ISALTITEM'] },
+          { role: 'Production Source Item Sub', entityName: itemSubEntity, required: false, fields: ['SOURCEID','PRDFR','SPRDFR'] },
+          { role: 'Producto',                   entityName: productEntity, required: true,  fields: ['PRDID','PRDDESCR','MATTYPEID','UOMID','UOMDESCR'] },
+          { role: 'Ubicación maestra',          entityName: bomLocEntity,  required: true,  fields: ['LOCID','LOCDESCR','LOCVALID'] },
         ];
-        if (itemSubEntity) _bomChecks.push({ entityName: itemSubEntity, fields: ['SOURCEID','PRDFR','SPRDFR'] });
-        var _bomIssues = validateEntityFields(_bomChecks.filter(function(c){ return !!c.entityName; }));
+        var _bomIssues = validateEntityFields(_bomChecks);
         if (_bomIssues.length) {
           document.getElementById('btnFetch').disabled = false;
           await fmShowCorrectionPanel(_bomIssues, 'fmPanelBOM');
