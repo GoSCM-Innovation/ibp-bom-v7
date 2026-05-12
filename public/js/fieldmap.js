@@ -121,7 +121,14 @@ function suggestField(entityName, canonicalField) {
 
 function _fmGetSchemaFields(entityName) {
   if (typeof ENTITIES === 'undefined') return [];
+  // ENTITIES stores EntityType names (e.g. LSVPRODUCTIONSOURCEHDR)
+  // but callers pass EntitySet names (e.g. LSVPRODUCTIONSOURCEHDRSet).
+  // Try exact match first, then strip trailing "Set".
   var ent = ENTITIES.find(function (e) { return e.name === entityName; });
+  if (!ent) {
+    var stripped = entityName.replace(/Set$/i, '');
+    ent = ENTITIES.find(function (e) { return e.name === stripped; });
+  }
   return ent ? ent.fields : [];
 }
 
