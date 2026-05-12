@@ -6,8 +6,16 @@
     async function fetchAndIndex(entityUrl, logEl, pverFilter, selectFields, onPage) {
       var PAGE_SIZE = 50000;
       var page = 0, total = 0;
+      var entityName = (entityUrl || '').split('?')[0].split('/').pop();
+
+      // Aplicar mapeos de campos si existen
+      var canonicalFields = selectFields ? selectFields.split(',') : [];
+      var resolvedSelect = (typeof buildSelect === 'function' && canonicalFields.length)
+        ? buildSelect(entityName, canonicalFields)
+        : selectFields;
+
       var filterParam = pverFilter ? '&$filter=' + encodeURIComponent(pverFilter) : '';
-      var selectParam = selectFields ? '&$select=' + encodeURIComponent(selectFields) : '';
+      var selectParam = resolvedSelect ? '&$select=' + encodeURIComponent(resolvedSelect) : '';
       var url = entityUrl + '?$format=json&$top=' + PAGE_SIZE + filterParam + selectParam;
       var isNextLink = false;
 
@@ -15,8 +23,26 @@
         page++;
         if (page === 1) log(logEl, 'info', '  ↳ URL: ' + url);
         else log(logEl, 'info', '  ↳ Pág.' + page + ' → ' + url);
-        var data = await (isNextLink ? apiJsonNext(url) : apiJson(url));
+
+        var data;
+        try {
+          data = await (isNextLink ? apiJsonNext(url) : apiJson(url));
+        } catch (fetchErr) {
+          var msg = fetchErr.message || '';
+          if (msg.indexOf('404') >= 0 || msg.toLowerCase().indexOf('not found') >= 0) {
+            log(logEl, 'warn', '  Entidad no encontrada (404): ' + entityName + ' — se omite, sin datos.');
+            return 0;
+          }
+          throw fetchErr;
+        }
+
         var results = (data.d && data.d.results) ? data.d.results : (data.value || []);
+
+        // Normalizar filas: añadir alias canónicos según FIELD_MAP
+        if (typeof normalizeRows === 'function') {
+          results = normalizeRows(entityName, results);
+        }
+
         await onPage(results);   // index/store this page, then let it be GC'd
         total += results.length;
 
@@ -196,6 +222,26 @@
         return;
       }
 
+      // Pre-validar campos contra schema
+      if (typeof validateEntityFields === 'function') {
+        var _snChecks = [
+          { entityName: locationEntity,   fields: ['PRDID','LOCFR','LOCID','TLEADTIME','TINVALID'] },
+          { entityName: customerEntity,   fields: ['PRDID','LOCID','CUSTID','CLEADTIME','CINVALID'] },
+          { entityName: sourceProdEntity, fields: ['SOURCEID','PRDID','LOCID','PLEADTIME','PRATIO','PINVALID'] },
+          { entityName: sourceItemEntity, fields: ['SOURCEID','PRDID','COMPONENTCOEFFICIENT'] },
+          { entityName: locMasterEntity,  fields: ['LOCID','LOCDESCR','LOCTYPE','LOCVALID'] },
+          { entityName: custMasterEntity, fields: ['CUSTID','CUSTDESCR','CUSTVALID'] },
+          { entityName: locProdEntity,    fields: ['LOCID','PRDID'] },
+          { entityName: custProdEntity,   fields: ['CUSTID','PRDID'] },
+        ];
+        var _snIssues = validateEntityFields(_snChecks.filter(function(c){ return !!c.entityName; }));
+        if (_snIssues.length) {
+          document.getElementById('btnFetchSN').disabled = false;
+          await fmShowCorrectionPanel(_snIssues, 'fmPanelSN');
+          document.getElementById('btnFetchSN').disabled = true;
+        }
+      }
+
       var baseOData = CFG.url + '/sap/opu/odata/IBP/' + CFG.service + '/';
       var paFilter = CFG.pa
         ? (CFG.pver
@@ -275,7 +321,7 @@
           setStatusSN('info', 'Descargando Production Source Header → IDB...');
           log(logEl, 'info', timer.fmt() + ' [GET] ' + baseOData + sourceProdEntity);
           var nSrc = await fetchAndIndex(baseOData + sourceProdEntity, logEl, fPsh,
-            'SOURCEID,PRDID,LOCID,PLEADTIME,PRATIO,PINVALID',
+            buildSelect(sourceProdEntity, ['SOURCEID','PRDID','LOCID','PLEADTIME','PRATIO','PINVALID']),
             function (rows) {
               rows = rows.filter(function(r) { return r.PINVALID !== 'X'; });
               rows.forEach(function (r) {

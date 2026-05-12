@@ -595,6 +595,7 @@
             jerarquía</button>
           <button class="btn btn-secondary btn-small" onclick="doConnect()">Reconectar</button>
         </div>
+        <div class="fm-correction-container" id="fmPanelBOM"></div>
         <div class="progress-bar hidden" id="progBar">
           <div class="fill" id="progFill" style="width:0%"></div>
         </div>
@@ -841,6 +842,7 @@
           <button class="btn btn-primary" id="btnFetchSN" onclick="doAnalyzeAndExport()">&#9654; Ejecutar análisis</button>
           <button class="btn btn-secondary btn-small" onclick="snBackToExtraFields()">&#8592; Volver</button>
         </div>
+        <div class="fm-correction-container" id="fmPanelSN"></div>
         <div class="progress-bar hidden" id="progBarSN">
           <div class="fill" id="progFillSN" style="width:0%"></div>
         </div>
@@ -996,6 +998,7 @@
             productos</button>
           <button class="btn btn-secondary btn-small" onclick="doConnect()">Reconectar</button>
         </div>
+        <div class="fm-correction-container" id="fmPanelViz"></div>
         <div class="progress-bar hidden" id="progBarViz">
           <div class="fill" id="progFillViz" style="width:0%"></div>
         </div>
@@ -1495,6 +1498,7 @@
           <button class="btn btn-primary" id="btnFetchPA" onclick="doProductionAnalysis()">▶ Ejecutar análisis</button>
           <button class="btn btn-secondary btn-small" onclick="paBackToExtraFields()">&#8592; Volver</button>
         </div>
+        <div class="fm-correction-container" id="fmPanelPA"></div>
         <div class="progress-bar hidden" id="progBarPA">
           <div class="fill" id="progFillPA" style="width:0%"></div>
         </div>
@@ -1844,6 +1848,7 @@
   <script src="js/mattype-config.js"></script>
   <script src="js/prodAnalyzer.js"></script>
   <script src="js/main.js"></script>
+  <script src="js/fieldmap.js"></script>
   <script src="js/docs.js"></script>
   <script src="js/explorer.js"></script>
   <script src="js/glosario.js"></script>

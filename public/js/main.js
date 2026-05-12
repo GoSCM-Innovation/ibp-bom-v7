@@ -203,6 +203,9 @@
         CONN_SAVED_CFG = null;
         CONN_CACHE.metaText = null;
         CONN_CACHE.vsmt = [];
+
+        // Cargar mapeos de campos guardados para este PA
+        if (typeof fmLoad === 'function') fmLoad();
         setConnected(true);
         setConnStatus('ok', 'Conectado — ' + ENTITIES.length + ' entidades · PA: ' + CFG.pa + (CFG.pver ? ' / ' + CFG.pver : ' (Baseline)'));
         document.getElementById('panelMDT').classList.remove('hidden');
@@ -813,6 +816,23 @@
       var locFilter = paFilter;
       var bomValidSids = {};
 
+      // Pre-validar campos contra schema y mostrar panel de corrección si hay issues
+      if (typeof validateEntityFields === 'function') {
+        var _bomChecks = [
+          { entityName: headerEntity,  fields: ['PRDID','SOURCEID','LOCID','SOURCETYPE','OUTPUTCOEFFICIENT','PINVALID'] },
+          { entityName: itemEntity,    fields: ['SOURCEID','PRDID','COMPONENTCOEFFICIENT','ISALTITEM'] },
+          { entityName: productEntity, fields: ['PRDID','PRDDESCR','MATTYPEID','UOMID','UOMDESCR'] },
+          { entityName: bomLocEntity,  fields: ['LOCID','LOCDESCR','LOCVALID'] },
+        ];
+        if (itemSubEntity) _bomChecks.push({ entityName: itemSubEntity, fields: ['SOURCEID','PRDFR','SPRDFR'] });
+        var _bomIssues = validateEntityFields(_bomChecks.filter(function(c){ return !!c.entityName; }));
+        if (_bomIssues.length) {
+          document.getElementById('btnFetch').disabled = false;
+          await fmShowCorrectionPanel(_bomIssues, 'fmPanelBOM');
+          document.getElementById('btnFetch').disabled = true;
+        }
+      }
+
       try {
         setProgress(0);
 
@@ -826,7 +846,7 @@
         setStatus('info', 'Descargando Production Source Header...');
         log(logEl, 'info', 'GET → ' + baseOData + headerEntity + (paFilter ? ' [filtro PA/Ver]' : ''));
         var nHdr = await fetchAndIndex(baseOData + headerEntity, logEl, pshFilter,
-          'PRDID,SOURCEID,LOCID,SOURCETYPE,OUTPUTCOEFFICIENT,PINVALID',
+          buildSelect(headerEntity, ['PRDID','SOURCEID','LOCID','SOURCETYPE','OUTPUTCOEFFICIENT','PINVALID']),
           function (rows) {
             rows = rows.filter(function(r) { return r.PINVALID !== 'X'; });
             rows.forEach(function(r) { var s = str(r.SOURCEID); if (s) bomValidSids[s] = true; });
@@ -839,7 +859,7 @@
         setStatus('info', 'Descargando Production Source Item...');
         log(logEl, 'info', 'GET → ' + baseOData + itemEntity + (paFilter ? ' [filtro PA/Ver]' : ''));
         var nItm = await fetchAndIndex(baseOData + itemEntity, logEl, paFilter,
-          'SOURCEID,PRDID,COMPONENTCOEFFICIENT,ISALTITEM',
+          buildSelect(itemEntity, ['SOURCEID','PRDID','COMPONENTCOEFFICIENT','ISALTITEM']),
           function (rows) {
             var validRows = rows.filter(function(r) { return !!bomValidSids[str(r.SOURCEID)]; });
             return idbBulkPut('bom_psi', validRows);
@@ -852,7 +872,7 @@
           setStatus('info', 'Descargando Production Source Item Sub...');
           log(logEl, 'info', 'GET → ' + baseOData + itemSubEntity + (paFilter ? ' [filtro PA/Ver]' : ''));
           var nItmSub = await fetchAndIndex(baseOData + itemSubEntity, logEl, paFilter,
-            'SOURCEID,PRDFR,SPRDFR',
+            buildSelect(itemSubEntity, ['SOURCEID','PRDFR','SPRDFR']),
             function (rows) { return idbBulkPut('bom_psisub', rows); });
           log(logEl, 'ok', 'Item Sub: ' + nItmSub + ' registros → IDB');
         } else {
@@ -881,7 +901,7 @@
           setStatus('info', 'Descargando Product (maestro)...');
           log(logEl, 'info', 'GET → ' + baseOData + productEntity + (paFilter ? ' [filtro PA/Ver]' : ''));
           var nPrd = await fetchAndIndex(baseOData + productEntity, logEl, paFilter,
-            'PRDID,PRDDESCR,MATTYPEID,UOMID,UOMDESCR',
+            buildSelect(productEntity, ['PRDID','PRDDESCR','MATTYPEID','UOMID','UOMDESCR']),
             function (rows) { return idbBulkPut('bom_prd', rows); });
           log(logEl, 'ok', 'Product: ' + nPrd + ' registros → IDB');
         } else {
@@ -894,7 +914,7 @@
           setStatus('info', 'Descargando Location (maestro)...');
           log(logEl, 'info', 'GET → ' + baseOData + bomLocEntity + (paFilter ? ' [filtro PA/Ver]' : ''));
           var nLoc = await fetchAndIndex(baseOData + bomLocEntity, logEl, locFilter,
-            'LOCID,LOCDESCR,LOCVALID',
+            buildSelect(bomLocEntity, ['LOCID','LOCDESCR','LOCVALID']),
             function (rows) {
               rows = rows.filter(function(r) { return r.LOCVALID !== 'X'; });
               return idbBulkPut('bom_loc', rows);
