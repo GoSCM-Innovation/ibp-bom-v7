@@ -153,15 +153,22 @@ function validateEntityFields(checks) {
     // Caso 1: entidad no detectada / no seleccionada
     if (!chk.entityName) {
       if (chk.required !== false) {
-        issues.push({
-          type:       'entity_missing',
-          role:       chk.role || '(sin rol)',
-          entityName: null,
-          field:      null,
-          suggestion: null,
-          allFields:  [],
-          selectorId: chk.selectorId || null
-        });
+        var role = chk.role || '(sin rol)';
+        var absentMap = FIELD_MAP['__absent_entities__'] || {};
+        if (role in absentMap) {
+          // Usuario ya confirmó que no existe — mostrar como corrección activa
+          applied.push({ type: 'entity_absent', role: role, entityName: null });
+        } else {
+          issues.push({
+            type:       'entity_missing',
+            role:       role,
+            entityName: null,
+            field:      null,
+            suggestion: null,
+            allFields:  [],
+            selectorId: chk.selectorId || null
+          });
+        }
       }
       return;
     }
@@ -258,12 +265,14 @@ function _fmRenderPanel(issues, applied) {
     byEntity[iss.entityName].push(iss);
   });
 
-  // Agrupar applied por entidad
+  // Agrupar applied por entidad (field_correction) o rol (entity_absent)
   var byEntityApplied = {};
   applied.forEach(function (a) {
-    var key = a.entityName + '||' + a.role;
-    if (!byEntityApplied[key]) byEntityApplied[key] = { role: a.role, entityName: a.entityName, fields: [] };
-    byEntityApplied[key].fields.push(a);
+    var key = (a.type === 'entity_absent') ? ('__absent__||' + a.role) : (a.entityName + '||' + a.role);
+    if (!byEntityApplied[key]) {
+      byEntityApplied[key] = { role: a.role, entityName: a.entityName, isAbsent: a.type === 'entity_absent', fields: [] };
+    }
+    if (a.type !== 'entity_absent') byEntityApplied[key].fields.push(a);
   });
 
   var html = '<div class="fm-panel">';
@@ -310,36 +319,47 @@ function _fmRenderPanel(issues, applied) {
   } else {
     html += '<button class="btn btn-primary" onclick="fmConfirmCorrections()">Continuar</button>';
   }
+  html += '<button class="btn btn-secondary" style="margin-left:8px" onclick="fmClearCorrections()">Limpiar correcciones guardadas</button>';
   html += '</div></div>';
   return html;
 }
 
 // Card de solo lectura para correcciones ya guardadas
 function _fmRenderAppliedCard(group) {
-  var count = group.fields.length;
-  var label = count + ' corrección' + (count !== 1 ? 'es' : '') + ' activa' + (count !== 1 ? 's' : '');
-
   var html = '<div class="fm-entity-card fm-entity-card--applied">';
   html += '<div class="fm-entity-header">';
   html += '<span class="fm-entity-name">' + escH(group.role) + '</span>';
-  html += '<span class="fm-entity-badge fm-badge-applied">' + escH(label) + '</span>';
-  html += '</div>';
-  if (group.role !== group.entityName) {
-    html += '<div class="fm-entity-techname">' + escH(group.entityName) + '</div>';
-  }
-  html += '<div class="fm-applied-list">';
-  group.fields.forEach(function (a) {
-    html += '<div class="fm-applied-row">';
-    html += '<span class="fm-field-tag">' + escH(a.field) + '</span>';
-    html += '<span class="fm-applied-arrow">&#8594;</span>';
-    if (a.mappedTo === null) {
-      html += '<span class="fm-applied-value fm-applied-null">no existe en este sistema (omitido)</span>';
-    } else {
-      html += '<span class="fm-applied-value">' + escH(a.mappedTo) + '</span>';
-    }
+
+  if (group.isAbsent) {
+    html += '<span class="fm-entity-badge fm-badge-applied">ausente confirmado</span>';
     html += '</div>';
-  });
-  html += '</div></div>';
+    html += '<div class="fm-applied-list">';
+    html += '<div class="fm-applied-row"><span class="fm-applied-null">No disponible en este sistema</span></div>';
+    html += '</div>';
+  } else {
+    var count = group.fields.length;
+    var label = count + ' corrección' + (count !== 1 ? 'es' : '') + ' activa' + (count !== 1 ? 's' : '');
+    html += '<span class="fm-entity-badge fm-badge-applied">' + escH(label) + '</span>';
+    html += '</div>';
+    if (group.entityName && group.role !== group.entityName) {
+      html += '<div class="fm-entity-techname">' + escH(group.entityName) + '</div>';
+    }
+    html += '<div class="fm-applied-list">';
+    group.fields.forEach(function (a) {
+      html += '<div class="fm-applied-row">';
+      html += '<span class="fm-field-tag">' + escH(a.field) + '</span>';
+      html += '<span class="fm-applied-arrow">&#8594;</span>';
+      if (a.mappedTo === null) {
+        html += '<span class="fm-applied-value fm-applied-null">no existe en este sistema (omitido)</span>';
+      } else {
+        html += '<span class="fm-applied-value">' + escH(a.mappedTo) + '</span>';
+      }
+      html += '</div>';
+    });
+    html += '</div>';
+  }
+
+  html += '</div>';
   return html;
 }
 
@@ -528,10 +548,15 @@ function fmConfirmCorrections() {
       } else {
         FIELD_MAP[iss.entityName][iss.field] = sel;
       }
-    } else if (iss.type === 'entity_missing' && iss.selectorId) {
+    } else if (iss.type === 'entity_missing') {
       var key = 'entity||' + iss.role;
       var sel = _fmPanelSelections[key];
-      if (sel && sel !== '__null__' && sel !== '__exists__') {
+      if (!sel || sel === '__null__') {
+        // Usuario confirmó que la entidad no existe — persistir para no volver a preguntar
+        if (!FIELD_MAP['__absent_entities__']) FIELD_MAP['__absent_entities__'] = {};
+        FIELD_MAP['__absent_entities__'][iss.role] = true;
+      } else if (sel !== '__exists__' && iss.selectorId) {
+        // Usuario seleccionó una entidad del dropdown
         fmUpdateSelector(iss.selectorId, sel);
       }
     }
@@ -542,6 +567,20 @@ function fmConfirmCorrections() {
   var panels = document.querySelectorAll('.fm-correction-container');
   panels.forEach(function (p) { p.style.display = 'none'; p.innerHTML = ''; });
 
+  if (_fmPanelCallback) {
+    var cb = _fmPanelCallback;
+    _fmPanelCallback   = null;
+    _fmPendingIssues   = [];
+    _fmPanelSelections = {};
+    cb();
+  }
+}
+
+function fmClearCorrections() {
+  FIELD_MAP = {};
+  fmSave();
+  var panels = document.querySelectorAll('.fm-correction-container');
+  panels.forEach(function (p) { p.style.display = 'none'; p.innerHTML = ''; });
   if (_fmPanelCallback) {
     var cb = _fmPanelCallback;
     _fmPanelCallback   = null;
