@@ -17,6 +17,20 @@
         alert('Selecciona la entidad Product antes de confirmar.');
         return;
       }
+      if (typeof validateEntityFields === 'function') {
+        var _vizConfirmChecks = [
+          { role: 'Location Source',          entityName: document.getElementById('selVizLocation').value,   required: true, selectorId: 'selVizLocation',   fields: ['PRDID','LOCFR','LOCID','TLEADTIME','TINVALID'] },
+          { role: 'Customer Source',          entityName: document.getElementById('selVizCustomer').value,   required: true, selectorId: 'selVizCustomer',   fields: ['PRDID','LOCID','CUSTID','CLEADTIME','CINVALID'] },
+          { role: 'Production Source Header', entityName: document.getElementById('selVizSourceProd').value, required: true, selectorId: 'selVizSourceProd', fields: ['SOURCEID','PRDID','LOCID','PLEADTIME','PINVALID'] },
+          { role: 'Ubicación maestra',        entityName: document.getElementById('selVizLocMaster').value,  required: true, selectorId: 'selVizLocMaster',  fields: ['LOCID','LOCDESCR','LOCTYPE','LOCVALID'] },
+          { role: 'Cliente maestra',          entityName: document.getElementById('selVizCustMaster').value, required: true, selectorId: 'selVizCustMaster', fields: ['CUSTID','CUSTDESCR','CUSTVALID'] },
+        ];
+        var _vizConfirmResult = validateEntityFields(_vizConfirmChecks);
+        if (_vizConfirmResult.issues.length) {
+          fmShowCorrectionStep1(_vizConfirmResult.issues, _vizConfirmResult.applied, 'fmPanelViz', _vizConfirmChecks);
+          return;
+        }
+      }
       var btn = document.getElementById('btnVizConfirm');
       var progBar = document.getElementById('progBarViz');
       var progFill = document.getElementById('progFillViz');

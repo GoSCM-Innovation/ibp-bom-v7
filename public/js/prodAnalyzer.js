@@ -309,6 +309,19 @@ function _paCloseMattypeBody(bodyId, arrId) {
 
 /* MDT → Exclude */
 function paConfirmMapping() {
+  if (typeof validateEntityFields === 'function') {
+    var _paConfirmChecks = [
+      { role: 'Production Source Header',   entityName: document.getElementById('selPAHeader').value,  required: true, selectorId: 'selPAHeader',  fields: ['PRDID','SOURCEID','LOCID','SOURCETYPE','PLEADTIME','OUTPUTCOEFFICIENT','PRATIO','PINVALID'] },
+      { role: 'Production Source Item',     entityName: document.getElementById('selPAItem').value,    required: true, selectorId: 'selPAItem',    fields: ['SOURCEID','PRDID','COMPONENTCOEFFICIENT','ISALTITEM'] },
+      { role: 'Production Source Item Sub', entityName: document.getElementById('selPAItemSub').value, required: true, selectorId: 'selPAItemSub', fields: ['SOURCEID','PRDFR','SPRDFR'] },
+      { role: 'Location Source',            entityName: document.getElementById('selPALocSrc').value,  required: true, selectorId: 'selPALocSrc',  fields: ['PRDID','LOCFR','LOCID','TLEADTIME','TINVALID'] },
+    ];
+    var _paConfirmResult = validateEntityFields(_paConfirmChecks);
+    if (_paConfirmResult.issues.length) {
+      fmShowCorrectionStep1(_paConfirmResult.issues, _paConfirmResult.applied, 'fmPanelPA', _paConfirmChecks);
+      return;
+    }
+  }
   // Colapsar mapeo
   var mdtBody = document.getElementById('bodyPAMDT');
   var mdtArr  = document.getElementById('arrPAMDT');

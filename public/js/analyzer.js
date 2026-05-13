@@ -78,6 +78,23 @@
 
     /* MDT → Exclude */
     function doConfirmMapping() {
+      if (typeof validateEntityFields === 'function') {
+        var _snConfirmChecks = [
+          { role: 'Location Source',          entityName: document.getElementById('selSNLocation').value,   required: true, selectorId: 'selSNLocation',   fields: ['PRDID','LOCFR','LOCID','TLEADTIME','TINVALID'] },
+          { role: 'Customer Source',          entityName: document.getElementById('selSNCustomer').value,   required: true, selectorId: 'selSNCustomer',   fields: ['PRDID','LOCID','CUSTID','CLEADTIME','CINVALID'] },
+          { role: 'Production Source Header', entityName: document.getElementById('selSNSourceProd').value, required: true, selectorId: 'selSNSourceProd', fields: ['SOURCEID','PRDID','LOCID','PLEADTIME','PRATIO','PINVALID'] },
+          { role: 'Production Source Item',   entityName: document.getElementById('selSNSourceItem').value, required: true, selectorId: 'selSNSourceItem', fields: ['SOURCEID','PRDID','COMPONENTCOEFFICIENT'] },
+          { role: 'Ubicación maestra',        entityName: document.getElementById('selSNLocMaster').value,  required: true, selectorId: 'selSNLocMaster',  fields: ['LOCID','LOCDESCR','LOCTYPE','LOCVALID'] },
+          { role: 'Cliente maestra',          entityName: document.getElementById('selSNCustMaster').value, required: true, selectorId: 'selSNCustMaster', fields: ['CUSTID','CUSTDESCR','CUSTVALID'] },
+          { role: 'Location Product',         entityName: document.getElementById('selSNLocProd').value,    required: true, selectorId: 'selSNLocProd',    fields: ['LOCID','PRDID'] },
+          { role: 'Customer Product',         entityName: document.getElementById('selSNCustProd').value,   required: true, selectorId: 'selSNCustProd',   fields: ['CUSTID','PRDID'] },
+        ];
+        var _snConfirmResult = validateEntityFields(_snConfirmChecks);
+        if (_snConfirmResult.issues.length) {
+          fmShowCorrectionStep1(_snConfirmResult.issues, _snConfirmResult.applied, 'fmPanelSN', _snConfirmChecks);
+          return;
+        }
+      }
       var body = document.getElementById('bodySNMDT');
       var arr  = document.getElementById('arrSNMDT');
       if (body) { toggleMappingBody('bodySNMDT', 'arrSNMDT', false); }
