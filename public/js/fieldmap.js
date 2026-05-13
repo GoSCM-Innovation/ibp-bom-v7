@@ -222,6 +222,7 @@ var _fmPanelCallback   = null; // resolve() de la Promise
 var _fmPanelSelections = {};   // { entityName_field: 'actualName' | '__null__' }
 var _fmPanelChecks      = [];  // checks originales para re-validar al limpiar
 var _fmPanelContainerId = '';  // contenedor activo
+var _fmChecksRegistry   = {};  // { containerId: checks[] } — uno por módulo
 
 // Muestra el panel de corrección y retorna una Promise que resuelve cuando
 // el usuario confirma. Si no hay issues ni applied, resuelve inmediatamente.
@@ -236,6 +237,7 @@ function fmShowCorrectionPanel(issues, applied, containerId, checks) {
     _fmPanelSelections  = {};
     _fmPanelChecks      = checks || [];
     _fmPanelContainerId = containerId;
+    _fmChecksRegistry[containerId] = checks || [];
 
     // Inicializar selecciones por tipo de issue
     issues.forEach(function (iss) {
@@ -272,6 +274,7 @@ function fmShowCorrectionStep1(issues, applied, containerId, checks) {
   _fmPanelSelections  = {};
   _fmPanelChecks      = checks || [];
   _fmPanelContainerId = containerId;
+  _fmChecksRegistry[containerId] = checks || [];
 
   issues.forEach(function (iss) {
     if (iss.type === 'field_missing') {
@@ -350,20 +353,21 @@ function _fmRenderPanel(issues, applied, isBlocking) {
     });
   }
 
+  var cidQ = "'" + _fmPanelContainerId + "'";
   html += '<div class="fm-panel-actions">';
   if (isBlocking) {
     if (hasIssues) {
-      html += '<button class="btn btn-primary" onclick="fmConfirmCorrections()">Aplicar y continuar</button>';
+      html += '<button class="btn btn-primary" onclick="fmConfirmCorrections(' + cidQ + ')">Aplicar y continuar</button>';
     } else {
-      html += '<button class="btn btn-primary" onclick="fmConfirmCorrections()">Continuar</button>';
+      html += '<button class="btn btn-primary" onclick="fmConfirmCorrections(' + cidQ + ')">Continuar</button>';
     }
-    html += '<button class="btn btn-secondary" style="margin-left:8px" onclick="fmClearCorrections()">Limpiar correcciones guardadas</button>';
+    html += '<button class="btn btn-secondary" style="margin-left:8px" onclick="fmClearCorrections(' + cidQ + ')">Limpiar correcciones guardadas</button>';
   } else {
     if (hasIssues) {
-      html += '<button class="btn btn-primary" onclick="fmConfirmCorrections()">Guardar correcciones</button>';
-      html += '<button class="btn btn-secondary" style="margin-left:8px" onclick="fmClearCorrections()">Limpiar correcciones guardadas</button>';
+      html += '<button class="btn btn-primary" onclick="fmConfirmCorrections(' + cidQ + ')">Guardar correcciones</button>';
+      html += '<button class="btn btn-secondary" style="margin-left:8px" onclick="fmClearCorrections(' + cidQ + ')">Limpiar correcciones guardadas</button>';
     } else {
-      html += '<button class="btn btn-secondary" onclick="fmClearCorrections()">Limpiar correcciones guardadas</button>';
+      html += '<button class="btn btn-secondary" onclick="fmClearCorrections(' + cidQ + ')">Limpiar correcciones guardadas</button>';
     }
   }
   html += '</div></div>';
@@ -592,7 +596,12 @@ function fmSetFieldValue(key, value) {
   _fmPanelSelections[key] = value || '__null__';
 }
 
-function fmConfirmCorrections() {
+function fmConfirmCorrections(containerId) {
+  // Alinear shared state con el panel que disparó el click
+  if (containerId && containerId !== _fmPanelContainerId) {
+    _fmPanelContainerId = containerId;
+    _fmPanelChecks = _fmChecksRegistry[containerId] || _fmPanelChecks;
+  }
   _fmPendingIssues.forEach(function (iss) {
     if (iss.type === 'field_missing') {
       var key = iss.entityName + '||' + iss.field;
@@ -631,14 +640,18 @@ function fmConfirmCorrections() {
   }
 }
 
-function fmClearCorrections() {
+function fmClearCorrections(containerId) {
+  containerId = containerId || _fmPanelContainerId;
   FIELD_MAP = {};
   fmSave();
 
-  // Si hay contexto de panel activo, re-validar y re-renderizar en el mismo contenedor.
-  // Aplica tanto al modo bloqueante (callback pendiente) como al modo step1 (sin callback).
-  if (_fmPanelChecks.length && _fmPanelContainerId) {
-    var result = validateEntityFields(_fmPanelChecks);
+  var checks = _fmChecksRegistry[containerId] || _fmPanelChecks;
+  if (checks.length && containerId) {
+    // Alinear shared state con el panel que disparó el click
+    _fmPanelContainerId = containerId;
+    _fmPanelChecks      = checks;
+
+    var result = validateEntityFields(checks);
     _fmPendingIssues   = result.issues;
     _fmPanelSelections = {};
     result.issues.forEach(function (iss) {
@@ -649,7 +662,7 @@ function fmClearCorrections() {
         _fmPanelSelections['entity||' + iss.role] = '__null__';
       }
     });
-    var container = document.getElementById(_fmPanelContainerId);
+    var container = document.getElementById(containerId);
     if (container) {
       container.innerHTML = _fmRenderPanel(result.issues, result.applied, !!_fmPanelCallback);
       container.style.display = 'block';
@@ -658,9 +671,14 @@ function fmClearCorrections() {
     return;
   }
 
-  // Sin contexto de panel: solo ocultar
-  var panels = document.querySelectorAll('.fm-correction-container');
-  panels.forEach(function (p) { p.style.display = 'none'; p.innerHTML = ''; });
+  // Sin checks registrados: ocultar solo ese contenedor (o todos si no hay ID)
+  if (containerId) {
+    var c = document.getElementById(containerId);
+    if (c) { c.style.display = 'none'; c.innerHTML = ''; }
+  } else {
+    var panels = document.querySelectorAll('.fm-correction-container');
+    panels.forEach(function (p) { p.style.display = 'none'; p.innerHTML = ''; });
+  }
 }
 
 /* ── Parsing de errores SAP IBP ── */
