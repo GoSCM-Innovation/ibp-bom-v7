@@ -627,15 +627,29 @@ function fmConfirmCorrections(containerId) {
   });
   fmSave();
 
-  // Ocultar panel
-  var panels = document.querySelectorAll('.fm-correction-container');
-  panels.forEach(function (p) { p.style.display = 'none'; p.innerHTML = ''; });
+  // Re-renderizar el panel activo con estado aplicado (solo lectura)
+  var _cid = containerId || _fmPanelContainerId;
+  var _checks = _fmChecksRegistry[_cid] || _fmPanelChecks;
+  var _container = _cid ? document.getElementById(_cid) : null;
+  if (_container && _checks.length) {
+    var _afterResult = validateEntityFields(_checks);
+    if (_afterResult.applied.length) {
+      _fmPanelContainerId = _cid;
+      _container.innerHTML = _fmRenderPanel([], _afterResult.applied, false);
+      _container.style.display = 'block';
+    } else {
+      _container.style.display = 'none';
+      _container.innerHTML = '';
+    }
+  }
+
+  // Limpiar estado compartido
+  _fmPendingIssues   = [];
+  _fmPanelSelections = {};
 
   if (_fmPanelCallback) {
     var cb = _fmPanelCallback;
-    _fmPanelCallback   = null;
-    _fmPendingIssues   = [];
-    _fmPanelSelections = {};
+    _fmPanelCallback = null;
     cb();
   }
 }
