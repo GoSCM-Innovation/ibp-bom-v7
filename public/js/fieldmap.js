@@ -220,17 +220,22 @@ function validateEntityFields(checks) {
 var _fmPendingIssues   = [];
 var _fmPanelCallback   = null; // resolve() de la Promise
 var _fmPanelSelections = {};   // { entityName_field: 'actualName' | '__null__' }
+var _fmPanelChecks      = [];  // checks originales para re-validar al limpiar
+var _fmPanelContainerId = '';  // contenedor activo
 
 // Muestra el panel de corrección y retorna una Promise que resuelve cuando
 // el usuario confirma. Si no hay issues ni applied, resuelve inmediatamente.
 // applied: lista de correcciones ya guardadas que se están aplicando (solo info).
-function fmShowCorrectionPanel(issues, applied, containerId) {
+// checks:  array original pasado a validateEntityFields (necesario para re-validar al limpiar).
+function fmShowCorrectionPanel(issues, applied, containerId, checks) {
   applied = applied || [];
   if (!issues.length && !applied.length) return Promise.resolve();
   return new Promise(function (resolve) {
-    _fmPendingIssues   = issues;
-    _fmPanelCallback   = resolve;
-    _fmPanelSelections = {};
+    _fmPendingIssues    = issues;
+    _fmPanelCallback    = resolve;
+    _fmPanelSelections  = {};
+    _fmPanelChecks      = checks || [];
+    _fmPanelContainerId = containerId;
 
     // Inicializar selecciones por tipo de issue
     issues.forEach(function (iss) {
@@ -579,15 +584,33 @@ function fmConfirmCorrections() {
 function fmClearCorrections() {
   FIELD_MAP = {};
   fmSave();
+
+  // Si hay un panel activo con callback pendiente, re-validar y re-renderizar
+  // en lugar de continuar la ejecución — el usuario debe confirmar de nuevo.
+  if (_fmPanelCallback && _fmPanelChecks.length && _fmPanelContainerId) {
+    var result = validateEntityFields(_fmPanelChecks);
+    _fmPendingIssues   = result.issues;
+    _fmPanelSelections = {};
+    result.issues.forEach(function (iss) {
+      if (iss.type === 'field_missing') {
+        var key = iss.entityName + '||' + iss.field;
+        _fmPanelSelections[key] = iss.suggestion ? iss.suggestion : '__null__';
+      } else if (iss.type === 'entity_missing') {
+        _fmPanelSelections['entity||' + iss.role] = '__null__';
+      }
+    });
+    var container = document.getElementById(_fmPanelContainerId);
+    if (container) {
+      container.innerHTML = _fmRenderPanel(result.issues, result.applied);
+      container.style.display = 'block';
+      container.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+    return;
+  }
+
+  // Sin panel activo: solo ocultar
   var panels = document.querySelectorAll('.fm-correction-container');
   panels.forEach(function (p) { p.style.display = 'none'; p.innerHTML = ''; });
-  if (_fmPanelCallback) {
-    var cb = _fmPanelCallback;
-    _fmPanelCallback   = null;
-    _fmPendingIssues   = [];
-    _fmPanelSelections = {};
-    cb();
-  }
 }
 
 /* ── Parsing de errores SAP IBP ── */

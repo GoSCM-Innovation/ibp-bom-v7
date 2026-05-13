@@ -829,7 +829,7 @@
         var _bomResult = validateEntityFields(_bomChecks);
         if (_bomResult.issues.length || _bomResult.applied.length) {
           document.getElementById('btnFetch').disabled = false;
-          await fmShowCorrectionPanel(_bomResult.issues, _bomResult.applied, 'fmPanelBOM');
+          await fmShowCorrectionPanel(_bomResult.issues, _bomResult.applied, 'fmPanelBOM', _bomChecks);
           document.getElementById('btnFetch').disabled = true;
           // Re-leer entidades por si el usuario las seleccionó en el panel
           headerEntity  = document.getElementById('selHeader').value;

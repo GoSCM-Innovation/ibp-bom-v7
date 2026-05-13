@@ -237,7 +237,7 @@
         var _snResult = validateEntityFields(_snChecks);
         if (_snResult.issues.length || _snResult.applied.length) {
           document.getElementById('btnFetchSN').disabled = false;
-          await fmShowCorrectionPanel(_snResult.issues, _snResult.applied, 'fmPanelSN');
+          await fmShowCorrectionPanel(_snResult.issues, _snResult.applied, 'fmPanelSN', _snChecks);
           document.getElementById('btnFetchSN').disabled = true;
           // Re-leer entidades por si el usuario las seleccionó en el panel
           locationEntity   = document.getElementById('selSNLocation').value;

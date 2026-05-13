@@ -70,7 +70,7 @@ async function doProductionAnalysis() {
     var _paResult = validateEntityFields(_paChecks);
     if (_paResult.issues.length || _paResult.applied.length) {
       document.getElementById('btnFetchPA').disabled = false;
-      await fmShowCorrectionPanel(_paResult.issues, _paResult.applied, 'fmPanelPA');
+      await fmShowCorrectionPanel(_paResult.issues, _paResult.applied, 'fmPanelPA', _paChecks);
       document.getElementById('btnFetchPA').disabled = true;
       // Re-leer ent por si el usuario seleccionó entidades en el panel
       ent.psh    = document.getElementById('selPAHeader').value;

@@ -180,7 +180,7 @@
           btnLoad.disabled = false;
           btnLoad.textContent = '▶ Cargar red';
           btnLoad.style.opacity = '';
-          await fmShowCorrectionPanel(_vizResult.issues, _vizResult.applied, 'fmPanelViz');
+          await fmShowCorrectionPanel(_vizResult.issues, _vizResult.applied, 'fmPanelViz', _vizChecks);
           btnLoad.disabled = true;
           btnLoad.style.opacity = '0.7';
           // Re-leer cfg por si el usuario seleccionó entidades en el panel
