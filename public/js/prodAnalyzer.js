@@ -68,7 +68,7 @@ async function doProductionAnalysis() {
       { role: 'Location Source',            entityName: ent.locSrc, required: true,  selectorId: 'selPALocSrc',  fields: ['PRDID','LOCFR','LOCID','TLEADTIME','TINVALID'] },
     ];
     var _paResult = validateEntityFields(_paChecks);
-    if (_paResult.issues.length || _paResult.applied.length) {
+    if (_paResult.issues.length) {
       document.getElementById('btnFetchPA').disabled = false;
       await fmShowCorrectionPanel(_paResult.issues, _paResult.applied, 'fmPanelPA', _paChecks);
       document.getElementById('btnFetchPA').disabled = true;

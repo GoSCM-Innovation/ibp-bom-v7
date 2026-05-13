@@ -176,7 +176,7 @@
           { role: 'Cliente maestra',          entityName: cfg.custMaster, required: true,  selectorId: 'selVizCustMaster', fields: ['CUSTID','CUSTDESCR','CUSTVALID'] },
         ];
         var _vizResult = validateEntityFields(_vizChecks);
-        if (_vizResult.issues.length || _vizResult.applied.length) {
+        if (_vizResult.issues.length) {
           btnLoad.disabled = false;
           btnLoad.textContent = '▶ Cargar red';
           btnLoad.style.opacity = '';

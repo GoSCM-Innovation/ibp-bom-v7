@@ -256,7 +256,8 @@ function fmShowCorrectionPanel(issues, applied, containerId, checks) {
   });
 }
 
-function _fmRenderPanel(issues, applied) {
+// infoOnly=true: solo muestra correcciones activas, sin botón "Continuar" (uso no bloqueante).
+function _fmRenderPanel(issues, applied, infoOnly) {
   applied = applied || [];
   var hasIssues = issues.length > 0;
 
@@ -293,7 +294,7 @@ function _fmRenderPanel(issues, applied) {
   } else {
     html += '<div class="fm-panel-title">Correcciones activas</div>';
     html += '<div class="fm-panel-subtitle">La aplicación está usando las siguientes correcciones guardadas ' +
-            'para adaptar los campos a tu sistema SAP IBP. Revísalas antes de continuar.</div>';
+            'para adaptar los campos a tu sistema SAP IBP.</div>';
   }
   html += '</div></div>';
 
@@ -319,14 +320,28 @@ function _fmRenderPanel(issues, applied) {
   }
 
   html += '<div class="fm-panel-actions">';
-  if (hasIssues) {
-    html += '<button class="btn btn-primary" onclick="fmConfirmCorrections()">Aplicar y continuar</button>';
+  if (!infoOnly) {
+    if (hasIssues) {
+      html += '<button class="btn btn-primary" onclick="fmConfirmCorrections()">Aplicar y continuar</button>';
+    } else {
+      html += '<button class="btn btn-primary" onclick="fmConfirmCorrections()">Continuar</button>';
+    }
+    html += '<button class="btn btn-secondary" style="margin-left:8px" onclick="fmClearCorrections()">Limpiar correcciones guardadas</button>';
   } else {
-    html += '<button class="btn btn-primary" onclick="fmConfirmCorrections()">Continuar</button>';
+    html += '<button class="btn btn-secondary" onclick="fmClearCorrections()">Limpiar correcciones guardadas</button>';
   }
-  html += '<button class="btn btn-secondary" style="margin-left:8px" onclick="fmClearCorrections()">Limpiar correcciones guardadas</button>';
   html += '</div></div>';
   return html;
+}
+
+// Muestra correcciones activas en modo solo-lectura dentro del panel de mapeo de entidades.
+// No bloqueante — sin Promise ni callback.
+function fmShowCorrectionInfo(applied, containerId) {
+  if (!applied || !applied.length) return;
+  var container = document.getElementById(containerId);
+  if (!container) return;
+  container.innerHTML = _fmRenderPanel([], applied, true);
+  container.style.display = 'block';
 }
 
 // Card de solo lectura para correcciones ya guardadas

@@ -206,6 +206,53 @@
 
         // Cargar mapeos de campos guardados para este PA
         if (typeof fmLoad === 'function') fmLoad();
+
+        // Mostrar correcciones activas en cada panel de mapeo de entidades
+        if (typeof fmShowCorrectionInfo === 'function' && typeof validateEntityFields === 'function') {
+          var _fmInfoChecks = [
+            [
+              { role: 'Production Source Header',   sel: 'selHeader',       fields: ['PRDID','SOURCEID','LOCID','SOURCETYPE','OUTPUTCOEFFICIENT','PINVALID'] },
+              { role: 'Production Source Item',     sel: 'selItem',         fields: ['SOURCEID','PRDID','COMPONENTCOEFFICIENT','ISALTITEM'] },
+              { role: 'Production Source Item Sub', sel: 'selItemSub',      fields: ['SOURCEID','PRDFR','SPRDFR'] },
+              { role: 'Production Source Resource', sel: 'selResource',     fields: ['SOURCEID','RESID'] },
+              { role: 'Producto',                   sel: 'selProduct',      fields: ['PRDID','PRDDESCR','MATTYPEID','UOMID','UOMDESCR'] },
+              { role: 'Ubicación maestra',          sel: 'selBomLocMaster', fields: ['LOCID','LOCDESCR','LOCVALID'] },
+            ],
+            [
+              { role: 'Location Source',          sel: 'selSNLocation',   fields: ['PRDID','LOCFR','LOCID','TLEADTIME','TINVALID'] },
+              { role: 'Customer Source',          sel: 'selSNCustomer',   fields: ['PRDID','LOCID','CUSTID','CLEADTIME','CINVALID'] },
+              { role: 'Production Source Header', sel: 'selSNSourceProd', fields: ['SOURCEID','PRDID','LOCID','PLEADTIME','PRATIO','PINVALID'] },
+              { role: 'Production Source Item',   sel: 'selSNSourceItem', fields: ['SOURCEID','PRDID','COMPONENTCOEFFICIENT'] },
+              { role: 'Ubicación maestra',        sel: 'selSNLocMaster',  fields: ['LOCID','LOCDESCR','LOCTYPE','LOCVALID'] },
+              { role: 'Cliente maestra',          sel: 'selSNCustMaster', fields: ['CUSTID','CUSTDESCR','CUSTVALID'] },
+              { role: 'Location Product',         sel: 'selSNLocProd',    fields: ['LOCID','PRDID'] },
+              { role: 'Customer Product',         sel: 'selSNCustProd',   fields: ['CUSTID','PRDID'] },
+            ],
+            [
+              { role: 'Location Source',          sel: 'selVizLocation',   fields: ['PRDID','LOCFR','LOCID','TLEADTIME','TINVALID'] },
+              { role: 'Customer Source',          sel: 'selVizCustomer',   fields: ['PRDID','LOCID','CUSTID','CLEADTIME','CINVALID'] },
+              { role: 'Production Source Header', sel: 'selVizSourceProd', fields: ['SOURCEID','PRDID','LOCID','PLEADTIME','PINVALID'] },
+              { role: 'Ubicación maestra',        sel: 'selVizLocMaster',  fields: ['LOCID','LOCDESCR','LOCTYPE','LOCVALID'] },
+              { role: 'Cliente maestra',          sel: 'selVizCustMaster', fields: ['CUSTID','CUSTDESCR','CUSTVALID'] },
+            ],
+            [
+              { role: 'Production Source Header',   sel: 'selPAHeader',  fields: ['PRDID','SOURCEID','LOCID','SOURCETYPE','PLEADTIME','OUTPUTCOEFFICIENT','PRATIO','PINVALID'] },
+              { role: 'Production Source Item',     sel: 'selPAItem',    fields: ['SOURCEID','PRDID','COMPONENTCOEFFICIENT','ISALTITEM'] },
+              { role: 'Production Source Item Sub', sel: 'selPAItemSub', fields: ['SOURCEID','PRDFR','SPRDFR'] },
+              { role: 'Location Source',            sel: 'selPALocSrc',  fields: ['PRDID','LOCFR','LOCID','TLEADTIME','TINVALID'] },
+            ],
+          ];
+          var _fmInfoPanels = ['fmPanelBOM', 'fmPanelSN', 'fmPanelViz', 'fmPanelPA'];
+          _fmInfoChecks.forEach(function(spec, i) {
+            var checks = spec.map(function(s) {
+              var el = document.getElementById(s.sel);
+              return { role: s.role, entityName: el ? el.value : '', required: true, selectorId: s.sel, fields: s.fields };
+            });
+            var r = validateEntityFields(checks);
+            if (r.applied.length) fmShowCorrectionInfo(r.applied, _fmInfoPanels[i]);
+          });
+        }
+
         setConnected(true);
         setConnStatus('ok', 'Conectado — ' + ENTITIES.length + ' entidades · PA: ' + CFG.pa + (CFG.pver ? ' / ' + CFG.pver : ' (Baseline)'));
         document.getElementById('panelMDT').classList.remove('hidden');
@@ -827,7 +874,7 @@
           { role: 'Ubicación maestra',          entityName: bomLocEntity,  required: true,  selectorId: 'selBomLocMaster', fields: ['LOCID','LOCDESCR','LOCVALID'] },
         ];
         var _bomResult = validateEntityFields(_bomChecks);
-        if (_bomResult.issues.length || _bomResult.applied.length) {
+        if (_bomResult.issues.length) {
           document.getElementById('btnFetch').disabled = false;
           await fmShowCorrectionPanel(_bomResult.issues, _bomResult.applied, 'fmPanelBOM', _bomChecks);
           document.getElementById('btnFetch').disabled = true;

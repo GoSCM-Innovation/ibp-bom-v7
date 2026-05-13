@@ -235,7 +235,7 @@
           { role: 'Customer Product',         entityName: custProdEntity,   required: true,  selectorId: 'selSNCustProd',   fields: ['CUSTID','PRDID'] },
         ];
         var _snResult = validateEntityFields(_snChecks);
-        if (_snResult.issues.length || _snResult.applied.length) {
+        if (_snResult.issues.length) {
           document.getElementById('btnFetchSN').disabled = false;
           await fmShowCorrectionPanel(_snResult.issues, _snResult.applied, 'fmPanelSN', _snChecks);
           document.getElementById('btnFetchSN').disabled = true;
