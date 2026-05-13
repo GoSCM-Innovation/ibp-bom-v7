@@ -829,11 +829,18 @@
           { role: 'Ubicación maestra',          entityName: bomLocEntity,  required: true,  selectorId: 'selBomLocMaster', fields: ['LOCID','LOCDESCR','LOCVALID'] },
         ];
         var _bomResult = validateEntityFields(_bomChecks);
-        if (_bomResult.issues.length) {
+        if (_bomResult.issues.length || _bomResult.applied.length) {
           document.getElementById('btnFetch').disabled = false;
-          fmShowCorrectionStep1(_bomResult.issues, _bomResult.applied, 'fmPanelBOM', _bomChecks);
           toggleMappingBody('bodyMDT', 'arrMDT', true);
-          return;
+          await fmShowCorrectionPanel(_bomResult.issues, _bomResult.applied, 'fmPanelBOM', _bomChecks);
+          document.getElementById('btnFetch').disabled = true;
+          headerEntity   = document.getElementById('selHeader').value;
+          itemEntity     = document.getElementById('selItem').value;
+          itemSubEntity  = document.getElementById('selItemSub').value;
+          resourceEntity = document.getElementById('selResource').value;
+          productEntity  = document.getElementById('selProduct').value;
+          bomLocEntity   = document.getElementById('selBomLocMaster').value;
+          bomResEntity   = document.getElementById('selBomResMaster').value;
         }
       }
 

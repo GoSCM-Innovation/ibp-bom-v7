@@ -308,7 +308,7 @@ function _paCloseMattypeBody(bodyId, arrId) {
 /* ── Navegación entre paneles ── */
 
 /* MDT → Exclude */
-function paConfirmMapping() {
+async function paConfirmMapping() {
   if (typeof validateEntityFields === 'function') {
     var _paConfirmChecks = [
       { role: 'Production Source Header',   entityName: document.getElementById('selPAHeader').value,  required: true, selectorId: 'selPAHeader',  fields: ['PRDID','SOURCEID','LOCID','SOURCETYPE','PLEADTIME','OUTPUTCOEFFICIENT','PRATIO','PINVALID'] },
@@ -317,9 +317,8 @@ function paConfirmMapping() {
       { role: 'Location Source',            entityName: document.getElementById('selPALocSrc').value,  required: true, selectorId: 'selPALocSrc',  fields: ['PRDID','LOCFR','LOCID','TLEADTIME','TINVALID'] },
     ];
     var _paConfirmResult = validateEntityFields(_paConfirmChecks);
-    if (_paConfirmResult.issues.length) {
-      fmShowCorrectionStep1(_paConfirmResult.issues, _paConfirmResult.applied, 'fmPanelPA', _paConfirmChecks);
-      return;
+    if (_paConfirmResult.issues.length || _paConfirmResult.applied.length) {
+      await fmShowCorrectionPanel(_paConfirmResult.issues, _paConfirmResult.applied, 'fmPanelPA', _paConfirmChecks);
     }
   }
   // Colapsar mapeo

@@ -26,9 +26,8 @@
           { role: 'Cliente maestra',          entityName: document.getElementById('selVizCustMaster').value, required: true, selectorId: 'selVizCustMaster', fields: ['CUSTID','CUSTDESCR','CUSTVALID'] },
         ];
         var _vizConfirmResult = validateEntityFields(_vizConfirmChecks);
-        if (_vizConfirmResult.issues.length) {
-          fmShowCorrectionStep1(_vizConfirmResult.issues, _vizConfirmResult.applied, 'fmPanelViz', _vizConfirmChecks);
-          return;
+        if (_vizConfirmResult.issues.length || _vizConfirmResult.applied.length) {
+          await fmShowCorrectionPanel(_vizConfirmResult.issues, _vizConfirmResult.applied, 'fmPanelViz', _vizConfirmChecks);
         }
       }
       var btn = document.getElementById('btnVizConfirm');

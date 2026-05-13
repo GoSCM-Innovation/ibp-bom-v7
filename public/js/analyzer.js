@@ -77,7 +77,7 @@
     }
 
     /* MDT → Exclude */
-    function doConfirmMapping() {
+    async function doConfirmMapping() {
       if (typeof validateEntityFields === 'function') {
         var _snConfirmChecks = [
           { role: 'Location Source',          entityName: document.getElementById('selSNLocation').value,   required: true, selectorId: 'selSNLocation',   fields: ['PRDID','LOCFR','LOCID','TLEADTIME','TINVALID'] },
@@ -90,9 +90,8 @@
           { role: 'Customer Product',         entityName: document.getElementById('selSNCustProd').value,   required: true, selectorId: 'selSNCustProd',   fields: ['CUSTID','PRDID'] },
         ];
         var _snConfirmResult = validateEntityFields(_snConfirmChecks);
-        if (_snConfirmResult.issues.length) {
-          fmShowCorrectionStep1(_snConfirmResult.issues, _snConfirmResult.applied, 'fmPanelSN', _snConfirmChecks);
-          return;
+        if (_snConfirmResult.issues.length || _snConfirmResult.applied.length) {
+          await fmShowCorrectionPanel(_snConfirmResult.issues, _snConfirmResult.applied, 'fmPanelSN', _snConfirmChecks);
         }
       }
       var body = document.getElementById('bodySNMDT');
