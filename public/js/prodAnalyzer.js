@@ -70,19 +70,9 @@ async function doProductionAnalysis() {
     var _paResult = validateEntityFields(_paChecks);
     if (_paResult.issues.length) {
       document.getElementById('btnFetchPA').disabled = false;
-      await fmShowCorrectionPanel(_paResult.issues, _paResult.applied, 'fmPanelPA', _paChecks);
-      document.getElementById('btnFetchPA').disabled = true;
-      // Re-leer ent por si el usuario seleccionó entidades en el panel
-      ent.psh    = document.getElementById('selPAHeader').value;
-      ent.psi    = document.getElementById('selPAItem').value;
-      ent.psiSub = document.getElementById('selPAItemSub').value;
-      ent.psr    = document.getElementById('selPAResource').value;
-      ent.prd    = document.getElementById('selPAProduct').value;
-      ent.loc    = document.getElementById('selPALocMaster').value;
-      ent.res    = document.getElementById('selPAResMaster').value;
-      ent.locPrd = document.getElementById('selPALocProd').value;
-      ent.locSrc = document.getElementById('selPALocSrc').value;
-      ent.resLoc = document.getElementById('selPAResLoc').value;
+      log(logEl, 'error', 'Hay correcciones pendientes. Resuélvelas en el paso de mapeo de entidades antes de ejecutar.');
+      if (typeof toggleMappingBody === 'function') toggleMappingBody('bodyPAMDT', 'arrPAMDT', true);
+      return;
     }
   }
 

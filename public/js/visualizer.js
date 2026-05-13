@@ -180,15 +180,9 @@
           btnLoad.disabled = false;
           btnLoad.textContent = '▶ Cargar red';
           btnLoad.style.opacity = '';
-          await fmShowCorrectionPanel(_vizResult.issues, _vizResult.applied, 'fmPanelViz', _vizChecks);
-          btnLoad.disabled = true;
-          btnLoad.style.opacity = '0.7';
-          // Re-leer cfg por si el usuario seleccionó entidades en el panel
-          cfg.location   = document.getElementById('selVizLocation').value;
-          cfg.customer   = document.getElementById('selVizCustomer').value;
-          cfg.sourceProd = document.getElementById('selVizSourceProd').value;
-          cfg.locMaster  = document.getElementById('selVizLocMaster').value;
-          cfg.custMaster = document.getElementById('selVizCustMaster').value;
+          log(logEl, 'error', 'Hay correcciones pendientes. Resuélvelas en el paso de mapeo de entidades antes de cargar.');
+          if (typeof toggleMappingBody === 'function') toggleMappingBody('bodyVizMDT', 'arrVizMDT', true);
+          return;
         }
       }
 

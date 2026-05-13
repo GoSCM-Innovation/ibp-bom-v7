@@ -237,17 +237,9 @@
         var _snResult = validateEntityFields(_snChecks);
         if (_snResult.issues.length) {
           document.getElementById('btnFetchSN').disabled = false;
-          await fmShowCorrectionPanel(_snResult.issues, _snResult.applied, 'fmPanelSN', _snChecks);
-          document.getElementById('btnFetchSN').disabled = true;
-          // Re-leer entidades por si el usuario las seleccionó en el panel
-          locationEntity   = document.getElementById('selSNLocation').value;
-          customerEntity   = document.getElementById('selSNCustomer').value;
-          sourceProdEntity = document.getElementById('selSNSourceProd').value;
-          sourceItemEntity = document.getElementById('selSNSourceItem').value;
-          locMasterEntity  = document.getElementById('selSNLocMaster').value;
-          custMasterEntity = document.getElementById('selSNCustMaster').value;
-          locProdEntity    = document.getElementById('selSNLocProd').value;
-          custProdEntity   = document.getElementById('selSNCustProd').value;
+          log(logEl, 'error', 'Hay correcciones pendientes. Resuélvelas en el paso de mapeo de entidades antes de ejecutar.');
+          if (typeof toggleMappingBody === 'function') toggleMappingBody('bodySNMDT', 'arrSNMDT', true);
+          return;
         }
       }
 

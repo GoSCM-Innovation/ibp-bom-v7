@@ -891,16 +891,9 @@
         var _bomResult = validateEntityFields(_bomChecks);
         if (_bomResult.issues.length) {
           document.getElementById('btnFetch').disabled = false;
-          await fmShowCorrectionPanel(_bomResult.issues, _bomResult.applied, 'fmPanelBOM', _bomChecks);
-          document.getElementById('btnFetch').disabled = true;
-          // Re-leer entidades por si el usuario las seleccionó en el panel
-          headerEntity  = document.getElementById('selHeader').value;
-          itemEntity    = document.getElementById('selItem').value;
-          itemSubEntity = document.getElementById('selItemSub').value;
-          resourceEntity = document.getElementById('selResource').value;
-          productEntity = document.getElementById('selProduct').value;
-          bomLocEntity  = document.getElementById('selBomLocMaster').value;
-          bomResEntity  = document.getElementById('selBomResMaster').value;
+          log(logEl, 'error', 'Hay correcciones pendientes. Resuélvelas en el paso de mapeo de entidades antes de descargar.');
+          toggleMappingBody('bodyMDT', 'arrMDT', true);
+          return;
         }
       }
 
