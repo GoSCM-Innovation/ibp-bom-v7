@@ -432,7 +432,8 @@ function _fmRenderEntityIssueCard(iss) {
   if (iss.type === 'entity_missing') {
     var key = 'entity||' + iss.role;
     var keyAttr = escH(key);
-    var dropId  = 'fmEntDrop_' + key.replace(/[^a-zA-Z0-9]/g, '_');
+    var cid     = escH(_fmPanelContainerId);
+    var dropId  = 'fmEntDrop_' + cid.replace(/[^a-zA-Z0-9]/g, '_') + '_' + key.replace(/[^a-zA-Z0-9]/g, '_');
     var currentSel = _fmPanelSelections[key] || '__null__';
     var isNull = currentSel === '__null__';
 
@@ -441,16 +442,16 @@ function _fmRenderEntityIssueCard(iss) {
             'Indica si existe en tu sistema IBP o confirma que no está disponible.</div>';
 
     html += '<label class="fm-radio-label">';
-    html += '<input type="radio" name="fmEnt_' + keyAttr + '" value="__null__"' +
+    html += '<input type="radio" name="fmEnt_' + cid + '_' + keyAttr + '" value="__null__"' +
             (isNull ? ' checked' : '') +
-            ' onchange="fmSetEntitySelection(\'' + keyAttr + '\',\'__null__\')">';
+            ' onchange="fmSetEntitySelection(\'' + keyAttr + '\',\'__null__\',\'' + cid + '\')">';
     html += '<span>No existe en este sistema &mdash; omitir esta funcionalidad</span>';
     html += '</label>';
 
     html += '<label class="fm-radio-label">';
-    html += '<input type="radio" name="fmEnt_' + keyAttr + '" value="__exists__"' +
+    html += '<input type="radio" name="fmEnt_' + cid + '_' + keyAttr + '" value="__exists__"' +
             (!isNull ? ' checked' : '') +
-            ' onchange="fmSetEntitySelection(\'' + keyAttr + '\',\'__exists__\')">';
+            ' onchange="fmSetEntitySelection(\'' + keyAttr + '\',\'__exists__\',\'' + cid + '\')">';
     html += '<span>Sí existe &mdash; seleccionar entidad:</span>';
     html += '</label>';
 
@@ -505,6 +506,8 @@ function _fmRenderEntityCard(entityName, issues) {
 
 function _fmRenderFieldRow(iss) {
   var key = escH(iss.entityName + '||' + iss.field);
+  var cid = escH(_fmPanelContainerId);
+  var dropId = 'fmDrop_' + cid + '_' + key;
   var currentSel = _fmPanelSelections[iss.entityName + '||' + iss.field] || '__null__';
   var desc = FIELD_DESCRIPTIONS[iss.field] || '';
 
@@ -517,21 +520,21 @@ function _fmRenderFieldRow(iss) {
   // Radio: no existe
   var noExistsChecked = (currentSel === '__null__') ? ' checked' : '';
   html += '<label class="fm-radio-label">';
-  html += '<input type="radio" name="fm_' + key + '" value="__null__"' + noExistsChecked +
-          ' onchange="fmSetSelection(\'' + key + '\',\'__null__\')">';
+  html += '<input type="radio" name="fm_' + cid + '_' + key + '" value="__null__"' + noExistsChecked +
+          ' onchange="fmSetSelection(\'' + key + '\',\'__null__\',\'' + cid + '\')">';
   html += '<span>No existe en mi sistema &mdash; la app funcionará sin esta información</span>';
   html += '</label>';
 
   // Radio: existe con otro nombre
   var mapChecked = (currentSel !== '__null__') ? ' checked' : '';
   html += '<label class="fm-radio-label">';
-  html += '<input type="radio" name="fm_' + key + '" value="__map__"' + mapChecked +
-          ' onchange="fmSetSelection(\'' + key + '\',\'__map__\')">';
+  html += '<input type="radio" name="fm_' + cid + '_' + key + '" value="__map__"' + mapChecked +
+          ' onchange="fmSetSelection(\'' + key + '\',\'__map__\',\'' + cid + '\')">';
   html += '<span>Existe con otro nombre:</span>';
   html += '</label>';
 
   // Dropdown de campos del schema
-  html += '<div class="fm-dropdown-wrap" id="fmDrop_' + key + '" style="' +
+  html += '<div class="fm-dropdown-wrap" id="' + escH(dropId) + '" style="' +
           (currentSel !== '__null__' ? '' : 'opacity:0.4;pointer-events:none') + '">';
   html += '<select class="fm-select" onchange="fmSetFieldValue(\'' + key + '\',this.value)">';
   html += '<option value="">(selecciona campo)</option>';
@@ -546,9 +549,10 @@ function _fmRenderFieldRow(iss) {
 
 /* ── Handlers del panel (llamados desde HTML inline) ── */
 
-function fmSetEntitySelection(key, value) {
+function fmSetEntitySelection(key, value, containerId) {
   _fmPanelSelections[key] = value; // '__null__' o '__exists__'
-  var dropId = 'fmEntDrop_' + key.replace(/[^a-zA-Z0-9]/g, '_');
+  var cidSafe = (containerId || '').replace(/[^a-zA-Z0-9]/g, '_');
+  var dropId = 'fmEntDrop_' + cidSafe + '_' + key.replace(/[^a-zA-Z0-9]/g, '_');
   var drop = document.getElementById(dropId);
   if (drop) {
     drop.style.opacity      = (value === '__null__') ? '0.4' : '1';
@@ -567,7 +571,7 @@ function fmUpdateSelector(selectorId, value) {
   if (visEl)    visEl.value    = value;
 }
 
-function fmSetSelection(key, value) {
+function fmSetSelection(key, value, containerId) {
   if (value === '__null__') {
     _fmPanelSelections[key] = '__null__';
   } else {
@@ -577,7 +581,7 @@ function fmSetSelection(key, value) {
     }
   }
   // Toggle opacidad del dropdown
-  var drop = document.getElementById('fmDrop_' + key);
+  var drop = document.getElementById('fmDrop_' + (containerId || '') + '_' + key);
   if (drop) {
     drop.style.opacity    = (value === '__null__') ? '0.4' : '1';
     drop.style.pointerEvents = (value === '__null__') ? 'none' : '';
