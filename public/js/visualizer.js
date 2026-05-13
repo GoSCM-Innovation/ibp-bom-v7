@@ -49,7 +49,7 @@
             : "PlanningAreaID eq '" + CFG.pa + "'")
           : '';
         setVizStatus('Descargando catálogo de productos…', 5);
-        log(logEl, 'info', '[GET] ' + baseOData + productEntity + (paFilter ? ' | $filter=' + paFilter : '') + ' | $select=PRDID,PRDDESCR,MATTYPEID');
+        log(logEl, 'info', '[GET] ' + baseOData + productEntity + (paFilter ? ' | $filter=' + paFilter : '') + ' | $select=' + buildSelect(productEntity, ['PRDID','PRDDESCR','MATTYPEID']));
         var prods = await fetchAllPages(baseOData + productEntity, logEl, paFilter, 'PRDID,PRDDESCR,MATTYPEID');
         vizSuggestions = prods
           .filter(function (r) { return r.PRDID; })
@@ -205,19 +205,19 @@
         var psiRows = [], supplierLocRows = [], locProdRows = [], custProdRows = [];
 
         if (cfg.location) {
-          log(logEl, 'info', '[GET] ' + cfg.base + cfg.location + ' | $filter=' + prdFilter + ' | $select=PRDID,LOCFR,LOCID,TLEADTIME');
+          log(logEl, 'info', '[GET] ' + cfg.base + cfg.location + ' | $filter=' + prdFilter + ' | $select=' + buildSelect(cfg.location, ['PRDID','LOCFR','LOCID','TLEADTIME','TINVALID']));
           locRows = await fetchAllPages(cfg.base + cfg.location, logEl, fLocSrc, buildSelect(cfg.location, ['PRDID','LOCFR','LOCID','TLEADTIME','TINVALID']));
           locRows = locRows.filter(function(r) { return r.TINVALID !== 'X'; });
           log(logEl, 'ok', '✓ Location Source: ' + locRows.length + ' registros');
         }
         if (cfg.customer) {
-          log(logEl, 'info', '[GET] ' + cfg.base + cfg.customer + ' | $filter=' + prdFilter + ' | $select=PRDID,LOCID,CUSTID,CLEADTIME');
+          log(logEl, 'info', '[GET] ' + cfg.base + cfg.customer + ' | $filter=' + prdFilter + ' | $select=' + buildSelect(cfg.customer, ['PRDID','LOCID','CUSTID','CLEADTIME','CINVALID']));
           custRows = await fetchAllPages(cfg.base + cfg.customer, logEl, fCustSrc, buildSelect(cfg.customer, ['PRDID','LOCID','CUSTID','CLEADTIME','CINVALID']));
           custRows = custRows.filter(function(r) { return r.CINVALID !== 'X'; });
           log(logEl, 'ok', '✓ Customer Source: ' + custRows.length + ' registros');
         }
         if (cfg.sourceProd) {
-          log(logEl, 'info', '[GET] ' + cfg.base + cfg.sourceProd + ' | $filter=' + prdFilter + ' | $select=SOURCEID,PRDID,LOCID,PLEADTIME');
+          log(logEl, 'info', '[GET] ' + cfg.base + cfg.sourceProd + ' | $filter=' + prdFilter + ' | $select=' + buildSelect(cfg.sourceProd, ['SOURCEID','PRDID','LOCID','PLEADTIME','PINVALID']));
           plantRows = await fetchAllPages(cfg.base + cfg.sourceProd, logEl, fPsh, buildSelect(cfg.sourceProd, ['SOURCEID','PRDID','LOCID','PLEADTIME','PINVALID']));
           plantRows = plantRows.filter(function(r) { return r.PINVALID !== 'X'; });
           log(logEl, 'ok', '✓ Production Source Header: ' + plantRows.length + ' registros');
@@ -276,7 +276,7 @@
           var ids = Object.keys(locIds);
           var locMFilter = ids.map(function (id) { return "LOCID eq '" + id + "'"; }).join(' or ');
           if (paBase) locMFilter = '(' + locMFilter + ') and ' + paBase;
-          log(logEl, 'info', '[GET] ' + cfg.base + cfg.locMaster + ' | $filter=' + locMFilter + ' | $select=LOCID,LOCDESCR,LOCTYPE');
+          log(logEl, 'info', '[GET] ' + cfg.base + cfg.locMaster + ' | $filter=' + locMFilter + ' | $select=' + buildSelect(cfg.locMaster, ['LOCID','LOCDESCR','LOCTYPE','LOCVALID']));
           locMasters = await fetchAllPages(cfg.base + cfg.locMaster, logEl, locMFilter, buildSelect(cfg.locMaster, ['LOCID','LOCDESCR','LOCTYPE','LOCVALID']));
           locMasters = locMasters.filter(function(r) { return r.LOCVALID !== 'X'; });
           log(logEl, 'ok', '✓ Location Master: ' + locMasters.length + ' registros');
@@ -285,7 +285,7 @@
           var ids = Object.keys(custIds);
           var custMFilter = ids.map(function (id) { return "CUSTID eq '" + id + "'"; }).join(' or ');
           if (paBase) custMFilter = '(' + custMFilter + ') and ' + paBase;
-          log(logEl, 'info', '[GET] ' + cfg.base + cfg.custMaster + ' | $filter=' + custMFilter + ' | $select=CUSTID,CUSTDESCR');
+          log(logEl, 'info', '[GET] ' + cfg.base + cfg.custMaster + ' | $filter=' + custMFilter + ' | $select=' + buildSelect(cfg.custMaster, ['CUSTID','CUSTDESCR','CUSTVALID']));
           custMasters = await fetchAllPages(cfg.base + cfg.custMaster, logEl, custMFilter, buildSelect(cfg.custMaster, ['CUSTID','CUSTDESCR','CUSTVALID']));
           custMasters = custMasters.filter(function(r) { return r.CUSTVALID !== 'X'; });
           log(logEl, 'ok', '✓ Customer Master: ' + custMasters.length + ' registros');
