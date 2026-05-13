@@ -250,14 +250,45 @@ function fmShowCorrectionPanel(issues, applied, containerId, checks) {
     var container = document.getElementById(containerId);
     if (!container) { resolve(); return; }
 
-    container.innerHTML = _fmRenderPanel(issues, applied);
+    container.innerHTML = _fmRenderPanel(issues, applied, true);
     container.style.display = 'block';
     container.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
   });
 }
 
-// infoOnly=true: solo muestra correcciones activas, sin botón "Continuar" (uso no bloqueante).
-function _fmRenderPanel(issues, applied, infoOnly) {
+// Muestra el panel en el paso de mapeo de entidades (no bloqueante, sin Promise).
+// issues:  problemas nuevos detectados al conectar.
+// applied: correcciones ya guardadas que se están aplicando.
+// Si no hay nada que mostrar, no hace nada.
+function fmShowCorrectionStep1(issues, applied, containerId, checks) {
+  issues  = issues  || [];
+  applied = applied || [];
+  if (!issues.length && !applied.length) return;
+  var container = document.getElementById(containerId);
+  if (!container) return;
+
+  _fmPendingIssues    = issues;
+  _fmPanelCallback    = null;   // sin Promise — fmConfirmCorrections solo guarda y oculta
+  _fmPanelSelections  = {};
+  _fmPanelChecks      = checks || [];
+  _fmPanelContainerId = containerId;
+
+  issues.forEach(function (iss) {
+    if (iss.type === 'field_missing') {
+      var key = iss.entityName + '||' + iss.field;
+      _fmPanelSelections[key] = iss.suggestion ? iss.suggestion : '__null__';
+    } else if (iss.type === 'entity_missing') {
+      _fmPanelSelections['entity||' + iss.role] = '__null__';
+    }
+  });
+
+  container.innerHTML = _fmRenderPanel(issues, applied, false);
+  container.style.display = 'block';
+}
+
+// isBlocking=true  (fetch time):  "Aplicar y continuar" / "Continuar" + "Limpiar"
+// isBlocking=false (step 1):      "Guardar correcciones" (si hay issues) + "Limpiar"
+function _fmRenderPanel(issues, applied, isBlocking) {
   applied = applied || [];
   var hasIssues = issues.length > 0;
 
@@ -320,7 +351,7 @@ function _fmRenderPanel(issues, applied, infoOnly) {
   }
 
   html += '<div class="fm-panel-actions">';
-  if (!infoOnly) {
+  if (isBlocking) {
     if (hasIssues) {
       html += '<button class="btn btn-primary" onclick="fmConfirmCorrections()">Aplicar y continuar</button>';
     } else {
@@ -328,20 +359,20 @@ function _fmRenderPanel(issues, applied, infoOnly) {
     }
     html += '<button class="btn btn-secondary" style="margin-left:8px" onclick="fmClearCorrections()">Limpiar correcciones guardadas</button>';
   } else {
-    html += '<button class="btn btn-secondary" onclick="fmClearCorrections()">Limpiar correcciones guardadas</button>';
+    if (hasIssues) {
+      html += '<button class="btn btn-primary" onclick="fmConfirmCorrections()">Guardar correcciones</button>';
+      html += '<button class="btn btn-secondary" style="margin-left:8px" onclick="fmClearCorrections()">Limpiar correcciones guardadas</button>';
+    } else {
+      html += '<button class="btn btn-secondary" onclick="fmClearCorrections()">Limpiar correcciones guardadas</button>';
+    }
   }
   html += '</div></div>';
   return html;
 }
 
-// Muestra correcciones activas en modo solo-lectura dentro del panel de mapeo de entidades.
-// No bloqueante — sin Promise ni callback.
+// Delegado: muestra solo correcciones activas (sin issues) en modo no bloqueante.
 function fmShowCorrectionInfo(applied, containerId) {
-  if (!applied || !applied.length) return;
-  var container = document.getElementById(containerId);
-  if (!container) return;
-  container.innerHTML = _fmRenderPanel([], applied, true);
-  container.style.display = 'block';
+  fmShowCorrectionStep1([], applied, containerId, []);
 }
 
 // Card de solo lectura para correcciones ya guardadas
@@ -600,9 +631,9 @@ function fmClearCorrections() {
   FIELD_MAP = {};
   fmSave();
 
-  // Si hay un panel activo con callback pendiente, re-validar y re-renderizar
-  // en lugar de continuar la ejecución — el usuario debe confirmar de nuevo.
-  if (_fmPanelCallback && _fmPanelChecks.length && _fmPanelContainerId) {
+  // Si hay contexto de panel activo, re-validar y re-renderizar en el mismo contenedor.
+  // Aplica tanto al modo bloqueante (callback pendiente) como al modo step1 (sin callback).
+  if (_fmPanelChecks.length && _fmPanelContainerId) {
     var result = validateEntityFields(_fmPanelChecks);
     _fmPendingIssues   = result.issues;
     _fmPanelSelections = {};
@@ -616,14 +647,14 @@ function fmClearCorrections() {
     });
     var container = document.getElementById(_fmPanelContainerId);
     if (container) {
-      container.innerHTML = _fmRenderPanel(result.issues, result.applied);
+      container.innerHTML = _fmRenderPanel(result.issues, result.applied, !!_fmPanelCallback);
       container.style.display = 'block';
       container.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     }
     return;
   }
 
-  // Sin panel activo: solo ocultar
+  // Sin contexto de panel: solo ocultar
   var panels = document.querySelectorAll('.fm-correction-container');
   panels.forEach(function (p) { p.style.display = 'none'; p.innerHTML = ''; });
 }
