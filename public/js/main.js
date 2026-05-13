@@ -354,8 +354,8 @@
         CONN_CACHE.metaText = null;
         CONN_CACHE.vsmt = [];
 
-        // Limpiar datos de la conexión anterior al cambiar de sistema
-        if (IS_CONNECTED) resetAllModules();
+        // Limpiar datos de la sesión anterior antes de cargar la nueva conexión
+        resetAllModules();
 
         // Cargar mapeos de campos guardados para este PA
         if (typeof fmLoad === 'function') fmLoad();
