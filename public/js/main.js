@@ -77,6 +77,20 @@
       btn.textContent = hidden ? 'Ver logs técnicos' : 'Ocultar logs';
     }
 
+    function _resetProgBar(suffix) {
+      var s = suffix || '';
+      var bar = document.getElementById('progBar' + s);
+      if (bar) bar.classList.add('hidden');
+      var fill = document.getElementById('progFill' + s);
+      if (fill) fill.style.width = '0%';
+      var status = document.getElementById('progStatus' + s);
+      if (status) status.style.display = 'none';
+      var txt = document.getElementById('progStatusText' + s);
+      if (txt) txt.textContent = '';
+      var logEl = document.getElementById('log' + (s === '' ? 'Fetch' : s.replace(/^[A-Z]/, function(c){return c;})));
+      if (logEl) { logEl.classList.add('hidden'); logEl.innerHTML = ''; }
+    }
+
     function resetAllModules() {
       // BOM state
       HDR_BY_SID = {}; HDR_BY_PRD = {}; CPR_BY_SID = {};
@@ -86,6 +100,8 @@
       LOC_BY_ID = {}; RES_DESCR = {};
       TREE = { locids: [], roots: {}, stats: {}, cycles: [] };
       // BOM DOM
+      var cycleBanner = document.getElementById('cycleBanner');
+      if (cycleBanner) cycleBanner.style.display = 'none';
       var bomTabsBar = document.getElementById('bomTabsBar');
       if (bomTabsBar) bomTabsBar.classList.add('hidden');
       var bomTabsContent = document.getElementById('bomTabsContent');
@@ -96,6 +112,17 @@
       if (btnFetch) btnFetch.disabled = false;
       var fmBOM = document.getElementById('fmPanelBOM');
       if (fmBOM) { fmBOM.style.display = 'none'; fmBOM.innerHTML = ''; }
+      var logFetch = document.getElementById('logFetch');
+      if (logFetch) { logFetch.classList.add('hidden'); logFetch.innerHTML = ''; }
+      var progBar = document.getElementById('progBar');
+      if (progBar) progBar.classList.add('hidden');
+      var progFill = document.getElementById('progFill');
+      if (progFill) progFill.style.width = '0%';
+      var progStatus = document.getElementById('progStatus');
+      if (progStatus) progStatus.style.display = 'none';
+      var progStatusText = document.getElementById('progStatusText');
+      if (progStatusText) progStatusText.textContent = '';
+      toggleMappingBody('bodyMDT', 'arrMDT', true);
 
       // SN state
       SN_IDX = { allPrds: {}, prdLookup: {}, locLookup: {}, custLookup: {} };
@@ -110,6 +137,17 @@
       if (btnFetchSN) btnFetchSN.disabled = false;
       var fmSN = document.getElementById('fmPanelSN');
       if (fmSN) { fmSN.style.display = 'none'; fmSN.innerHTML = ''; }
+      var logSN = document.getElementById('logSN');
+      if (logSN) { logSN.classList.add('hidden'); logSN.innerHTML = ''; }
+      var progBarSN = document.getElementById('progBarSN');
+      if (progBarSN) progBarSN.classList.add('hidden');
+      var progFillSN = document.getElementById('progFillSN');
+      if (progFillSN) progFillSN.style.width = '0%';
+      var progStatusSN = document.getElementById('progStatusSN');
+      if (progStatusSN) progStatusSN.style.display = 'none';
+      var progStatusTextSN = document.getElementById('progStatusTextSN');
+      if (progStatusTextSN) progStatusTextSN.textContent = '';
+      toggleMappingBody('bodySNMDT', 'arrSNMDT', true);
 
       // Viz state
       if (typeof vizNetwork !== 'undefined' && vizNetwork) { try { vizNetwork.destroy(); } catch(e){} vizNetwork = null; }
@@ -147,6 +185,17 @@
       });
       var fmViz = document.getElementById('fmPanelViz');
       if (fmViz) { fmViz.style.display = 'none'; fmViz.innerHTML = ''; }
+      var logViz = document.getElementById('logViz');
+      if (logViz) { logViz.classList.add('hidden'); logViz.innerHTML = ''; }
+      var progBarViz = document.getElementById('progBarViz');
+      if (progBarViz) progBarViz.classList.add('hidden');
+      var progFillViz = document.getElementById('progFillViz');
+      if (progFillViz) progFillViz.style.width = '0%';
+      var progStatusViz = document.getElementById('progStatusViz');
+      if (progStatusViz) progStatusViz.style.display = 'none';
+      var progStatusTextViz = document.getElementById('progStatusTextViz');
+      if (progStatusTextViz) progStatusTextViz.textContent = '';
+      toggleMappingBody('bodyVizMDT', 'arrVizMDT', true);
 
       // PA DOM
       var paRunSummary = document.getElementById('paRunSummary');
@@ -159,6 +208,17 @@
       if (btnFetchPA) btnFetchPA.disabled = false;
       var fmPA = document.getElementById('fmPanelPA');
       if (fmPA) { fmPA.style.display = 'none'; fmPA.innerHTML = ''; }
+      var logPA = document.getElementById('logPA');
+      if (logPA) { logPA.classList.add('hidden'); logPA.innerHTML = ''; }
+      var progBarPA = document.getElementById('progBarPA');
+      if (progBarPA) progBarPA.classList.add('hidden');
+      var progFillPA = document.getElementById('progFillPA');
+      if (progFillPA) progFillPA.style.width = '0%';
+      var progStatusPA = document.getElementById('progStatusPA');
+      if (progStatusPA) progStatusPA.style.display = 'none';
+      var progStatusTextPA = document.getElementById('progStatusTextPA');
+      if (progStatusTextPA) progStatusTextPA.textContent = '';
+      toggleMappingBody('bodyPAMDT', 'arrPAMDT', true);
 
       // fieldmap panel state
       if (typeof _fmChecksRegistry !== 'undefined') _fmChecksRegistry = {};
