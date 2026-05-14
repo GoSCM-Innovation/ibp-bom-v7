@@ -22,6 +22,7 @@ const Explorer = (function () {
   let selectedDimKey = null;
   let visNetwork    = null;
   let analyzing     = false;
+  let activePA      = new Set(); // PAs seleccionados; vacío = todos
 
   // ── Normalización de claves para matching ───────────────
   function normTableKey(ds, tbl) {
@@ -115,6 +116,8 @@ const Explorer = (function () {
 
     buildIndexes();
     detectChains();
+    activePA = new Set();
+    renderPlanAreaFilter();
     filtered = integrations.slice();
     renderSidebarList(filtered);
     updateCounter(filtered.length, integrations.length);
@@ -388,6 +391,36 @@ const Explorer = (function () {
     console.debug(`[Explorer] cadenas: ${chainEdges.length} total`, byVia);
   }
 
+  // ── Filtro Planning Area ─────────────────────────────────
+  function computeBaseFiltered() {
+    if (activePA.size === 0) return integrations.slice();
+    return integrations.filter(p => activePA.has(p.planArea || ''));
+  }
+
+  function renderPlanAreaFilter() {
+    const el = document.getElementById('ex-pa-filter');
+    if (!el) return;
+    const paValues = [...new Set(integrations.map(p => p.planArea || ''))].sort();
+    if (paValues.length <= 1) {
+      el.style.display = 'none';
+      return;
+    }
+    el.style.display = '';
+    el.innerHTML = '<span class="ex-pa-label">PA:</span>' +
+      paValues.map(pa => {
+        const label = pa || 'Sin PA';
+        const active = activePA.has(pa);
+        return `<button class="ex-pa-chip${active ? ' active' : ''}" onclick="Explorer.togglePA(${JSON.stringify(pa)})">${escH(label)}</button>`;
+      }).join('');
+  }
+
+  function togglePA(pa) {
+    if (activePA.has(pa)) activePA.delete(pa); else activePA.add(pa);
+    renderPlanAreaFilter();
+    const q = (document.getElementById('ex-search') || {}).value || '';
+    applySearch(q);
+  }
+
   // ── Sidebar (lista master) ───────────────────────────────
   function renderSidebarList(list) {
     const el = document.getElementById('ex-master');
@@ -553,12 +586,13 @@ const Explorer = (function () {
   }
 
   function applySearchIntegration(q) {
+    const base  = computeBaseFiltered();
     const query = (q || '').trim().toLowerCase();
     if (!query) {
-      filtered = integrations.slice();
+      filtered = base;
     } else {
       const terms = query.split(/\s+/).filter(Boolean);
-      filtered = integrations.filter(p => {
+      filtered = base.filter(p => {
         const entry = indexes.searchTokens.find(s => s.idx === p._idx);
         if (!entry) return false;
         return terms.every(t => entry.tokens.includes(t));
@@ -652,7 +686,17 @@ const Explorer = (function () {
     const isField  = dim === 'dst-field'    || dim === 'src-field'    || dim === 'filter-field';
     const isFilter = dim === 'filter-table' || dim === 'filter-field';
 
+    const paSet = activePA.size > 0
+      ? new Set(computeBaseFiltered().map(p => p._idx))
+      : null;
+
     let entries = Object.entries(dimMap || {});
+    if (paSet) {
+      entries = entries.map(([key, items]) => {
+        const filtered = items.filter(x => paSet.has(x.intIdx));
+        return filtered.length ? [key, filtered] : null;
+      }).filter(Boolean);
+    }
     if (filterQuery) {
       const q = filterQuery.toLowerCase();
       entries = entries.filter(([key]) => key.toLowerCase().includes(q));
@@ -962,6 +1006,7 @@ const Explorer = (function () {
     switchDimension,
     handleDimItemClick,
     goToIntegration,
+    togglePA,
     init
   };
 

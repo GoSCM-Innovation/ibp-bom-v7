@@ -2440,6 +2440,39 @@ button[disabled][title]:hover::after {
 .ex-toolbar-row2 .sel-search { flex: 1; min-width: 180px; }
 .ex-view-toggle { display: flex; gap: 4px; }
 
+.ex-pa-filter {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 6px 0 2px;
+}
+.ex-pa-label {
+  font-size: 11px;
+  color: var(--text2);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  white-space: nowrap;
+}
+.ex-pa-chip {
+  padding: 3px 10px;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: var(--bg3);
+  color: var(--text2);
+  font-size: 12px;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+.ex-pa-chip:hover { border-color: var(--accent); color: var(--text1); }
+.ex-pa-chip.active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #000;
+  font-weight: 600;
+}
+
 .ex-chain-section {
   padding: 10px 12px;
   background: var(--bg3);
