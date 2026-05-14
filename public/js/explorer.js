@@ -510,22 +510,35 @@ const Explorer = (function () {
   }
 
   function renderCidsBar() {
-    const bar = document.getElementById('ex-cids-bar');
-    if (!bar) return;
+    const bar    = document.getElementById('ex-cids-bar');
+    const toggle = document.getElementById('ex-cids-toggle');
+
     if (!cidsConn) {
-      bar.innerHTML = `<button class="ex-cids-connect-btn" onclick="Explorer.openCidsModal()">Conectar SAP CI-DS</button>`;
+      if (bar)    bar.innerHTML = `<button class="ex-cids-connect-btn" onclick="Explorer.openCidsModal()">Conectar SAP CI-DS</button>`;
+      if (toggle) { toggle.innerHTML = ''; toggle.style.display = 'none'; }
       return;
     }
+
     const repo    = cidsConn.isProduction ? 'Productivo' : 'Sandbox';
     const count   = cidsProdTasks ? `${cidsProdTasks.size} tareas` : 'cargando...';
     const promCls = showPromoted ? 'ex-toggle-switch on' : 'ex-toggle-switch';
-    bar.innerHTML = `
-      <span class="ex-cids-pill">CI-DS: ${escH(cidsConn.orgName)} · ${escH(repo)} · ${escH(count)}</span>
-      <label class="ex-promoted-label">
-        <span class="ex-promoted-text">Promovido a produccion</span>
-        <span class="${promCls}" onclick="Explorer.togglePromoted()" title="Mostrar solo integraciones presentes en CI-DS ${escH(repo)}"><span class="ex-toggle-knob"></span></span>
-      </label>
-      <button class="ex-cids-disconnect-btn" onclick="Explorer.cidsDisconnect()" title="Desconectar">Desconectar</button>`;
+
+    if (bar) {
+      bar.innerHTML = `
+        <span class="ex-cids-pill">CI-DS: ${escH(cidsConn.orgName)} · ${escH(repo)} · ${escH(count)}</span>
+        <button class="ex-cids-disconnect-btn" onclick="Explorer.cidsDisconnect()">Desconectar</button>`;
+    }
+
+    if (toggle) {
+      toggle.style.display = cidsProdTasks ? '' : 'none';
+      if (cidsProdTasks) {
+        toggle.innerHTML = `
+          <label class="ex-promoted-label">
+            <span class="ex-promoted-text">Promovido a produccion</span>
+            <span class="${promCls}" onclick="Explorer.togglePromoted()" title="Mostrar solo integraciones en CI-DS ${escH(repo)}"><span class="ex-toggle-knob"></span></span>
+          </label>`;
+      }
+    }
   }
 
   // ── Filtro Planning Area ─────────────────────────────────
