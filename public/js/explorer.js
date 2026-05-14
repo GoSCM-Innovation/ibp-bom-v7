@@ -410,7 +410,7 @@ const Explorer = (function () {
       paValues.map(pa => {
         const label = pa || 'Sin PA';
         const active = activePA.has(pa);
-        return `<button class="ex-pa-chip${active ? ' active' : ''}" onclick="Explorer.togglePA(${JSON.stringify(pa)})">${escH(label)}</button>`;
+        return `<button class="ex-pa-chip${active ? ' active' : ''}" onclick='Explorer.togglePA(${JSON.stringify(pa)})'>${escH(label)}</button>`;
       }).join('');
   }
 
