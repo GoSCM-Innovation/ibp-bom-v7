@@ -24,6 +24,12 @@ const Explorer = (function () {
   let analyzing     = false;
   let activePA      = new Set(); // PAs seleccionados; vacío = todos
 
+  // ── Estado CI-DS ─────────────────────────────────────────────
+  let cidsConn      = null;  // { hciUrl, orgName, isProduction, sessionId }
+  let cidsProdTasks = null;  // Set<string> uppercase — null = no conectado
+  let cidsLoading   = false;
+  let showPromoted  = false;
+
   // ── Normalización de claves para matching ───────────────
   function normTableKey(ds, tbl) {
     const d = (ds  || '').trim().toUpperCase();
@@ -391,10 +397,145 @@ const Explorer = (function () {
     console.debug(`[Explorer] cadenas: ${chainEdges.length} total`, byVia);
   }
 
+  // ── CI-DS connection ─────────────────────────────────────────
+  async function cidsSoapCall(operation, params) {
+    const res = await fetch('/api/cids-soap', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ hciUrl: cidsConn.hciUrl, sessionId: cidsConn.sessionId, operation, params }),
+    });
+    if (res.status === 401) throw Object.assign(new Error('Sesión CI-DS expirada'), { isSessionExpired: true });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
+    return data;
+  }
+
+  async function fetchProductionTasks() {
+    const projects = await cidsSoapCall('getProjects', {});
+    if (!Array.isArray(projects)) return new Set();
+    const taskSet = new Set();
+    for (const proj of projects) {
+      if (!proj.guid) continue;
+      try {
+        const tasks = await cidsSoapCall('getProjectTasks', { projectGuid: proj.guid });
+        if (Array.isArray(tasks))
+          tasks.forEach(t => { if (t.taskName) taskSet.add(t.taskName.toUpperCase()); });
+      } catch (e) {
+        if (e.isSessionExpired) throw e;
+      }
+    }
+    return taskSet;
+  }
+
+  function openCidsModal() {
+    const m = document.getElementById('cids-modal');
+    if (m) m.style.display = 'flex';
+    setTimeout(() => { const f = document.getElementById('cids-hciUrl'); if (f) f.focus(); }, 50);
+  }
+
+  function closeCidsModal() {
+    const m = document.getElementById('cids-modal');
+    if (m) m.style.display = 'none';
+  }
+
+  async function submitCidsConnect() {
+    const hciUrl       = (document.getElementById('cids-hciUrl')   ?.value || '').trim();
+    const orgName      = (document.getElementById('cids-orgName')  ?.value || '').trim();
+    const user         = (document.getElementById('cids-user')     ?.value || '').trim();
+    const password     = (document.getElementById('cids-password') ?.value || '').trim();
+    const isProduction = document.getElementById('cids-isProd')?.checked ?? true;
+    const errEl        = document.getElementById('cids-modal-error');
+    const btnEl        = document.getElementById('cids-modal-submit');
+
+    if (!hciUrl || !orgName || !user || !password) {
+      if (errEl) errEl.textContent = 'Todos los campos son obligatorios.';
+      return;
+    }
+    if (errEl) errEl.textContent = '';
+    if (btnEl) { btnEl.disabled = true; btnEl.textContent = 'Conectando...'; }
+    cidsLoading = true;
+
+    try {
+      const res = await fetch('/api/cids-login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ hciUrl, orgName, user, password, isProduction }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
+
+      cidsConn = { hciUrl, orgName, isProduction, sessionId: data.sessionId };
+      closeCidsModal();
+      renderCidsBar();
+
+      if (btnEl) btnEl.textContent = 'Cargando tareas...';
+      cidsProdTasks = await fetchProductionTasks();
+      renderCidsBar();
+      const q = (document.getElementById('ex-search') || {}).value || '';
+      applySearch(q);
+    } catch (e) {
+      if (e.isSessionExpired) {
+        cidsDisconnect();
+        if (errEl) errEl.textContent = 'Sesión expirada. Vuelve a conectar.';
+      } else {
+        if (errEl) errEl.textContent = e.message;
+      }
+    } finally {
+      cidsLoading = false;
+      if (btnEl) { btnEl.disabled = false; btnEl.textContent = 'Conectar'; }
+    }
+  }
+
+  function cidsDisconnect() {
+    if (cidsConn) {
+      fetch('/api/cids-soap', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ hciUrl: cidsConn.hciUrl, sessionId: cidsConn.sessionId, operation: 'logout', params: { sessionId: cidsConn.sessionId } }),
+      }).catch(() => {});
+    }
+    cidsConn      = null;
+    cidsProdTasks = null;
+    showPromoted  = false;
+    renderCidsBar();
+    const q = (document.getElementById('ex-search') || {}).value || '';
+    applySearch(q);
+  }
+
+  function togglePromoted() {
+    showPromoted = !showPromoted;
+    renderCidsBar();
+    const q = (document.getElementById('ex-search') || {}).value || '';
+    applySearch(q);
+  }
+
+  function renderCidsBar() {
+    const bar = document.getElementById('ex-cids-bar');
+    if (!bar) return;
+    if (!cidsConn) {
+      bar.innerHTML = `<button class="ex-cids-connect-btn" onclick="Explorer.openCidsModal()">Conectar SAP CI-DS</button>`;
+      return;
+    }
+    const repo    = cidsConn.isProduction ? 'Productivo' : 'Sandbox';
+    const count   = cidsProdTasks ? `${cidsProdTasks.size} tareas` : 'cargando...';
+    const promCls = showPromoted ? 'ex-toggle-switch on' : 'ex-toggle-switch';
+    bar.innerHTML = `
+      <span class="ex-cids-pill">CI-DS: ${escH(cidsConn.orgName)} · ${escH(repo)} · ${escH(count)}</span>
+      <label class="ex-promoted-label">
+        <span class="ex-promoted-text">Promovido a produccion</span>
+        <span class="${promCls}" onclick="Explorer.togglePromoted()" title="Mostrar solo integraciones presentes en CI-DS ${escH(repo)}"><span class="ex-toggle-knob"></span></span>
+      </label>
+      <button class="ex-cids-disconnect-btn" onclick="Explorer.cidsDisconnect()" title="Desconectar">Desconectar</button>`;
+  }
+
   // ── Filtro Planning Area ─────────────────────────────────
   function computeBaseFiltered() {
-    if (activePA.size === 0) return integrations.slice();
-    return integrations.filter(p => activePA.has(p.planArea || ''));
+    let base = integrations.slice();
+    if (activePA.size > 0)
+      base = base.filter(p => activePA.has(p.planArea || ''));
+    if (showPromoted && cidsProdTasks)
+      base = base.filter(p => cidsProdTasks.has((p.jobName || '').toUpperCase()));
+    return base;
   }
 
   function renderPlanAreaFilter() {
@@ -994,6 +1135,7 @@ const Explorer = (function () {
   // ── Init ─────────────────────────────────────────────────
   function init() {
     initDropZone();
+    renderCidsBar();
   }
 
   // ── API pública ──────────────────────────────────────────
@@ -1007,6 +1149,11 @@ const Explorer = (function () {
     handleDimItemClick,
     goToIntegration,
     togglePA,
+    openCidsModal,
+    closeCidsModal,
+    submitCidsConnect,
+    cidsDisconnect,
+    togglePromoted,
     init
   };
 

@@ -265,6 +265,120 @@ app.post('/api/send-feedback', async (req, res) => {
   }
 });
 
+// ─── CI-DS SOAP helpers ───────────────────────────────────────────
+function xmlVal(xml, tag) {
+  const m = xml.match(new RegExp(`<(?:[\\w]+:)?${tag}(?:\\s[^>]*)?>([\\s\\S]*?)<\\/(?:[\\w]+:)?${tag}>`, 'i'));
+  return m ? m[1].trim() : null;
+}
+function xmlAll(xml, tag) {
+  const re = new RegExp(`<(?:[\\w]+:)?${tag}(?:\\s[^>]*)?>[\\s\\S]*?<\\/(?:[\\w]+:)?${tag}>`, 'gi');
+  return [...xml.matchAll(re)].map(m => m[0]);
+}
+function xe(s) {
+  if (s == null) return '';
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+function parseSoapFault(xml) {
+  const code = xmlVal(xml, 'faultcode') || xmlVal(xml, 'faultCode');
+  const str  = xmlVal(xml, 'faultstring') || xmlVal(xml, 'faultString');
+  if (!code && !str) return null;
+  const detail = xmlVal(xml, 'message') || xmlVal(xml, 'detail');
+  return { faultCode: code, faultString: detail ? `${str} — ${detail}` : str };
+}
+function buildCidsEnvelope(body, sessionId) {
+  const header = sessionId
+    ? `<soapenv:Header><SessionId>${xe(sessionId)}</SessionId></soapenv:Header>`
+    : '<soapenv:Header/>';
+  return `<?xml version="1.0" encoding="UTF-8"?><soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:web="http://webservices.dsod.sap.com/">${header}<soapenv:Body>${body}</soapenv:Body></soapenv:Envelope>`;
+}
+async function cidsRawSoap(hciUrl, soapAction, envelope) {
+  const resp = await fetch(hciUrl, {
+    method: 'POST',
+    headers: { 'Content-Type': 'text/xml; charset=utf-8', 'SOAPAction': soapAction },
+    body: envelope,
+    timeout: 60000,
+  });
+  return { ok: resp.ok, status: resp.status, text: await resp.text() };
+}
+
+const CIDS_ALLOWED_OPS = new Set(['getProjects', 'getProjectTasks', 'logout', 'ping']);
+
+function buildCidsBody(operation, params) {
+  switch (operation) {
+    case 'ping':            return `<web:pingRequest/>`;
+    case 'logout':          return `<web:logoutRequest><SessionID>${xe(params.sessionId)}</SessionID></web:logoutRequest>`;
+    case 'getProjects':     return `<web:allProjectsRequest/>`;
+    case 'getProjectTasks': return `<web:allProjectTasksRequest><projectGuid>${xe(params.projectGuid)}</projectGuid></web:allProjectTasksRequest>`;
+    default: throw new Error(`Operación no permitida: ${operation}`);
+  }
+}
+
+function parseCidsResponse(operation, xml) {
+  const fault = parseSoapFault(xml);
+  if (fault) throw new Error(fault.faultString || fault.faultCode || 'SOAP fault');
+  switch (operation) {
+    case 'ping':    return { message: xmlVal(xml, 'Message') || xmlVal(xml, 'message') };
+    case 'logout':  return { message: xmlVal(xml, 'LogoutMessage') || xmlVal(xml, 'logoutMessage') };
+    case 'getProjects':
+      return xmlAll(xml, 'projects').map(p => ({
+        name: xmlVal(p, 'name'), guid: xmlVal(p, 'guid'), description: xmlVal(p, 'description'),
+      }));
+    case 'getProjectTasks':
+      return xmlAll(xml, 'tasks').map(t => ({
+        taskName: xmlVal(t, 'taskName'), taskGuid: xmlVal(t, 'taskGuid'), type: xmlVal(t, 'type'),
+      }));
+    default: return { raw: xml };
+  }
+}
+
+// ─── /api/cids-login ──────────────────────────────────────────────
+app.post('/api/cids-login', async (req, res) => {
+  const { hciUrl, orgName, user, password, isProduction } = req.body || {};
+  if (!hciUrl || !orgName || !user || !password)
+    return res.status(400).json({ error: 'hciUrl, orgName, user y password son requeridos' });
+
+  const loginBody = `<web:logonRequest><orgName>${xe(orgName)}</orgName><userName>${xe(user)}</userName><password>${xe(password)}</password><isProduction>${isProduction ? 'true' : 'false'}</isProduction></web:logonRequest>`;
+  try {
+    const { ok, status, text } = await cidsRawSoap(hciUrl, 'function=logon', buildCidsEnvelope(loginBody, null));
+    if (!ok) {
+      const fault = parseSoapFault(text);
+      return res.status(401).json({ error: fault?.faultString || `Error de autenticación (HTTP ${status})` });
+    }
+    const sessionId = xmlVal(text, 'SessionID') || xmlVal(text, 'sessionID');
+    if (!sessionId) return res.status(401).json({ error: 'La respuesta no devolvió SessionID' });
+    return res.json({ sessionId });
+  } catch (e) {
+    console.error('[cids-login]', e.message);
+    return res.status(500).json({ error: 'Error interno del servidor' });
+  }
+});
+
+// ─── /api/cids-soap ───────────────────────────────────────────────
+app.post('/api/cids-soap', async (req, res) => {
+  const { hciUrl, sessionId, operation, params = {} } = req.body || {};
+  if (!hciUrl)    return res.status(400).json({ error: 'hciUrl requerido' });
+  if (!sessionId) return res.status(400).json({ error: 'sessionId requerido' });
+  if (!operation) return res.status(400).json({ error: 'operation requerida' });
+  if (!CIDS_ALLOWED_OPS.has(operation)) return res.status(400).json({ error: 'Operación no permitida' });
+
+  const soapActions = { getProjects: 'function=getAllProjects', getProjectTasks: 'function=getAllProjectTasks', logout: 'function=logoff' };
+  try {
+    const body     = buildCidsBody(operation, { ...params, sessionId });
+    const envelope = buildCidsEnvelope(body, sessionId);
+    const { ok, status, text } = await cidsRawSoap(hciUrl, soapActions[operation] || `function=${operation}`, envelope);
+    if (!ok) {
+      const fault = parseSoapFault(text);
+      if (/session/i.test(fault?.faultCode || '') || /session/i.test(fault?.faultString || ''))
+        return res.status(401).json({ error: 'SESSION_EXPIRED' });
+      return res.status(status).json({ error: fault?.faultString || `SOAP error HTTP ${status}` });
+    }
+    return res.json(parseCidsResponse(operation, text));
+  } catch (e) {
+    console.error('[cids-soap]', e.message);
+    return res.status(500).json({ error: e.message });
+  }
+});
+
 if (!process.env.VERCEL) {
   app.listen(PORT, () => {
     console.log(`\n  ╔══════════════════════════════════════════╗`);
