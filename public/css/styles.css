@@ -2996,6 +2996,11 @@ button[disabled][title]:hover::after {
   flex-wrap: wrap;
   gap: 10px;
 }
+#ex-cids-toggle {
+  display: flex;
+  align-items: center;
+  padding: 4px 0 2px;
+}
 .ex-cids-connect-btn {
   padding: 5px 14px;
   border-radius: 6px;
