@@ -3038,3 +3038,248 @@ button[disabled][title]:hover::after {
   .glos-nav-link { white-space: nowrap; }
   .glosario-content { padding: var(--sp-4); }
 }
+
+/* ═══════════════════════════════════════════════════════════════
+   FIELD MAP — Panel de corrección de campos
+   ═══════════════════════════════════════════════════════════════ */
+
+.fm-correction-container {
+  display: none;
+  margin: var(--sp-4) 0;
+}
+
+.fm-panel {
+  background: #111827;
+  border: 1px solid #d97706;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.fm-panel-header {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--sp-3);
+  padding: var(--sp-4);
+  background: rgba(217, 119, 6, 0.12);
+  border-bottom: 1px solid rgba(217, 119, 6, 0.3);
+}
+
+.fm-panel-icon {
+  font-size: 20px;
+  color: #d97706;
+  flex-shrink: 0;
+  line-height: 1.3;
+}
+
+.fm-panel-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #fbbf24;
+  margin-bottom: 4px;
+}
+
+.fm-panel-subtitle {
+  font-size: 12px;
+  color: var(--text2);
+  line-height: 1.5;
+}
+
+.fm-entity-card {
+  border-bottom: 1px solid var(--border);
+  padding: var(--sp-4);
+}
+
+.fm-entity-card:last-of-type {
+  border-bottom: none;
+}
+
+.fm-entity-header {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  margin-bottom: var(--sp-3);
+}
+
+.fm-entity-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--accent);
+  font-family: monospace;
+}
+
+.fm-entity-badge {
+  font-size: 11px;
+  color: var(--text2);
+  background: var(--surface2);
+  border-radius: 10px;
+  padding: 2px 8px;
+}
+
+.fm-entity-warning {
+  font-size: 12px;
+  color: #fbbf24;
+  background: rgba(251, 191, 36, 0.08);
+  border-left: 3px solid #d97706;
+  padding: var(--sp-2) var(--sp-3);
+  border-radius: 0 4px 4px 0;
+  margin-bottom: var(--sp-3);
+  line-height: 1.5;
+}
+
+.fm-field-row {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: var(--sp-3);
+  margin-bottom: var(--sp-2);
+}
+
+.fm-field-row:last-child {
+  margin-bottom: 0;
+}
+
+.fm-field-header {
+  display: flex;
+  align-items: baseline;
+  gap: var(--sp-2);
+  margin-bottom: var(--sp-2);
+}
+
+.fm-field-tag {
+  font-size: 12px;
+  font-weight: 700;
+  font-family: monospace;
+  color: #f59e0b;
+  background: rgba(245, 158, 11, 0.12);
+  border: 1px solid rgba(245, 158, 11, 0.25);
+  border-radius: 4px;
+  padding: 1px 6px;
+}
+
+.fm-field-desc {
+  font-size: 11px;
+  color: var(--text2);
+  line-height: 1.4;
+}
+
+.fm-radio-label {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--sp-2);
+  font-size: 12px;
+  color: var(--text1);
+  cursor: pointer;
+  padding: var(--sp-1) 0;
+  line-height: 1.5;
+}
+
+.fm-radio-label input[type="radio"] {
+  flex-shrink: 0;
+  margin-top: 2px;
+  accent-color: var(--accent);
+}
+
+.fm-dropdown-wrap {
+  margin-top: var(--sp-1);
+  margin-left: 20px;
+  transition: opacity 0.15s;
+}
+
+.fm-select {
+  background: var(--bg);
+  color: var(--text1);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 4px 8px;
+  font-size: 12px;
+  font-family: monospace;
+  max-width: 340px;
+  width: 100%;
+  cursor: pointer;
+}
+
+.fm-select:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.fm-panel-actions {
+  padding: var(--sp-3) var(--sp-4);
+  border-top: 1px solid var(--border);
+  background: var(--surface);
+  display: flex;
+  justify-content: flex-end;
+}
+
+.fm-section-label {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text2);
+  padding: 10px var(--sp-4) 4px;
+}
+
+.fm-entity-card--alert {
+  border-color: rgba(245,158,11,0.3);
+  background: rgba(245,158,11,0.05);
+}
+
+.fm-badge-alert {
+  background: rgba(245,158,11,0.15);
+  color: #f59e0b;
+}
+
+.fm-entity-card--applied {
+  border-color: rgba(41,171,226,0.3);
+  background: rgba(41,171,226,0.05);
+}
+
+.fm-badge-applied {
+  background: rgba(41,171,226,0.15);
+  color: #29ABE2;
+}
+
+.fm-section-label--applied {
+  color: #29ABE2;
+}
+
+.fm-applied-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 6px var(--sp-4) 4px;
+}
+
+.fm-applied-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+}
+
+.fm-applied-arrow {
+  color: var(--text2);
+  font-size: 14px;
+}
+
+.fm-applied-value {
+  font-family: monospace;
+  font-size: 12px;
+  color: #29ABE2;
+}
+
+.fm-applied-null {
+  color: var(--text2);
+  font-style: italic;
+  font-family: inherit;
+}
+
+.fm-entity-techname {
+  font-size: 11px;
+  color: var(--text2);
+  font-family: monospace;
+  padding: 0 var(--sp-4) 6px;
+}
+}
+

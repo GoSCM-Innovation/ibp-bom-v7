@@ -255,12 +255,25 @@
     }
 
 
+    // Extrae el nombre de la entidad del último segmento de la URL (antes del ?)
+    function _entityNameFromUrl(entityUrl) {
+      return (entityUrl || '').split('?')[0].split('/').pop();
+    }
+
     async function fetchAllPages(entityUrl, logEl, pverFilter, selectFields) {
       var all = [];
       var PAGE_SIZE = 50000;
       var page = 0;
+      var entityName = _entityNameFromUrl(entityUrl);
+
+      // Aplicar mapeos de campos si existen
+      var canonicalFields = selectFields ? selectFields.split(',') : [];
+      var resolvedSelect = (typeof buildSelect === 'function' && canonicalFields.length)
+        ? buildSelect(entityName, canonicalFields)
+        : selectFields;
+
       var filterParam = pverFilter ? '&$filter=' + encodeURIComponent(pverFilter) : '';
-      var selectParam = selectFields ? '&$select=' + selectFields : '';
+      var selectParam = resolvedSelect ? '&$select=' + resolvedSelect : '';
       var url = entityUrl + '?$format=json&$top=' + PAGE_SIZE + filterParam + selectParam;
       var isNextLink = false;
 
@@ -269,8 +282,27 @@
         if (page > 1) {
           log(logEl, 'info', '  ↳ Pág.' + page + ' GET → ' + url);
         }
-        var data = await (isNextLink ? apiJsonNext(url) : apiJson(url));
+
+        var data;
+        try {
+          data = await (isNextLink ? apiJsonNext(url) : apiJson(url));
+        } catch (fetchErr) {
+          // 404 de entidad → tratar como sin datos y continuar
+          var msg = fetchErr.message || '';
+          if (msg.indexOf('404') >= 0 || msg.toLowerCase().indexOf('not found') >= 0) {
+            log(logEl, 'warn', '  Entidad no encontrada (404): ' + entityName + ' — se omite, sin datos.');
+            return [];
+          }
+          throw fetchErr;
+        }
+
         var results = (data.d && data.d.results) ? data.d.results : (data.value || []);
+
+        // Normalizar filas: añadir alias canónicos según FIELD_MAP
+        if (typeof normalizeRows === 'function') {
+          results = normalizeRows(entityName, results);
+        }
+
         all = all.concat(results);
 
         if (page > 1) {

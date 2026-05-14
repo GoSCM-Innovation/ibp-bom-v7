@@ -6,8 +6,16 @@
     async function fetchAndIndex(entityUrl, logEl, pverFilter, selectFields, onPage) {
       var PAGE_SIZE = 50000;
       var page = 0, total = 0;
+      var entityName = (entityUrl || '').split('?')[0].split('/').pop();
+
+      // Aplicar mapeos de campos si existen
+      var canonicalFields = selectFields ? selectFields.split(',') : [];
+      var resolvedSelect = (typeof buildSelect === 'function' && canonicalFields.length)
+        ? buildSelect(entityName, canonicalFields)
+        : selectFields;
+
       var filterParam = pverFilter ? '&$filter=' + encodeURIComponent(pverFilter) : '';
-      var selectParam = selectFields ? '&$select=' + encodeURIComponent(selectFields) : '';
+      var selectParam = resolvedSelect ? '&$select=' + encodeURIComponent(resolvedSelect) : '';
       var url = entityUrl + '?$format=json&$top=' + PAGE_SIZE + filterParam + selectParam;
       var isNextLink = false;
 
@@ -15,8 +23,26 @@
         page++;
         if (page === 1) log(logEl, 'info', '  ↳ URL: ' + url);
         else log(logEl, 'info', '  ↳ Pág.' + page + ' → ' + url);
-        var data = await (isNextLink ? apiJsonNext(url) : apiJson(url));
+
+        var data;
+        try {
+          data = await (isNextLink ? apiJsonNext(url) : apiJson(url));
+        } catch (fetchErr) {
+          var msg = fetchErr.message || '';
+          if (msg.indexOf('404') >= 0 || msg.toLowerCase().indexOf('not found') >= 0) {
+            log(logEl, 'warn', '  Entidad no encontrada (404): ' + entityName + ' — se omite, sin datos.');
+            return 0;
+          }
+          throw fetchErr;
+        }
+
         var results = (data.d && data.d.results) ? data.d.results : (data.value || []);
+
+        // Normalizar filas: añadir alias canónicos según FIELD_MAP
+        if (typeof normalizeRows === 'function') {
+          results = normalizeRows(entityName, results);
+        }
+
         await onPage(results);   // index/store this page, then let it be GC'd
         total += results.length;
 
@@ -51,7 +77,23 @@
     }
 
     /* MDT → Exclude */
-    function doConfirmMapping() {
+    async function doConfirmMapping() {
+      if (typeof validateEntityFields === 'function') {
+        var _snConfirmChecks = [
+          { role: 'Location Source',          entityName: document.getElementById('selSNLocation').value,   required: true, selectorId: 'selSNLocation',   fields: ['PRDID','LOCFR','LOCID','TLEADTIME','TINVALID'] },
+          { role: 'Customer Source',          entityName: document.getElementById('selSNCustomer').value,   required: true, selectorId: 'selSNCustomer',   fields: ['PRDID','LOCID','CUSTID','CLEADTIME','CINVALID'] },
+          { role: 'Production Source Header', entityName: document.getElementById('selSNSourceProd').value, required: true, selectorId: 'selSNSourceProd', fields: ['SOURCEID','PRDID','LOCID','PLEADTIME','PRATIO','PINVALID'] },
+          { role: 'Production Source Item',   entityName: document.getElementById('selSNSourceItem').value, required: true, selectorId: 'selSNSourceItem', fields: ['SOURCEID','PRDID','COMPONENTCOEFFICIENT'] },
+          { role: 'Ubicación maestra',        entityName: document.getElementById('selSNLocMaster').value,  required: true, selectorId: 'selSNLocMaster',  fields: ['LOCID','LOCDESCR','LOCTYPE','LOCVALID'] },
+          { role: 'Cliente maestra',          entityName: document.getElementById('selSNCustMaster').value, required: true, selectorId: 'selSNCustMaster', fields: ['CUSTID','CUSTDESCR','CUSTVALID'] },
+          { role: 'Location Product',         entityName: document.getElementById('selSNLocProd').value,    required: true, selectorId: 'selSNLocProd',    fields: ['LOCID','PRDID'] },
+          { role: 'Customer Product',         entityName: document.getElementById('selSNCustProd').value,   required: true, selectorId: 'selSNCustProd',   fields: ['CUSTID','PRDID'] },
+        ];
+        var _snConfirmResult = validateEntityFields(_snConfirmChecks);
+        if (_snConfirmResult.issues.length || _snConfirmResult.applied.length) {
+          await fmShowCorrectionPanel(_snConfirmResult.issues, _snConfirmResult.applied, 'fmPanelSN', _snConfirmChecks);
+        }
+      }
       var body = document.getElementById('bodySNMDT');
       var arr  = document.getElementById('arrSNMDT');
       if (body) { toggleMappingBody('bodySNMDT', 'arrSNMDT', false); }
@@ -196,6 +238,27 @@
         return;
       }
 
+      // Pre-validar entidades y campos contra schema antes de fetch
+      if (typeof validateEntityFields === 'function') {
+        var _snChecks = [
+          { role: 'Location Source',          entityName: locationEntity,   required: true,  selectorId: 'selSNLocation',   fields: ['PRDID','LOCFR','LOCID','TLEADTIME','TINVALID'] },
+          { role: 'Customer Source',          entityName: customerEntity,   required: true,  selectorId: 'selSNCustomer',   fields: ['PRDID','LOCID','CUSTID','CLEADTIME','CINVALID'] },
+          { role: 'Production Source Header', entityName: sourceProdEntity, required: true,  selectorId: 'selSNSourceProd', fields: ['SOURCEID','PRDID','LOCID','PLEADTIME','PRATIO','PINVALID'] },
+          { role: 'Production Source Item',   entityName: sourceItemEntity, required: true,  selectorId: 'selSNSourceItem', fields: ['SOURCEID','PRDID','COMPONENTCOEFFICIENT'] },
+          { role: 'Ubicación maestra',        entityName: locMasterEntity,  required: true,  selectorId: 'selSNLocMaster',  fields: ['LOCID','LOCDESCR','LOCTYPE','LOCVALID'] },
+          { role: 'Cliente maestra',          entityName: custMasterEntity, required: true,  selectorId: 'selSNCustMaster', fields: ['CUSTID','CUSTDESCR','CUSTVALID'] },
+          { role: 'Location Product',         entityName: locProdEntity,    required: true,  selectorId: 'selSNLocProd',    fields: ['LOCID','PRDID'] },
+          { role: 'Customer Product',         entityName: custProdEntity,   required: true,  selectorId: 'selSNCustProd',   fields: ['CUSTID','PRDID'] },
+        ];
+        var _snResult = validateEntityFields(_snChecks);
+        if (_snResult.issues.length) {
+          document.getElementById('btnFetchSN').disabled = false;
+          log(logEl, 'error', 'Hay correcciones pendientes. Resuélvelas en el paso de mapeo de entidades antes de ejecutar.');
+          if (typeof toggleMappingBody === 'function') toggleMappingBody('bodySNMDT', 'arrSNMDT', true);
+          return;
+        }
+      }
+
       var baseOData = CFG.url + '/sap/opu/odata/IBP/' + CFG.service + '/';
       var paFilter = CFG.pa
         ? (CFG.pver
@@ -275,7 +338,7 @@
           setStatusSN('info', 'Descargando Production Source Header → IDB...');
           log(logEl, 'info', timer.fmt() + ' [GET] ' + baseOData + sourceProdEntity);
           var nSrc = await fetchAndIndex(baseOData + sourceProdEntity, logEl, fPsh,
-            'SOURCEID,PRDID,LOCID,PLEADTIME,PRATIO,PINVALID',
+            buildSelect(sourceProdEntity, ['SOURCEID','PRDID','LOCID','PLEADTIME','PRATIO','PINVALID']),
             function (rows) {
               rows = rows.filter(function(r) { return r.PINVALID !== 'X'; });
               rows.forEach(function (r) {

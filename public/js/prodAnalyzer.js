@@ -60,6 +60,22 @@ async function doProductionAnalysis() {
   var PA_PRD = {}, PA_LOC = {}, PA_RES = {}, PA_RES_LOC = {};
   var pshBySid = {}, pshPrdSet = {};
 
+  if (typeof validateEntityFields === 'function') {
+    var _paChecks = [
+      { role: 'Production Source Header',   entityName: ent.psh,    required: true,  selectorId: 'selPAHeader',  fields: ['PRDID','SOURCEID','LOCID','SOURCETYPE','PLEADTIME','OUTPUTCOEFFICIENT','PRATIO','PINVALID'] },
+      { role: 'Production Source Item',     entityName: ent.psi,    required: true,  selectorId: 'selPAItem',    fields: ['SOURCEID','PRDID','COMPONENTCOEFFICIENT','ISALTITEM'] },
+      { role: 'Production Source Item Sub', entityName: ent.psiSub, required: true,  selectorId: 'selPAItemSub', fields: ['SOURCEID','PRDFR','SPRDFR'] },
+      { role: 'Location Source',            entityName: ent.locSrc, required: true,  selectorId: 'selPALocSrc',  fields: ['PRDID','LOCFR','LOCID','TLEADTIME','TINVALID'] },
+    ];
+    var _paResult = validateEntityFields(_paChecks);
+    if (_paResult.issues.length) {
+      document.getElementById('btnFetchPA').disabled = false;
+      log(logEl, 'error', 'Hay correcciones pendientes. Resuélvelas en el paso de mapeo de entidades antes de ejecutar.');
+      if (typeof toggleMappingBody === 'function') toggleMappingBody('bodyPAMDT', 'arrPAMDT', true);
+      return;
+    }
+  }
+
   try {
     progEl.style.width = '0%';
     if (!IDB) IDB = await openDB();
@@ -292,7 +308,19 @@ function _paCloseMattypeBody(bodyId, arrId) {
 /* ── Navegación entre paneles ── */
 
 /* MDT → Exclude */
-function paConfirmMapping() {
+async function paConfirmMapping() {
+  if (typeof validateEntityFields === 'function') {
+    var _paConfirmChecks = [
+      { role: 'Production Source Header',   entityName: document.getElementById('selPAHeader').value,  required: true, selectorId: 'selPAHeader',  fields: ['PRDID','SOURCEID','LOCID','SOURCETYPE','PLEADTIME','OUTPUTCOEFFICIENT','PRATIO','PINVALID'] },
+      { role: 'Production Source Item',     entityName: document.getElementById('selPAItem').value,    required: true, selectorId: 'selPAItem',    fields: ['SOURCEID','PRDID','COMPONENTCOEFFICIENT','ISALTITEM'] },
+      { role: 'Production Source Item Sub', entityName: document.getElementById('selPAItemSub').value, required: true, selectorId: 'selPAItemSub', fields: ['SOURCEID','PRDFR','SPRDFR'] },
+      { role: 'Location Source',            entityName: document.getElementById('selPALocSrc').value,  required: true, selectorId: 'selPALocSrc',  fields: ['PRDID','LOCFR','LOCID','TLEADTIME','TINVALID'] },
+    ];
+    var _paConfirmResult = validateEntityFields(_paConfirmChecks);
+    if (_paConfirmResult.issues.length || _paConfirmResult.applied.length) {
+      await fmShowCorrectionPanel(_paConfirmResult.issues, _paConfirmResult.applied, 'fmPanelPA', _paConfirmChecks);
+    }
+  }
   // Colapsar mapeo
   var mdtBody = document.getElementById('bodyPAMDT');
   var mdtArr  = document.getElementById('arrPAMDT');

@@ -77,6 +77,156 @@
       btn.textContent = hidden ? 'Ver logs técnicos' : 'Ocultar logs';
     }
 
+    function _resetProgBar(suffix) {
+      var s = suffix || '';
+      var bar = document.getElementById('progBar' + s);
+      if (bar) bar.classList.add('hidden');
+      var fill = document.getElementById('progFill' + s);
+      if (fill) fill.style.width = '0%';
+      var status = document.getElementById('progStatus' + s);
+      if (status) status.style.display = 'none';
+      var txt = document.getElementById('progStatusText' + s);
+      if (txt) txt.textContent = '';
+      var logEl = document.getElementById('log' + (s === '' ? 'Fetch' : s.replace(/^[A-Z]/, function(c){return c;})));
+      if (logEl) { logEl.classList.add('hidden'); logEl.innerHTML = ''; }
+    }
+
+    function resetAllModules() {
+      // BOM state
+      HDR_BY_SID = {}; HDR_BY_PRD = {}; CPR_BY_SID = {};
+      ITM_BY_SID = {}; RES_BY_SID = {}; PSISUB_BY_SID = {};
+      isCompAtLoc = {}; prdIndex = {}; prodSuggestions = [];
+      expandedIds = {}; currentLoc = ''; searchTerm = ''; selectedPrdid = '';
+      LOC_BY_ID = {}; RES_DESCR = {};
+      TREE = { locids: [], roots: {}, stats: {}, cycles: [] };
+      // BOM DOM
+      var cycleBanner = document.getElementById('cycleBanner');
+      if (cycleBanner) cycleBanner.style.display = 'none';
+      var bomTabsBar = document.getElementById('bomTabsBar');
+      if (bomTabsBar) bomTabsBar.classList.add('hidden');
+      var bomTabsContent = document.getElementById('bomTabsContent');
+      if (bomTabsContent) { bomTabsContent.classList.add('hidden'); bomTabsContent.innerHTML = ''; }
+      var bomTabsScroll = document.getElementById('bomTabsScroll');
+      if (bomTabsScroll) bomTabsScroll.innerHTML = '';
+      var btnFetch = document.getElementById('btnFetch');
+      if (btnFetch) btnFetch.disabled = false;
+      var fmBOM = document.getElementById('fmPanelBOM');
+      if (fmBOM) { fmBOM.style.display = 'none'; fmBOM.innerHTML = ''; }
+      var logFetch = document.getElementById('logFetch');
+      if (logFetch) { logFetch.classList.add('hidden'); logFetch.innerHTML = ''; }
+      var progBar = document.getElementById('progBar');
+      if (progBar) progBar.classList.add('hidden');
+      var progFill = document.getElementById('progFill');
+      if (progFill) progFill.style.width = '0%';
+      var progStatus = document.getElementById('progStatus');
+      if (progStatus) progStatus.style.display = 'none';
+      var progStatusText = document.getElementById('progStatusText');
+      if (progStatusText) progStatusText.textContent = '';
+      toggleMappingBody('bodyMDT', 'arrMDT', true);
+
+      // SN state
+      SN_IDX = { allPrds: {}, prdLookup: {}, locLookup: {}, custLookup: {} };
+      // SN DOM
+      var snRunSummary = document.getElementById('snRunSummary');
+      if (snRunSummary) snRunSummary.innerHTML = '';
+      var snSuccessBanner = document.getElementById('snSuccessBanner');
+      if (snSuccessBanner) snSuccessBanner.classList.add('hidden');
+      var snEFBody = document.getElementById('snEFBody');
+      if (snEFBody) snEFBody.innerHTML = '';
+      var btnFetchSN = document.getElementById('btnFetchSN');
+      if (btnFetchSN) btnFetchSN.disabled = false;
+      var fmSN = document.getElementById('fmPanelSN');
+      if (fmSN) { fmSN.style.display = 'none'; fmSN.innerHTML = ''; }
+      var logSN = document.getElementById('logSN');
+      if (logSN) { logSN.classList.add('hidden'); logSN.innerHTML = ''; }
+      var progBarSN = document.getElementById('progBarSN');
+      if (progBarSN) progBarSN.classList.add('hidden');
+      var progFillSN = document.getElementById('progFillSN');
+      if (progFillSN) progFillSN.style.width = '0%';
+      var progStatusSN = document.getElementById('progStatusSN');
+      if (progStatusSN) progStatusSN.style.display = 'none';
+      var progStatusTextSN = document.getElementById('progStatusTextSN');
+      if (progStatusTextSN) progStatusTextSN.textContent = '';
+      toggleMappingBody('bodySNMDT', 'arrSNMDT', true);
+
+      // Viz state
+      if (typeof vizNetwork !== 'undefined' && vizNetwork) { try { vizNetwork.destroy(); } catch(e){} vizNetwork = null; }
+      if (typeof vizNetworkFull !== 'undefined' && vizNetworkFull) { try { vizNetworkFull.destroy(); } catch(e){} vizNetworkFull = null; }
+      if (typeof vizSuggestions !== 'undefined') vizSuggestions = [];
+      if (typeof vizCurrentPrd !== 'undefined') vizCurrentPrd = '';
+      if (typeof VIZ_DATA !== 'undefined') VIZ_DATA = null;
+      if (typeof VIZ_VISIBLE !== 'undefined') VIZ_VISIBLE = { plant: true, location: true, customer: true, supplier: true };
+      if (typeof VIZ_HIDDEN_LOC !== 'undefined') VIZ_HIDDEN_LOC = new Set();
+      if (typeof VIZ_HIDDEN_CUST !== 'undefined') VIZ_HIDDEN_CUST = new Set();
+      // Viz DOM
+      var vizPrdInput = document.getElementById('vizPrdInput');
+      if (vizPrdInput) vizPrdInput.value = '';
+      var vizPrdList = document.getElementById('vizPrdList');
+      if (vizPrdList) vizPrdList.innerHTML = '';
+      var vizStatusEl = document.getElementById('vizStatus');
+      if (vizStatusEl) vizStatusEl.textContent = '';
+      var vizCanvas = document.getElementById('vizCanvas');
+      if (vizCanvas) vizCanvas.style.height = '0';
+      var vizEmptyEl = document.getElementById('vizEmpty');
+      if (vizEmptyEl) vizEmptyEl.style.display = '';
+      var vizDetailEl = document.getElementById('vizDetail');
+      if (vizDetailEl) vizDetailEl.style.display = 'none';
+      var vizLoadBar = document.getElementById('vizLoadStatusBar');
+      if (vizLoadBar) vizLoadBar.style.display = 'none';
+      var vizRutas = document.getElementById('vizRutasPanel');
+      if (vizRutas) vizRutas.style.display = 'none';
+      var btnViz = document.getElementById('btnVizLoadNet');
+      if (btnViz) { btnViz.disabled = true; btnViz.style.opacity = '.5'; }
+      ['Plant', 'Location', 'Customer', 'Supplier'].forEach(function(t) {
+        var chk = document.getElementById('vizChk' + t);
+        if (chk) chk.checked = true;
+        var fsChk = document.getElementById('vizFsChk' + t);
+        if (fsChk) fsChk.checked = true;
+      });
+      var fmViz = document.getElementById('fmPanelViz');
+      if (fmViz) { fmViz.style.display = 'none'; fmViz.innerHTML = ''; }
+      var logViz = document.getElementById('logViz');
+      if (logViz) { logViz.classList.add('hidden'); logViz.innerHTML = ''; }
+      var progBarViz = document.getElementById('progBarViz');
+      if (progBarViz) progBarViz.classList.add('hidden');
+      var progFillViz = document.getElementById('progFillViz');
+      if (progFillViz) progFillViz.style.width = '0%';
+      var progStatusViz = document.getElementById('progStatusViz');
+      if (progStatusViz) progStatusViz.style.display = 'none';
+      var progStatusTextViz = document.getElementById('progStatusTextViz');
+      if (progStatusTextViz) progStatusTextViz.textContent = '';
+      toggleMappingBody('bodyVizMDT', 'arrVizMDT', true);
+
+      // PA DOM
+      var paRunSummary = document.getElementById('paRunSummary');
+      if (paRunSummary) paRunSummary.innerHTML = '';
+      var paSuccessBanner = document.getElementById('paSuccessBanner');
+      if (paSuccessBanner) paSuccessBanner.classList.add('hidden');
+      var paEFBody = document.getElementById('paEFBody');
+      if (paEFBody) paEFBody.innerHTML = '';
+      var btnFetchPA = document.getElementById('btnFetchPA');
+      if (btnFetchPA) btnFetchPA.disabled = false;
+      var fmPA = document.getElementById('fmPanelPA');
+      if (fmPA) { fmPA.style.display = 'none'; fmPA.innerHTML = ''; }
+      var logPA = document.getElementById('logPA');
+      if (logPA) { logPA.classList.add('hidden'); logPA.innerHTML = ''; }
+      var progBarPA = document.getElementById('progBarPA');
+      if (progBarPA) progBarPA.classList.add('hidden');
+      var progFillPA = document.getElementById('progFillPA');
+      if (progFillPA) progFillPA.style.width = '0%';
+      var progStatusPA = document.getElementById('progStatusPA');
+      if (progStatusPA) progStatusPA.style.display = 'none';
+      var progStatusTextPA = document.getElementById('progStatusTextPA');
+      if (progStatusTextPA) progStatusTextPA.textContent = '';
+      toggleMappingBody('bodyPAMDT', 'arrPAMDT', true);
+
+      // fieldmap panel state
+      if (typeof _fmChecksRegistry !== 'undefined') _fmChecksRegistry = {};
+      if (typeof _fmPendingIssues !== 'undefined') _fmPendingIssues = [];
+      if (typeof _fmPanelSelections !== 'undefined') _fmPanelSelections = {};
+      if (typeof _fmPanelCallback !== 'undefined') _fmPanelCallback = null;
+    }
+
     async function doConnect(event) {
       if (event && event.preventDefault) event.preventDefault();
       var logEl = document.getElementById('logConnect');
@@ -203,6 +353,13 @@
         CONN_SAVED_CFG = null;
         CONN_CACHE.metaText = null;
         CONN_CACHE.vsmt = [];
+
+        // Limpiar datos de la sesión anterior antes de cargar la nueva conexión
+        resetAllModules();
+
+        // Cargar mapeos de campos guardados para este PA
+        if (typeof fmLoad === 'function') fmLoad();
+
         setConnected(true);
         setConnStatus('ok', 'Conectado — ' + ENTITIES.length + ' entidades · PA: ' + CFG.pa + (CFG.pver ? ' / ' + CFG.pver : ' (Baseline)'));
         document.getElementById('panelMDT').classList.remove('hidden');
@@ -813,6 +970,32 @@
       var locFilter = paFilter;
       var bomValidSids = {};
 
+      // Pre-validar entidades y campos contra schema antes de fetch
+      if (typeof validateEntityFields === 'function') {
+        var _bomChecks = [
+          { role: 'Production Source Header',   entityName: headerEntity,  required: true,  selectorId: 'selHeader',       fields: ['PRDID','SOURCEID','LOCID','SOURCETYPE','OUTPUTCOEFFICIENT','PINVALID'] },
+          { role: 'Production Source Item',     entityName: itemEntity,    required: true,  selectorId: 'selItem',         fields: ['SOURCEID','PRDID','COMPONENTCOEFFICIENT','ISALTITEM'] },
+          { role: 'Production Source Item Sub', entityName: itemSubEntity, required: true,  selectorId: 'selItemSub',      fields: ['SOURCEID','PRDFR','SPRDFR'] },
+          { role: 'Production Source Resource', entityName: resourceEntity, required: true, selectorId: 'selResource',     fields: ['SOURCEID','RESID'] },
+          { role: 'Producto',                   entityName: productEntity, required: true,  selectorId: 'selProduct',      fields: ['PRDID','PRDDESCR','MATTYPEID','UOMID','UOMDESCR'] },
+          { role: 'Ubicación maestra',          entityName: bomLocEntity,  required: true,  selectorId: 'selBomLocMaster', fields: ['LOCID','LOCDESCR','LOCVALID'] },
+        ];
+        var _bomResult = validateEntityFields(_bomChecks);
+        if (_bomResult.issues.length || _bomResult.applied.length) {
+          document.getElementById('btnFetch').disabled = false;
+          toggleMappingBody('bodyMDT', 'arrMDT', true);
+          await fmShowCorrectionPanel(_bomResult.issues, _bomResult.applied, 'fmPanelBOM', _bomChecks);
+          document.getElementById('btnFetch').disabled = true;
+          headerEntity   = document.getElementById('selHeader').value;
+          itemEntity     = document.getElementById('selItem').value;
+          itemSubEntity  = document.getElementById('selItemSub').value;
+          resourceEntity = document.getElementById('selResource').value;
+          productEntity  = document.getElementById('selProduct').value;
+          bomLocEntity   = document.getElementById('selBomLocMaster').value;
+          bomResEntity   = document.getElementById('selBomResMaster').value;
+        }
+      }
+
       try {
         setProgress(0);
 
@@ -826,7 +1009,7 @@
         setStatus('info', 'Descargando Production Source Header...');
         log(logEl, 'info', 'GET → ' + baseOData + headerEntity + (paFilter ? ' [filtro PA/Ver]' : ''));
         var nHdr = await fetchAndIndex(baseOData + headerEntity, logEl, pshFilter,
-          'PRDID,SOURCEID,LOCID,SOURCETYPE,OUTPUTCOEFFICIENT,PINVALID',
+          buildSelect(headerEntity, ['PRDID','SOURCEID','LOCID','SOURCETYPE','OUTPUTCOEFFICIENT','PINVALID']),
           function (rows) {
             rows = rows.filter(function(r) { return r.PINVALID !== 'X'; });
             rows.forEach(function(r) { var s = str(r.SOURCEID); if (s) bomValidSids[s] = true; });
@@ -839,7 +1022,7 @@
         setStatus('info', 'Descargando Production Source Item...');
         log(logEl, 'info', 'GET → ' + baseOData + itemEntity + (paFilter ? ' [filtro PA/Ver]' : ''));
         var nItm = await fetchAndIndex(baseOData + itemEntity, logEl, paFilter,
-          'SOURCEID,PRDID,COMPONENTCOEFFICIENT,ISALTITEM',
+          buildSelect(itemEntity, ['SOURCEID','PRDID','COMPONENTCOEFFICIENT','ISALTITEM']),
           function (rows) {
             var validRows = rows.filter(function(r) { return !!bomValidSids[str(r.SOURCEID)]; });
             return idbBulkPut('bom_psi', validRows);
@@ -852,7 +1035,7 @@
           setStatus('info', 'Descargando Production Source Item Sub...');
           log(logEl, 'info', 'GET → ' + baseOData + itemSubEntity + (paFilter ? ' [filtro PA/Ver]' : ''));
           var nItmSub = await fetchAndIndex(baseOData + itemSubEntity, logEl, paFilter,
-            'SOURCEID,PRDFR,SPRDFR',
+            buildSelect(itemSubEntity, ['SOURCEID','PRDFR','SPRDFR']),
             function (rows) { return idbBulkPut('bom_psisub', rows); });
           log(logEl, 'ok', 'Item Sub: ' + nItmSub + ' registros → IDB');
         } else {
@@ -881,7 +1064,7 @@
           setStatus('info', 'Descargando Product (maestro)...');
           log(logEl, 'info', 'GET → ' + baseOData + productEntity + (paFilter ? ' [filtro PA/Ver]' : ''));
           var nPrd = await fetchAndIndex(baseOData + productEntity, logEl, paFilter,
-            'PRDID,PRDDESCR,MATTYPEID,UOMID,UOMDESCR',
+            buildSelect(productEntity, ['PRDID','PRDDESCR','MATTYPEID','UOMID','UOMDESCR']),
             function (rows) { return idbBulkPut('bom_prd', rows); });
           log(logEl, 'ok', 'Product: ' + nPrd + ' registros → IDB');
         } else {
@@ -894,7 +1077,7 @@
           setStatus('info', 'Descargando Location (maestro)...');
           log(logEl, 'info', 'GET → ' + baseOData + bomLocEntity + (paFilter ? ' [filtro PA/Ver]' : ''));
           var nLoc = await fetchAndIndex(baseOData + bomLocEntity, logEl, locFilter,
-            'LOCID,LOCDESCR,LOCVALID',
+            buildSelect(bomLocEntity, ['LOCID','LOCDESCR','LOCVALID']),
             function (rows) {
               rows = rows.filter(function(r) { return r.LOCVALID !== 'X'; });
               return idbBulkPut('bom_loc', rows);
