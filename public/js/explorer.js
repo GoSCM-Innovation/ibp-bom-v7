@@ -504,7 +504,8 @@ const Explorer = (function () {
 
   function togglePromoted() {
     showPromoted = !showPromoted;
-    renderCidsBar();
+    const sw = document.querySelector('#ex-cids-toggle .ex-toggle-switch');
+    if (sw) sw.className = showPromoted ? 'ex-toggle-switch on' : 'ex-toggle-switch';
     const q = (document.getElementById('ex-search') || {}).value || '';
     applySearch(q);
   }
