@@ -131,8 +131,8 @@
       if (snRunSummary) snRunSummary.innerHTML = '';
       var snSuccessBanner = document.getElementById('snSuccessBanner');
       if (snSuccessBanner) snSuccessBanner.classList.add('hidden');
-      var snEFBody = document.getElementById('snEFBody');
-      if (snEFBody) snEFBody.innerHTML = '';
+      var efBtnsSN = document.getElementById('efButtons_sn');
+      if (efBtnsSN) efBtnsSN.innerHTML = '';
       var btnFetchSN = document.getElementById('btnFetchSN');
       if (btnFetchSN) btnFetchSN.disabled = false;
       var fmSN = document.getElementById('fmPanelSN');
@@ -202,8 +202,8 @@
       if (paRunSummary) paRunSummary.innerHTML = '';
       var paSuccessBanner = document.getElementById('paSuccessBanner');
       if (paSuccessBanner) paSuccessBanner.classList.add('hidden');
-      var paEFBody = document.getElementById('paEFBody');
-      if (paEFBody) paEFBody.innerHTML = '';
+      var efBtnsPA = document.getElementById('efButtons_pa');
+      if (efBtnsPA) efBtnsPA.innerHTML = '';
       var btnFetchPA = document.getElementById('btnFetchPA');
       if (btnFetchPA) btnFetchPA.disabled = false;
       var fmPA = document.getElementById('fmPanelPA');
