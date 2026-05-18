@@ -1354,6 +1354,9 @@
               var reachesPlant = graph.allLocations.some(function (l) { return locInPSH[l]; });
               networkStatus = reachesPlant ? 'Abastecimiento Completo' : 'Abastecimiento Parcial';
             }
+          } else if (catIsFinished) {
+            // Terminado sin PSH ni PSI: falta fuente de producción
+            networkStatus = (inLS || inCS) ? 'Sin Producción' : 'Sin arcos de red';
           } else if (useRawmatRules) {
             // Rawmat sin PSI: tiene arcos pero no aparece como componente en ningún BOM
             networkStatus = inLS ? 'Abastecimiento sin Consumo PSI' : 'Sin Abastecimiento';
@@ -1443,7 +1446,7 @@
             // sin PSH no hay fuente de producción, independientemente de los arcos de distribución.
             var RED_ST = { 'Hu\u00e9rfano': 1, 'Sin Distribuci\u00f3n': 1, 'Sin Abastecimiento': 1, 'Sin Entrega a Cliente': 1,
                            'Solo Entrega': 1, 'Solo Distribuci\u00f3n': 1, 'Solo Distribuci\u00f3n + Entrega': 1, 'Sin arcos de red': 1,
-                           'Distribuci\u00f3n sin ruta completa': 1 };
+                           'Distribuci\u00f3n sin ruta completa': 1, 'Sin Producci\u00f3n': 1 };
             var YEL_ST = { 'Abastecimiento Parcial': 1, 'Abastecimiento sin Consumo PSI': 1 };
             pFill = (RED_ST[networkStatus] || cycles.length > 0) ? C_RED
               : (YEL_ST[networkStatus] || tradingDisconnected || (!inLP && (inPSH || inLS)) || (!inCP && inCS)) ? C_YEL
