@@ -559,6 +559,9 @@ function parseIntegration(xmlStr, batchEntry) {
                    (dstDSFinal || '').toUpperCase() === 'FILE_DC' ||
                    (dstDSFinal || '').toUpperCase() === 'ARCHIVOS';
 
+    const paVar = variables.find(v => v.name === '$G_PLAN_AREA');
+    const planArea = paVar ? paVar.value.replace(/^'|'$/g, '') : '';
+
     results.push({
       jobName, jobDesc,
       tipoIntegracion: getTipo(jobName, isFile),
@@ -572,6 +575,7 @@ function parseIntegration(xmlStr, batchEntry) {
       filters:     r.filters,
       lookups:     r.lookups,
       variables,
+      planArea,
     });
   }
   return results;

@@ -820,10 +820,10 @@
           <span class="mattype-optional-badge">Opcional</span>
         </div>
         <div class="mattype-panel-actions">
-          <span class="mattype-arr" id="snEFArr">▼</span>
+          <span class="mattype-arr" id="snEFArr">▶</span>
         </div>
       </div>
-      <div class="mattype-panel-body" id="snEFBody">
+      <div class="mattype-panel-body" id="snEFBody" style="display:none;">
         <div class="ef-entity-buttons" id="efButtons_sn"></div>
         <div class="btn-row" style="margin-top:16px;">
           <button class="btn btn-primary btn-small" onclick="snContinueToRun()">Continuar a ejecución &#8594;</button>
@@ -1476,10 +1476,10 @@
           <span class="mattype-optional-badge">Opcional</span>
         </div>
         <div class="mattype-panel-actions">
-          <span class="mattype-arr" id="paEFArr">▼</span>
+          <span class="mattype-arr" id="paEFArr">▶</span>
         </div>
       </div>
-      <div class="mattype-panel-body" id="paEFBody">
+      <div class="mattype-panel-body" id="paEFBody" style="display:none;">
         <div class="ef-entity-buttons" id="efButtons_pa"></div>
         <div class="btn-row" style="margin-top:16px;">
           <button class="btn btn-primary btn-small" onclick="paContinueToRun()">Continuar a ejecución &#8594;</button>
@@ -1762,8 +1762,9 @@
         <p class="drop-hint">Múltiples archivos permitidos · Se reutiliza el parser de Doc Generator</p>
       </div>
       <div id="ex-file-list"></div>
-      <div class="btn-row">
+      <div class="btn-row ex-upload-actions">
         <button class="btn btn-primary" id="ex-analyze-btn" disabled onclick="Explorer.analyze()">🔬 Explorar integraciones</button>
+        <div id="ex-cids-bar"></div>
       </div>
     </div>
 
@@ -1787,6 +1788,8 @@
           </div>
           <span class="sel-counter" id="ex-counter"></span>
         </div>
+        <div id="ex-cids-toggle" style="display:none"></div>
+        <div class="ex-pa-filter" id="ex-pa-filter" style="display:none"></div>
       </div>
 
       <!-- Vista LISTA -->
@@ -1957,6 +1960,54 @@
       </div>
     </div>
   </dialog>
+
+  <!-- Modal CI-DS -->
+  <div id="cids-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:2000;align-items:center;justify-content:center;">
+    <div class="cids-modal-box" onclick="event.stopPropagation()">
+      <div class="cids-modal-title">Conectar SAP CI-DS</div>
+      <div class="cids-modal-subtitle">Las credenciales solo se usan durante esta sesion y no se almacenan.</div>
+
+      <div class="cids-field-group">
+        <label class="cids-label">URL del servicio SOAP</label>
+        <input class="cids-input" id="cids-hciUrl" type="url" placeholder="https://host/webservices" autocomplete="off"
+          onkeydown="if(event.key==='Enter')Explorer.submitCidsConnect()">
+        <div class="cids-hint">Kyma: https://&lt;host&gt;/webservices &nbsp;·&nbsp; Neo: https://&lt;host&gt;/DSoD/webservices</div>
+      </div>
+      <div class="cids-field-row">
+        <div class="cids-field-group">
+          <label class="cids-label">Organizacion (orgName)</label>
+          <input class="cids-input mono" id="cids-orgName" type="text" placeholder="miOrganizacion" autocomplete="off"
+            onkeydown="if(event.key==='Enter')Explorer.submitCidsConnect()">
+        </div>
+        <div class="cids-field-group">
+          <label class="cids-label">Repositorio</label>
+          <div class="cids-radio-row">
+            <label class="cids-radio-lbl"><input type="radio" name="cids-repo" id="cids-isProd" checked> Productivo</label>
+            <label class="cids-radio-lbl"><input type="radio" name="cids-repo"> Sandbox</label>
+          </div>
+        </div>
+      </div>
+      <div class="cids-field-row">
+        <div class="cids-field-group">
+          <label class="cids-label">Usuario</label>
+          <input class="cids-input mono" id="cids-user" type="text" placeholder="WebServicesUser" autocomplete="username"
+            onkeydown="if(event.key==='Enter')Explorer.submitCidsConnect()">
+        </div>
+        <div class="cids-field-group">
+          <label class="cids-label">Contrasena</label>
+          <input class="cids-input" id="cids-password" type="password" placeholder="••••••••" autocomplete="current-password"
+            onkeydown="if(event.key==='Enter')Explorer.submitCidsConnect()">
+        </div>
+      </div>
+
+      <div id="cids-modal-error" class="cids-modal-error"></div>
+
+      <div class="cids-modal-actions">
+        <button class="btn" onclick="Explorer.closeCidsModal()">Cancelar</button>
+        <button class="btn btn-primary" id="cids-modal-submit" onclick="Explorer.submitCidsConnect()">Conectar</button>
+      </div>
+    </div>
+  </div>
 
 </body>
 

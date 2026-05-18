@@ -22,6 +22,13 @@ const Explorer = (function () {
   let selectedDimKey = null;
   let visNetwork    = null;
   let analyzing     = false;
+  let activePA      = new Set(); // PAs seleccionados; vacío = todos
+
+  // ── Estado CI-DS ─────────────────────────────────────────────
+  let cidsConn      = null;  // { hciUrl, orgName, isProduction, sessionId }
+  let cidsProdTasks = null;  // Set<string> uppercase — null = no conectado
+  let cidsLoading   = false;
+  let showPromoted  = false;
 
   // ── Normalización de claves para matching ───────────────
   function normTableKey(ds, tbl) {
@@ -115,6 +122,8 @@ const Explorer = (function () {
 
     buildIndexes();
     detectChains();
+    activePA = new Set();
+    renderPlanAreaFilter();
     filtered = integrations.slice();
     renderSidebarList(filtered);
     updateCounter(filtered.length, integrations.length);
@@ -388,6 +397,185 @@ const Explorer = (function () {
     console.debug(`[Explorer] cadenas: ${chainEdges.length} total`, byVia);
   }
 
+  // ── CI-DS connection ─────────────────────────────────────────
+  async function cidsSoapCall(operation, params) {
+    const res = await fetch('/api/cids-soap', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ hciUrl: cidsConn.hciUrl, sessionId: cidsConn.sessionId, operation, params }),
+    });
+    if (res.status === 401) throw Object.assign(new Error('Sesión CI-DS expirada'), { isSessionExpired: true });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
+    return data;
+  }
+
+  async function fetchProductionTasks() {
+    const projects = await cidsSoapCall('getProjects', {});
+    if (!Array.isArray(projects)) return new Set();
+    const taskSet = new Set();
+    for (const proj of projects) {
+      if (!proj.guid) continue;
+      try {
+        const tasks = await cidsSoapCall('getProjectTasks', { projectGuid: proj.guid });
+        if (Array.isArray(tasks))
+          tasks.forEach(t => { if (t.taskName) taskSet.add(t.taskName.toUpperCase()); });
+      } catch (e) {
+        if (e.isSessionExpired) throw e;
+      }
+    }
+    return taskSet;
+  }
+
+  function openCidsModal() {
+    const m = document.getElementById('cids-modal');
+    if (m) m.style.display = 'flex';
+    setTimeout(() => { const f = document.getElementById('cids-hciUrl'); if (f) f.focus(); }, 50);
+  }
+
+  function closeCidsModal() {
+    const m = document.getElementById('cids-modal');
+    if (m) m.style.display = 'none';
+  }
+
+  async function submitCidsConnect() {
+    const hciUrl       = (document.getElementById('cids-hciUrl')   ?.value || '').trim();
+    const orgName      = (document.getElementById('cids-orgName')  ?.value || '').trim();
+    const user         = (document.getElementById('cids-user')     ?.value || '').trim();
+    const password     = (document.getElementById('cids-password') ?.value || '').trim();
+    const isProduction = document.getElementById('cids-isProd')?.checked ?? true;
+    const errEl        = document.getElementById('cids-modal-error');
+    const btnEl        = document.getElementById('cids-modal-submit');
+
+    if (!hciUrl || !orgName || !user || !password) {
+      if (errEl) errEl.textContent = 'Todos los campos son obligatorios.';
+      return;
+    }
+    if (errEl) errEl.textContent = '';
+    if (btnEl) { btnEl.disabled = true; btnEl.textContent = 'Conectando...'; }
+    cidsLoading = true;
+
+    try {
+      const res = await fetch('/api/cids-login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ hciUrl, orgName, user, password, isProduction }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
+
+      cidsConn = { hciUrl, orgName, isProduction, sessionId: data.sessionId };
+      closeCidsModal();
+      renderCidsBar();
+
+      if (btnEl) btnEl.textContent = 'Cargando tareas...';
+      cidsProdTasks = await fetchProductionTasks();
+      renderCidsBar();
+      const q = (document.getElementById('ex-search') || {}).value || '';
+      applySearch(q);
+    } catch (e) {
+      if (e.isSessionExpired) {
+        cidsDisconnect();
+        if (errEl) errEl.textContent = 'Sesión expirada. Vuelve a conectar.';
+      } else {
+        if (errEl) errEl.textContent = e.message;
+      }
+    } finally {
+      cidsLoading = false;
+      if (btnEl) { btnEl.disabled = false; btnEl.textContent = 'Conectar'; }
+    }
+  }
+
+  function cidsDisconnect() {
+    if (cidsConn) {
+      fetch('/api/cids-soap', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ hciUrl: cidsConn.hciUrl, sessionId: cidsConn.sessionId, operation: 'logout', params: { sessionId: cidsConn.sessionId } }),
+      }).catch(() => {});
+    }
+    cidsConn      = null;
+    cidsProdTasks = null;
+    showPromoted  = false;
+    renderCidsBar();
+    const q = (document.getElementById('ex-search') || {}).value || '';
+    applySearch(q);
+  }
+
+  function togglePromoted() {
+    showPromoted = !showPromoted;
+    const sw = document.querySelector('#ex-cids-toggle .ex-toggle-switch');
+    if (sw) sw.className = showPromoted ? 'ex-toggle-switch on' : 'ex-toggle-switch';
+    const q = (document.getElementById('ex-search') || {}).value || '';
+    applySearch(q);
+  }
+
+  function renderCidsBar() {
+    const bar    = document.getElementById('ex-cids-bar');
+    const toggle = document.getElementById('ex-cids-toggle');
+
+    if (!cidsConn) {
+      if (bar)    bar.innerHTML = `<button class="ex-cids-connect-btn" onclick="Explorer.openCidsModal()">Conectar SAP CI-DS</button>`;
+      if (toggle) { toggle.innerHTML = ''; toggle.style.display = 'none'; }
+      return;
+    }
+
+    const repo    = cidsConn.isProduction ? 'Productivo' : 'Sandbox';
+    const count   = cidsProdTasks ? `${cidsProdTasks.size} tareas` : 'cargando...';
+    const promCls = showPromoted ? 'ex-toggle-switch on' : 'ex-toggle-switch';
+
+    if (bar) {
+      bar.innerHTML = `
+        <span class="ex-cids-pill">CI-DS: ${escH(cidsConn.orgName)} · ${escH(repo)} · ${escH(count)}</span>
+        <button class="ex-cids-disconnect-btn" onclick="Explorer.cidsDisconnect()">Desconectar</button>`;
+    }
+
+    if (toggle) {
+      toggle.style.display = cidsProdTasks ? '' : 'none';
+      if (cidsProdTasks) {
+        toggle.innerHTML = `
+          <label class="ex-promoted-label">
+            <span class="ex-promoted-text">Promovido a produccion</span>
+            <span class="${promCls}" onclick="Explorer.togglePromoted()" title="Mostrar solo integraciones en CI-DS ${escH(repo)}"><span class="ex-toggle-knob"></span></span>
+          </label>`;
+      }
+    }
+  }
+
+  // ── Filtro Planning Area ─────────────────────────────────
+  function computeBaseFiltered() {
+    let base = integrations.slice();
+    if (activePA.size > 0)
+      base = base.filter(p => activePA.has(p.planArea || ''));
+    if (showPromoted && cidsProdTasks)
+      base = base.filter(p => cidsProdTasks.has((p.jobName || '').toUpperCase()));
+    return base;
+  }
+
+  function renderPlanAreaFilter() {
+    const el = document.getElementById('ex-pa-filter');
+    if (!el) return;
+    const paValues = [...new Set(integrations.map(p => p.planArea || ''))].sort();
+    if (paValues.length <= 1) {
+      el.style.display = 'none';
+      return;
+    }
+    el.style.display = '';
+    el.innerHTML = '<span class="ex-pa-label">PA:</span>' +
+      paValues.map(pa => {
+        const label = pa || 'Sin PA';
+        const active = activePA.has(pa);
+        return `<button class="ex-pa-chip${active ? ' active' : ''}" onclick='Explorer.togglePA(${JSON.stringify(pa)})'>${escH(label)}</button>`;
+      }).join('');
+  }
+
+  function togglePA(pa) {
+    if (activePA.has(pa)) activePA.delete(pa); else activePA.add(pa);
+    renderPlanAreaFilter();
+    const q = (document.getElementById('ex-search') || {}).value || '';
+    applySearch(q);
+  }
+
   // ── Sidebar (lista master) ───────────────────────────────
   function renderSidebarList(list) {
     const el = document.getElementById('ex-master');
@@ -553,12 +741,13 @@ const Explorer = (function () {
   }
 
   function applySearchIntegration(q) {
+    const base  = computeBaseFiltered();
     const query = (q || '').trim().toLowerCase();
     if (!query) {
-      filtered = integrations.slice();
+      filtered = base;
     } else {
       const terms = query.split(/\s+/).filter(Boolean);
-      filtered = integrations.filter(p => {
+      filtered = base.filter(p => {
         const entry = indexes.searchTokens.find(s => s.idx === p._idx);
         if (!entry) return false;
         return terms.every(t => entry.tokens.includes(t));
@@ -652,7 +841,17 @@ const Explorer = (function () {
     const isField  = dim === 'dst-field'    || dim === 'src-field'    || dim === 'filter-field';
     const isFilter = dim === 'filter-table' || dim === 'filter-field';
 
+    const paSet = activePA.size > 0
+      ? new Set(computeBaseFiltered().map(p => p._idx))
+      : null;
+
     let entries = Object.entries(dimMap || {});
+    if (paSet) {
+      entries = entries.map(([key, items]) => {
+        const filtered = items.filter(x => paSet.has(x.intIdx));
+        return filtered.length ? [key, filtered] : null;
+      }).filter(Boolean);
+    }
     if (filterQuery) {
       const q = filterQuery.toLowerCase();
       entries = entries.filter(([key]) => key.toLowerCase().includes(q));
@@ -950,6 +1149,7 @@ const Explorer = (function () {
   // ── Init ─────────────────────────────────────────────────
   function init() {
     initDropZone();
+    renderCidsBar();
   }
 
   // ── API pública ──────────────────────────────────────────
@@ -962,6 +1162,12 @@ const Explorer = (function () {
     switchDimension,
     handleDimItemClick,
     goToIntegration,
+    togglePA,
+    openCidsModal,
+    closeCidsModal,
+    submitCidsConnect,
+    cidsDisconnect,
+    togglePromoted,
     init
   };
 
