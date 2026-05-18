@@ -1753,21 +1753,34 @@ async function paAnalyzeAndExport(
         if (!pm(outPrd) || mattypeIsExcluded(pm(outPrd))) return;
         var compMt = pm(comp);
 
-        var noSrc  = !locid;
-        var isSemi = !!(locid && pshByPrdLoc[comp + '|' + locid]);
-        var tipo   = noSrc ? 'No determinado' : isSemi ? 'Semielaborado' : 'Insumo';
+        var noSrc         = !locid;
+        var hasLocalPsh   = !!(locid && pshByPrdLoc[comp + '|' + locid]);
+        var compCatIsSemi = (typeof mattypeGetCategories === 'function' && compMt)
+          ? mattypeGetCategories(compMt).indexOf('semi') >= 0 : false;
+        var hasAnyPsh     = !!(pshSidsByPrd[comp] && pshSidsByPrd[comp].length > 0);
+        var isSemi        = hasLocalPsh || compCatIsSemi;
+        var isSemiLocal   = hasLocalPsh;
+        var isSemiRemote  = !hasLocalPsh && compCatIsSemi && hasAnyPsh;
+        var isSemiNoRec   = !hasLocalPsh && compCatIsSemi && !hasAnyPsh;
+
+        var tipo = noSrc ? 'No determinado'
+          : isSemiLocal  ? 'Semielaborado'
+          : isSemiRemote ? 'Semielaborado (ext.)'
+          : isSemiNoRec  ? 'Semielaborado (sin receta)'
+          : 'Insumo';
         var compInLP = locid ? locPrdSet.has(locid + '|' + comp) : false;
         var noCoeff  = !coeff || Number(coeff) === 0;
 
-        var lsRows  = (!isSemi && locid) ? (locSrcByPrdLoc[comp + '|' + locid] || []) : [];
+        // Local: no necesita LS. Sin receta: LS no aplica. Externo e insumo: verificar arco.
+        var checkLS = !isSemiLocal && !isSemiNoRec && locid && !noSrc;
+        var lsRows  = checkLS ? (locSrcByPrdLoc[comp + '|' + locid] || []) : [];
         var inLS    = lsRows.length > 0;
-        var locfrVals = inLS ? [...new Set(lsRows.map(function(x){ return x.LOCFR; }))] : [];
+        var locfrVals  = inLS ? [...new Set(lsRows.map(function(x){ return x.LOCFR; }))] : [];
         var locfrCodes = locfrVals.join(', ');
         var locfrDescr = locfrVals.map(function(lf){ return ld(lf) || '?'; }).join(', ');
 
-        // Orígenes del componente (todos los LOCFR en LocSrc para este comp en esta planta)
+        // Orígenes del componente: LOCFR de LS + plantas productoras para semis
         var originsComp = new Set(lsRows.map(function(x){ return x.LOCFR; }).filter(Boolean));
-        // Si semielaborado, orígenes son las plantas que lo producen
         if (isSemi) {
           (pshSidsByPrd[comp] || []).forEach(function(sid2) {
             var l = (pshSidLocid[sid2] || {}).LOCID;
@@ -1783,20 +1796,30 @@ async function paAnalyzeAndExport(
 
         var obs = [];
         var exclNote = _compExclNote(compMt);
-        if (noSrc)    obs.push('SOURCEID no encontrado en PSH');
-        if (noCoeff)  obs.push('Coeficiente = 0 o no definido');
-        if (isSemi)   obs.push('Semielaborado: trazabilidad en PSH');
-        if (!isSemi && !noSrc) {
-          if (!inLS)  obs.push('Insumo sin arco de abastecimiento en Location Source');
+        if (noSrc)         obs.push('SOURCEID no encontrado en PSH');
+        if (noCoeff)       obs.push('Coeficiente = 0 o no definido');
+        if (isSemiLocal) {
+          obs.push('Semielaborado: trazabilidad en PSH');
+        } else if (isSemiRemote) {
+          if (!noSrc) obs.push(inLS
+            ? 'Semiterminado producido en otra planta: transferencia configurada'
+            : 'Semiterminado sin arco de transferencia hacia esta planta');
+        } else if (isSemiNoRec) {
+          obs.push('Semiterminado sin receta de produccion (PSH) en ninguna planta');
+        } else if (!noSrc) {
+          if (!inLS) obs.push('Insumo sin arco de abastecimiento en Location Source');
         }
         if (!compInLP && locid) obs.push('Componente no habilitado en Location Product para esta planta');
         if (isAlt === 'X' && !replacedBy && ent.psiSub) obs.push('Material de reemplazo sin registro en Item Sub');
         if (exclNote) obs.push('Componente de tipo excluido (' + compMt + ') — validado en contexto');
-        if (!obs.length) obs.push('SOURCEID válido en PSH | Coeficiente definido | Con arco de abastecimiento en Location Source | Habilitado en Location Product');
+        if (!obs.length) obs.push('SOURCEID valido en PSH | Coeficiente definido | Con arco de abastecimiento en Location Source | Habilitado en Location Product');
 
-        var fill = (noCoeff || (!isSemi && !inLS && !noSrc) || (!compInLP && locid)) ? C_RED
-                 : (noSrc || (isAlt === 'X' && !replacedBy && ent.psiSub)) ? C_YEL
-                 : null;
+        var fill = (noCoeff
+          || (isSemiRemote  && !inLS && !noSrc)
+          || (!isSemi       && !inLS && !noSrc)
+          || (!compInLP && locid)) ? C_RED
+          : (noSrc || isSemiNoRec || (isAlt === 'X' && !replacedBy && ent.psiSub)) ? C_YEL
+          : null;
 
         var _s7Row = [
           statusLabel(fill), obs.join(' | '),
@@ -1806,7 +1829,7 @@ async function paAnalyzeAndExport(
           comp, pd(comp), compMt,
           coeff, tipo,
           yn(compInLP),
-          !isSemi && !noSrc ? yn(inLS) : 'N/A',
+          (isSemiLocal || isSemiNoRec || noSrc) ? 'N/A' : yn(inLS),
           locfrCodes, locfrDescr,
           originsComp.size, codes(originsComp),
           isAlt || '', replacedBy
