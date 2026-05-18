@@ -1332,7 +1332,10 @@
             } else if (!inPSI) {
               networkStatus = 'Sin Consumo PSI';
             } else if (!inLS) {
-              networkStatus = 'Semiterminado Local';
+              var _psiLocsNoLS = SN_IDX.psiConsumingLocs[prdid] || {};
+              var _hasConsLocs  = Object.keys(_psiLocsNoLS).length > 0;
+              var _localNoLS    = !_hasConsLocs || graph.plants.some(function(l) { return !!_psiLocsNoLS[l]; });
+              networkStatus = _localNoLS ? 'Semiterminado Local' : 'Semiterminado sin Transferencia';
             } else {
               var _psiLocsNS = SN_IDX.psiConsumingLocs[prdid] || {};
               var _semiLocalOk = graph.plants.some(function(l) { return !!_psiLocsNS[l]; });
@@ -1427,7 +1430,7 @@
           /* ── Semáforo Product (por categoría) ── */
           var pFill;
           if (useSemiRules) {
-            var SEMI_RED = { 'Sin Producci\u00f3n': 1, 'Sin Consumo PSI': 1, 'Hu\u00e9rfano': 1 };
+            var SEMI_RED = { 'Sin Producci\u00f3n': 1, 'Sin Consumo PSI': 1, 'Hu\u00e9rfano': 1, 'Semiterminado sin Transferencia': 1 };
             pFill = (SEMI_RED[networkStatus] || cycles.length > 0) ? C_RED
               : ((!inLP && inPSH) || semiDestsNoPsi.length > 0) ? C_YEL
               : null;
