@@ -17,6 +17,19 @@
         alert('Selecciona la entidad Product antes de confirmar.');
         return;
       }
+      if (typeof validateEntityFields === 'function') {
+        var _vizConfirmChecks = [
+          { role: 'Location Source',          entityName: document.getElementById('selVizLocation').value,   required: true, selectorId: 'selVizLocation',   fields: ['PRDID','LOCFR','LOCID','TLEADTIME','TINVALID'] },
+          { role: 'Customer Source',          entityName: document.getElementById('selVizCustomer').value,   required: true, selectorId: 'selVizCustomer',   fields: ['PRDID','LOCID','CUSTID','CLEADTIME','CINVALID'] },
+          { role: 'Production Source Header', entityName: document.getElementById('selVizSourceProd').value, required: true, selectorId: 'selVizSourceProd', fields: ['SOURCEID','PRDID','LOCID','PLEADTIME','PINVALID'] },
+          { role: 'Ubicación maestra',        entityName: document.getElementById('selVizLocMaster').value,  required: true, selectorId: 'selVizLocMaster',  fields: ['LOCID','LOCDESCR','LOCTYPE','LOCVALID'] },
+          { role: 'Cliente maestra',          entityName: document.getElementById('selVizCustMaster').value, required: true, selectorId: 'selVizCustMaster', fields: ['CUSTID','CUSTDESCR','CUSTVALID'] },
+        ];
+        var _vizConfirmResult = validateEntityFields(_vizConfirmChecks);
+        if (_vizConfirmResult.issues.length || _vizConfirmResult.applied.length) {
+          await fmShowCorrectionPanel(_vizConfirmResult.issues, _vizConfirmResult.applied, 'fmPanelViz', _vizConfirmChecks);
+        }
+      }
       var btn = document.getElementById('btnVizConfirm');
       var progBar = document.getElementById('progBarViz');
       var progFill = document.getElementById('progFillViz');
@@ -36,7 +49,7 @@
             : "PlanningAreaID eq '" + CFG.pa + "'")
           : '';
         setVizStatus('Descargando catálogo de productos…', 5);
-        log(logEl, 'info', '[GET] ' + baseOData + productEntity + (paFilter ? ' | $filter=' + paFilter : '') + ' | $select=PRDID,PRDDESCR,MATTYPEID');
+        log(logEl, 'info', '[GET] ' + baseOData + productEntity + (paFilter ? ' | $filter=' + paFilter : '') + ' | $select=' + buildSelect(productEntity, ['PRDID','PRDDESCR','MATTYPEID']));
         var prods = await fetchAllPages(baseOData + productEntity, logEl, paFilter, 'PRDID,PRDDESCR,MATTYPEID');
         vizSuggestions = prods
           .filter(function (r) { return r.PRDID; })
@@ -166,26 +179,46 @@
       var fCustSrc = prdFilter;
       var fPsh     = prdFilter;
 
+      // Pre-validar entidades y campos contra schema antes de fetch
+      if (typeof validateEntityFields === 'function') {
+        var _vizChecks = [
+          { role: 'Location Source',          entityName: cfg.location,   required: true,  selectorId: 'selVizLocation',   fields: ['PRDID','LOCFR','LOCID','TLEADTIME','TINVALID'] },
+          { role: 'Customer Source',          entityName: cfg.customer,   required: true,  selectorId: 'selVizCustomer',   fields: ['PRDID','LOCID','CUSTID','CLEADTIME','CINVALID'] },
+          { role: 'Production Source Header', entityName: cfg.sourceProd, required: true,  selectorId: 'selVizSourceProd', fields: ['SOURCEID','PRDID','LOCID','PLEADTIME','PINVALID'] },
+          { role: 'Ubicación maestra',        entityName: cfg.locMaster,  required: true,  selectorId: 'selVizLocMaster',  fields: ['LOCID','LOCDESCR','LOCTYPE','LOCVALID'] },
+          { role: 'Cliente maestra',          entityName: cfg.custMaster, required: true,  selectorId: 'selVizCustMaster', fields: ['CUSTID','CUSTDESCR','CUSTVALID'] },
+        ];
+        var _vizResult = validateEntityFields(_vizChecks);
+        if (_vizResult.issues.length) {
+          btnLoad.disabled = false;
+          btnLoad.textContent = '▶ Cargar red';
+          btnLoad.style.opacity = '';
+          log(logEl, 'error', 'Hay correcciones pendientes. Resuélvelas en el paso de mapeo de entidades antes de cargar.');
+          if (typeof toggleMappingBody === 'function') toggleMappingBody('bodyVizMDT', 'arrVizMDT', true);
+          return;
+        }
+      }
+
       try {
         log(logEl, 'info', '▶ Cargando red para: ' + prdid);
         var locRows = [], custRows = [], plantRows = [], locMasters = [], custMasters = [];
         var psiRows = [], supplierLocRows = [], locProdRows = [], custProdRows = [];
 
         if (cfg.location) {
-          log(logEl, 'info', '[GET] ' + cfg.base + cfg.location + ' | $filter=' + prdFilter + ' | $select=PRDID,LOCFR,LOCID,TLEADTIME');
-          locRows = await fetchAllPages(cfg.base + cfg.location, logEl, fLocSrc, 'PRDID,LOCFR,LOCID,TLEADTIME,TINVALID');
+          log(logEl, 'info', '[GET] ' + cfg.base + cfg.location + ' | $filter=' + prdFilter + ' | $select=' + buildSelect(cfg.location, ['PRDID','LOCFR','LOCID','TLEADTIME','TINVALID']));
+          locRows = await fetchAllPages(cfg.base + cfg.location, logEl, fLocSrc, buildSelect(cfg.location, ['PRDID','LOCFR','LOCID','TLEADTIME','TINVALID']));
           locRows = locRows.filter(function(r) { return r.TINVALID !== 'X'; });
           log(logEl, 'ok', '✓ Location Source: ' + locRows.length + ' registros');
         }
         if (cfg.customer) {
-          log(logEl, 'info', '[GET] ' + cfg.base + cfg.customer + ' | $filter=' + prdFilter + ' | $select=PRDID,LOCID,CUSTID,CLEADTIME');
-          custRows = await fetchAllPages(cfg.base + cfg.customer, logEl, fCustSrc, 'PRDID,LOCID,CUSTID,CLEADTIME,CINVALID');
+          log(logEl, 'info', '[GET] ' + cfg.base + cfg.customer + ' | $filter=' + prdFilter + ' | $select=' + buildSelect(cfg.customer, ['PRDID','LOCID','CUSTID','CLEADTIME','CINVALID']));
+          custRows = await fetchAllPages(cfg.base + cfg.customer, logEl, fCustSrc, buildSelect(cfg.customer, ['PRDID','LOCID','CUSTID','CLEADTIME','CINVALID']));
           custRows = custRows.filter(function(r) { return r.CINVALID !== 'X'; });
           log(logEl, 'ok', '✓ Customer Source: ' + custRows.length + ' registros');
         }
         if (cfg.sourceProd) {
-          log(logEl, 'info', '[GET] ' + cfg.base + cfg.sourceProd + ' | $filter=' + prdFilter + ' | $select=SOURCEID,PRDID,LOCID,PLEADTIME');
-          plantRows = await fetchAllPages(cfg.base + cfg.sourceProd, logEl, fPsh, 'SOURCEID,PRDID,LOCID,PLEADTIME,PINVALID');
+          log(logEl, 'info', '[GET] ' + cfg.base + cfg.sourceProd + ' | $filter=' + prdFilter + ' | $select=' + buildSelect(cfg.sourceProd, ['SOURCEID','PRDID','LOCID','PLEADTIME','PINVALID']));
+          plantRows = await fetchAllPages(cfg.base + cfg.sourceProd, logEl, fPsh, buildSelect(cfg.sourceProd, ['SOURCEID','PRDID','LOCID','PLEADTIME','PINVALID']));
           plantRows = plantRows.filter(function(r) { return r.PINVALID !== 'X'; });
           log(logEl, 'ok', '✓ Production Source Header: ' + plantRows.length + ' registros');
         }
@@ -218,7 +251,7 @@
             var suppFilter = compList.map(function (c) { return "PRDID eq '" + c + "'"; }).join(' or ');
             if (paBase) suppFilter = '(' + suppFilter + ') and ' + paBase;
             log(logEl, 'info', '[GET] ' + cfg.base + cfg.location + ' | Arcos de proveedor para ' + compList.length + ' componentes');
-            supplierLocRows = await fetchAllPages(cfg.base + cfg.location, logEl, suppFilter, 'PRDID,LOCFR,LOCID,TLEADTIME,TINVALID');
+            supplierLocRows = await fetchAllPages(cfg.base + cfg.location, logEl, suppFilter, buildSelect(cfg.location, ['PRDID','LOCFR','LOCID','TLEADTIME','TINVALID']));
             supplierLocRows = supplierLocRows.filter(function(r) { return r.TINVALID !== 'X'; });
             log(logEl, 'ok', '✓ Arcos de proveedor: ' + supplierLocRows.length + ' registros');
             supplierLocRows.forEach(function (r) { if (r.LOCFR) locIds[r.LOCFR] = true; if (r.LOCID) locIds[r.LOCID] = true; });
@@ -243,8 +276,8 @@
           var ids = Object.keys(locIds);
           var locMFilter = ids.map(function (id) { return "LOCID eq '" + id + "'"; }).join(' or ');
           if (paBase) locMFilter = '(' + locMFilter + ') and ' + paBase;
-          log(logEl, 'info', '[GET] ' + cfg.base + cfg.locMaster + ' | $filter=' + locMFilter + ' | $select=LOCID,LOCDESCR,LOCTYPE');
-          locMasters = await fetchAllPages(cfg.base + cfg.locMaster, logEl, locMFilter, 'LOCID,LOCDESCR,LOCTYPE,LOCVALID');
+          log(logEl, 'info', '[GET] ' + cfg.base + cfg.locMaster + ' | $filter=' + locMFilter + ' | $select=' + buildSelect(cfg.locMaster, ['LOCID','LOCDESCR','LOCTYPE','LOCVALID']));
+          locMasters = await fetchAllPages(cfg.base + cfg.locMaster, logEl, locMFilter, buildSelect(cfg.locMaster, ['LOCID','LOCDESCR','LOCTYPE','LOCVALID']));
           locMasters = locMasters.filter(function(r) { return r.LOCVALID !== 'X'; });
           log(logEl, 'ok', '✓ Location Master: ' + locMasters.length + ' registros');
         }
@@ -252,8 +285,8 @@
           var ids = Object.keys(custIds);
           var custMFilter = ids.map(function (id) { return "CUSTID eq '" + id + "'"; }).join(' or ');
           if (paBase) custMFilter = '(' + custMFilter + ') and ' + paBase;
-          log(logEl, 'info', '[GET] ' + cfg.base + cfg.custMaster + ' | $filter=' + custMFilter + ' | $select=CUSTID,CUSTDESCR');
-          custMasters = await fetchAllPages(cfg.base + cfg.custMaster, logEl, custMFilter, 'CUSTID,CUSTDESCR,CUSTVALID');
+          log(logEl, 'info', '[GET] ' + cfg.base + cfg.custMaster + ' | $filter=' + custMFilter + ' | $select=' + buildSelect(cfg.custMaster, ['CUSTID','CUSTDESCR','CUSTVALID']));
+          custMasters = await fetchAllPages(cfg.base + cfg.custMaster, logEl, custMFilter, buildSelect(cfg.custMaster, ['CUSTID','CUSTDESCR','CUSTVALID']));
           custMasters = custMasters.filter(function(r) { return r.CUSTVALID !== 'X'; });
           log(logEl, 'ok', '✓ Customer Master: ' + custMasters.length + ' registros');
         }

@@ -6,8 +6,16 @@
     async function fetchAndIndex(entityUrl, logEl, pverFilter, selectFields, onPage) {
       var PAGE_SIZE = 50000;
       var page = 0, total = 0;
+      var entityName = (entityUrl || '').split('?')[0].split('/').pop();
+
+      // Aplicar mapeos de campos si existen
+      var canonicalFields = selectFields ? selectFields.split(',') : [];
+      var resolvedSelect = (typeof buildSelect === 'function' && canonicalFields.length)
+        ? buildSelect(entityName, canonicalFields)
+        : selectFields;
+
       var filterParam = pverFilter ? '&$filter=' + encodeURIComponent(pverFilter) : '';
-      var selectParam = selectFields ? '&$select=' + encodeURIComponent(selectFields) : '';
+      var selectParam = resolvedSelect ? '&$select=' + encodeURIComponent(resolvedSelect) : '';
       var url = entityUrl + '?$format=json&$top=' + PAGE_SIZE + filterParam + selectParam;
       var isNextLink = false;
 
@@ -15,8 +23,26 @@
         page++;
         if (page === 1) log(logEl, 'info', '  ↳ URL: ' + url);
         else log(logEl, 'info', '  ↳ Pág.' + page + ' → ' + url);
-        var data = await (isNextLink ? apiJsonNext(url) : apiJson(url));
+
+        var data;
+        try {
+          data = await (isNextLink ? apiJsonNext(url) : apiJson(url));
+        } catch (fetchErr) {
+          var msg = fetchErr.message || '';
+          if (msg.indexOf('404') >= 0 || msg.toLowerCase().indexOf('not found') >= 0) {
+            log(logEl, 'warn', '  Entidad no encontrada (404): ' + entityName + ' — se omite, sin datos.');
+            return 0;
+          }
+          throw fetchErr;
+        }
+
         var results = (data.d && data.d.results) ? data.d.results : (data.value || []);
+
+        // Normalizar filas: añadir alias canónicos según FIELD_MAP
+        if (typeof normalizeRows === 'function') {
+          results = normalizeRows(entityName, results);
+        }
+
         await onPage(results);   // index/store this page, then let it be GC'd
         total += results.length;
 
@@ -51,7 +77,23 @@
     }
 
     /* MDT → Exclude */
-    function doConfirmMapping() {
+    async function doConfirmMapping() {
+      if (typeof validateEntityFields === 'function') {
+        var _snConfirmChecks = [
+          { role: 'Location Source',          entityName: document.getElementById('selSNLocation').value,   required: true, selectorId: 'selSNLocation',   fields: ['PRDID','LOCFR','LOCID','TLEADTIME','TINVALID'] },
+          { role: 'Customer Source',          entityName: document.getElementById('selSNCustomer').value,   required: true, selectorId: 'selSNCustomer',   fields: ['PRDID','LOCID','CUSTID','CLEADTIME','CINVALID'] },
+          { role: 'Production Source Header', entityName: document.getElementById('selSNSourceProd').value, required: true, selectorId: 'selSNSourceProd', fields: ['SOURCEID','PRDID','LOCID','PLEADTIME','PRATIO','PINVALID'] },
+          { role: 'Production Source Item',   entityName: document.getElementById('selSNSourceItem').value, required: true, selectorId: 'selSNSourceItem', fields: ['SOURCEID','PRDID','COMPONENTCOEFFICIENT'] },
+          { role: 'Ubicación maestra',        entityName: document.getElementById('selSNLocMaster').value,  required: true, selectorId: 'selSNLocMaster',  fields: ['LOCID','LOCDESCR','LOCTYPE','LOCVALID'] },
+          { role: 'Cliente maestra',          entityName: document.getElementById('selSNCustMaster').value, required: true, selectorId: 'selSNCustMaster', fields: ['CUSTID','CUSTDESCR','CUSTVALID'] },
+          { role: 'Location Product',         entityName: document.getElementById('selSNLocProd').value,    required: true, selectorId: 'selSNLocProd',    fields: ['LOCID','PRDID'] },
+          { role: 'Customer Product',         entityName: document.getElementById('selSNCustProd').value,   required: true, selectorId: 'selSNCustProd',   fields: ['CUSTID','PRDID'] },
+        ];
+        var _snConfirmResult = validateEntityFields(_snConfirmChecks);
+        if (_snConfirmResult.issues.length || _snConfirmResult.applied.length) {
+          await fmShowCorrectionPanel(_snConfirmResult.issues, _snConfirmResult.applied, 'fmPanelSN', _snConfirmChecks);
+        }
+      }
       var body = document.getElementById('bodySNMDT');
       var arr  = document.getElementById('arrSNMDT');
       if (body) { toggleMappingBody('bodySNMDT', 'arrSNMDT', false); }
@@ -196,6 +238,27 @@
         return;
       }
 
+      // Pre-validar entidades y campos contra schema antes de fetch
+      if (typeof validateEntityFields === 'function') {
+        var _snChecks = [
+          { role: 'Location Source',          entityName: locationEntity,   required: true,  selectorId: 'selSNLocation',   fields: ['PRDID','LOCFR','LOCID','TLEADTIME','TINVALID'] },
+          { role: 'Customer Source',          entityName: customerEntity,   required: true,  selectorId: 'selSNCustomer',   fields: ['PRDID','LOCID','CUSTID','CLEADTIME','CINVALID'] },
+          { role: 'Production Source Header', entityName: sourceProdEntity, required: true,  selectorId: 'selSNSourceProd', fields: ['SOURCEID','PRDID','LOCID','PLEADTIME','PRATIO','PINVALID'] },
+          { role: 'Production Source Item',   entityName: sourceItemEntity, required: true,  selectorId: 'selSNSourceItem', fields: ['SOURCEID','PRDID','COMPONENTCOEFFICIENT'] },
+          { role: 'Ubicación maestra',        entityName: locMasterEntity,  required: true,  selectorId: 'selSNLocMaster',  fields: ['LOCID','LOCDESCR','LOCTYPE','LOCVALID'] },
+          { role: 'Cliente maestra',          entityName: custMasterEntity, required: true,  selectorId: 'selSNCustMaster', fields: ['CUSTID','CUSTDESCR','CUSTVALID'] },
+          { role: 'Location Product',         entityName: locProdEntity,    required: true,  selectorId: 'selSNLocProd',    fields: ['LOCID','PRDID'] },
+          { role: 'Customer Product',         entityName: custProdEntity,   required: true,  selectorId: 'selSNCustProd',   fields: ['CUSTID','PRDID'] },
+        ];
+        var _snResult = validateEntityFields(_snChecks);
+        if (_snResult.issues.length) {
+          document.getElementById('btnFetchSN').disabled = false;
+          log(logEl, 'error', 'Hay correcciones pendientes. Resuélvelas en el paso de mapeo de entidades antes de ejecutar.');
+          if (typeof toggleMappingBody === 'function') toggleMappingBody('bodySNMDT', 'arrSNMDT', true);
+          return;
+        }
+      }
+
       var baseOData = CFG.url + '/sap/opu/odata/IBP/' + CFG.service + '/';
       var paFilter = CFG.pa
         ? (CFG.pver
@@ -208,6 +271,9 @@
       var fPsh     = paFilter;
       var fLoc     = paFilter;
       var fCust    = paFilter;
+
+      var SN_EXEC_META = { generatedAt: new Date(), paFilter: paFilter, entities: [] };
+
       var snValidSids = {};
       var snSidToLoc  = {};  // SOURCEID → LOCID, para join PSI→PSH al construir psiConsumingLocs
 
@@ -235,6 +301,7 @@
               return idbBulkPut('sn_loc', rows);
             });
           log(logEl, 'ok', timer.fmt() + ' Location Source: ' + nLoc + ' reg → IDB (' + Object.keys(SN_IDX.allPrds).length + ' productos)');
+          SN_EXEC_META.entities.push({ name: 'Location Source', entityName: locationEntity, downloaded: nLoc, note: 'Excluye TINVALID=X' });
         }
         progEl.style.width = '8%';
 
@@ -249,6 +316,7 @@
               return idbBulkPut('sn_cust', rows);
             });
           log(logEl, 'ok', timer.fmt() + ' Customer Source: ' + nCust + ' reg → IDB');
+          SN_EXEC_META.entities.push({ name: 'Customer Source', entityName: customerEntity, downloaded: nCust, note: 'Excluye CINVALID=X' });
         }
         progEl.style.width = '17%';
 
@@ -262,6 +330,7 @@
               return Promise.resolve();
             });
           log(logEl, 'ok', timer.fmt() + ' Product: ' + nPrd + ' reg');
+          SN_EXEC_META.entities.push({ name: 'Product', entityName: productEntity, downloaded: nPrd });
         }
         progEl.style.width = '25%';
 
@@ -269,7 +338,7 @@
           setStatusSN('info', 'Descargando Production Source Header → IDB...');
           log(logEl, 'info', timer.fmt() + ' [GET] ' + baseOData + sourceProdEntity);
           var nSrc = await fetchAndIndex(baseOData + sourceProdEntity, logEl, fPsh,
-            'SOURCEID,PRDID,LOCID,PLEADTIME,PRATIO,PINVALID',
+            buildSelect(sourceProdEntity, ['SOURCEID','PRDID','LOCID','PLEADTIME','PRATIO','PINVALID']),
             function (rows) {
               rows = rows.filter(function(r) { return r.PINVALID !== 'X'; });
               rows.forEach(function (r) {
@@ -280,6 +349,7 @@
               return idbBulkPut('sn_plant', rows);
             });
           log(logEl, 'ok', timer.fmt() + ' Production Source Header: ' + nSrc + ' reg → IDB');
+          SN_EXEC_META.entities.push({ name: 'Production Source Header', entityName: sourceProdEntity, downloaded: nSrc, note: 'Excluye PINVALID=X' });
         }
         progEl.style.width = '28%';
 
@@ -302,6 +372,7 @@
               return idbBulkPut('sn_psi', validRows);
             });
           log(logEl, 'ok', timer.fmt() + ' Production Source Item: ' + nPsi + ' reg → IDB (' + Object.keys(SN_IDX.psiCompPrds).length + ' componentes únicos)');
+          SN_EXEC_META.entities.push({ name: 'Production Source Item', entityName: sourceItemEntity, downloaded: nPsi, note: 'Solo SOURCEIDs activos en PSH' });
         }
         progEl.style.width = '33%';
 
@@ -316,6 +387,7 @@
               return Promise.resolve();
             });
           log(logEl, 'ok', timer.fmt() + ' Location: ' + nLocM + ' reg');
+          SN_EXEC_META.entities.push({ name: 'Location', entityName: locMasterEntity, downloaded: nLocM, note: 'Excluye LOCVALID=X' });
         }
         progEl.style.width = '38%';
 
@@ -326,6 +398,7 @@
             'LOCID,PRDID',
             function (rows) { return idbBulkPut('sn_loc_prod', rows); });
           log(logEl, 'ok', timer.fmt() + ' Location Product: ' + nLocProd + ' reg → IDB');
+          SN_EXEC_META.entities.push({ name: 'Location Product', entityName: locProdEntity, downloaded: nLocProd });
         }
         progEl.style.width = '42%';
 
@@ -340,6 +413,7 @@
               return Promise.resolve();
             });
           log(logEl, 'ok', timer.fmt() + ' Customer: ' + nCustM + ' reg');
+          SN_EXEC_META.entities.push({ name: 'Customer', entityName: custMasterEntity, downloaded: nCustM, note: 'Excluye CUSTVALID=X' });
         }
         progEl.style.width = '46%';
 
@@ -350,6 +424,7 @@
             'CUSTID,PRDID',
             function (rows) { return idbBulkPut('sn_cust_prod', rows); });
           log(logEl, 'ok', timer.fmt() + ' Customer Product: ' + nCustProd + ' reg → IDB');
+          SN_EXEC_META.entities.push({ name: 'Customer Product', entityName: custProdEntity, downloaded: nCustProd });
         }
         progEl.style.width = '50%';
 
@@ -360,7 +435,7 @@
         // ── PHASE 2+3: Análisis + exportación (50 → 100%) ──────────────
         function onProg(pct) { progEl.style.width = pct + '%'; }
         function onStat(msg) { setStatusSN('info', msg); }
-        var summary = await analyzeAndStreamExcel(onProg, onStat, timer, logEl);
+        var summary = await analyzeAndStreamExcel(onProg, onStat, timer, logEl, SN_EXEC_META);
         progEl.style.width = '100%';
 
         var _dur = fmtDuration(timer.ms());
@@ -796,7 +871,7 @@
        7 grupos de hojas orientados a entidad (con auto-split >900k).
        Las filas se escriben como XML directo — sin modelo de objetos.
        ═══════════════════════════════════════════════════════════════ */
-    async function analyzeAndStreamExcel(onProgress, onStatus, timer, logEl) {
+    async function analyzeAndStreamExcel(onProgress, onStatus, timer, logEl, execMeta) {
       /* ── micro-helpers ── */
       function pd(id)      { var p = SN_IDX.prdLookup[id]  || {}; return str(p.PRDDESCR  || ''); }
       function pm(id)      { var p = SN_IDX.prdLookup[id]  || {}; return str(p.MATTYPEID || ''); }
@@ -1736,6 +1811,26 @@
       [gPrd, gLoc, gCust, gLS, gCS].forEach(function (g) { g.finalize(); });
 
       s0ws.columns.forEach(function (col, ci) { col.width = Math.min(Math.max((s0colW[ci] || 10) + 2, 10), 60); });
+
+      if (execMeta) {
+        buildResumenMeta(s0ws, {
+          analyzer: 'Supply Network Analyzer',
+          generatedAt: execMeta.generatedAt,
+          fileName: 'SupplyNetworkAnalysis_' + today + '.xlsx',
+          cfg: CFG,
+          paFilter: execMeta.paFilter,
+          entities: execMeta.entities,
+          mattypeCfg: MATTYPE_CFG,
+          kpis: [
+            { label: 'Total productos analizados',       value: n.toLocaleString('es-CL') },
+            { label: 'Productos con red completa',       value: completeCount.toLocaleString('es-CL') },
+            { label: 'Total rutas planta → cliente',     value: totalPaths.toLocaleString('es-CL') },
+            { label: 'Ghost nodes detectados',           value: ghostCount.toLocaleString('es-CL') },
+            { label: 'Health Score promedio',            value: (n > 0 ? Math.round(healthSum / n) : 0) + ' / 100' }
+          ]
+        });
+      }
+
       if (onProgress) onProgress(97);
       if (onStatus)   onStatus('Generando archivo Excel...');
       var buf  = await wb.xlsx.writeBuffer();
