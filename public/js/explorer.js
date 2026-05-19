@@ -660,16 +660,32 @@ const Explorer = (function () {
       </div>`;
 
     // diagrama tipo CI-DS (nodos + connections del DataFlow)
+    // Sección colapsada por defecto. El network se instancia solo al expandir
+    // — instanciar vis.Network sobre un contenedor con display:none produciría
+    // un canvas con dimensiones cero. El onclick detecta el primer expand y
+    // llama a Explorer.renderDataflowDiagram(idx).
     const hasDiagram = p.diagram && Array.isArray(p.diagram.nodes) && p.diagram.nodes.length > 0;
-    const diagramHtml = hasDiagram ? buildSection(
-      '🗺️ Diagrama del DataFlow',
-      p.diagram.nodes.length,
-      `<div class="ex-df-diagram-wrap">
-         <button class="ex-df-fs-btn" onclick="Explorer.openDataflowFullscreen(${idx})" title="Pantalla completa">⛶</button>
-         <div id="ex-df-diagram-${idx}" class="ex-df-diagram"></div>
-       </div>
-       <div id="ex-df-node-detail-${idx}" class="ex-df-node-detail"></div>`
-    ) : '';
+    const dfSecId = 'ex-df-sec-' + idx;
+    const diagramHtml = hasDiagram ? `
+      <div class="ex-detail-section">
+        <div class="ex-section-header" onclick="
+          var b=document.getElementById('${dfSecId}');
+          var wasCollapsed=b.classList.contains('collapsed');
+          b.classList.toggle('collapsed');
+          this.querySelector('.ex-arr').textContent = b.classList.contains('collapsed') ? '▶' : '▼';
+          if(wasCollapsed){ Explorer.renderDataflowDiagram(${idx}); }
+        ">
+          <span>🗺️ Diagrama del DataFlow <span style="color:var(--text2);font-weight:400">(${p.diagram.nodes.length})</span></span>
+          <span class="ex-arr">▶</span>
+        </div>
+        <div class="ex-section-body collapsed" id="${dfSecId}">
+          <div class="ex-df-diagram-wrap">
+            <button class="ex-df-fs-btn" onclick="event.stopPropagation();Explorer.openDataflowFullscreen(${idx})" title="Pantalla completa">⛶</button>
+            <div id="ex-df-diagram-${idx}" class="ex-df-diagram"></div>
+          </div>
+          <div id="ex-df-node-detail-${idx}" class="ex-df-node-detail"></div>
+        </div>
+      </div>` : '';
 
     // mappings
     const mappingsHtml = buildSection('🗂️ Mappings', p.mappings.length,
@@ -730,10 +746,7 @@ const Explorer = (function () {
 
     det.innerHTML = headerHtml + chainsHtml + diagramHtml + mappingsHtml + filtersHtml + lookupsHtml + varsHtml;
 
-    // Render del network vis.js una vez el contenedor existe en el DOM
-    if (hasDiagram) {
-      setTimeout(() => renderDataflowDiagram(idx), 0);
-    }
+    // El network del diagrama se renderiza lazy al expandir la sección (ver onclick en diagramHtml).
 
     // scroll master al item activo
     const activeItem = document.querySelector('#ex-master .ex-item.active');
@@ -741,20 +754,22 @@ const Explorer = (function () {
   }
 
   // ── Diagrama tipo CI-DS por DataFlow ─────────────────────
-  // typeStyle: color de fondo + icono prefijo del label, agrupado por categoría.
+  // Paleta sobria estilo enterprise / SAP CI-DS Designer:
+  // readers = azul slate (origen), transforms = slate oscuro (núcleo),
+  // loaders = terracotta apagada (destino), utilidades = warm gray.
   const DF_TYPE_STYLE = {
-    TableReader:            { color: '#34d399', icon: '📋' },
-    TableLoader:            { color: '#E8622A', icon: '🎯' },
-    FileReader:             { color: '#a78bfa', icon: '📄' },
-    FileLoader:             { color: '#E8622A', icon: '📄' },
-    QueryTransform:         { color: '#F7A800', icon: '▦' },
-    XMLMapTransform:        { color: '#F7A800', icon: '⟨⟩' },
-    RowGenerationTransform: { color: '#29ABE2', icon: '🔢' },
-    MergeTransform:         { color: '#a78bfa', icon: '◆' },
-    CaseTransform:          { color: '#a78bfa', icon: '◆' },
-    ValidationTransform:    { color: '#a78bfa', icon: '✓' },
-    SQLTransform:           { color: '#a78bfa', icon: 'SQL' },
-    MapOperationTransform:  { color: '#a78bfa', icon: '⟲' },
+    TableReader:            { color: '#5b7a99', icon: '📋' },
+    TableLoader:            { color: '#8a6450', icon: '🎯' },
+    FileReader:             { color: '#6f7a8a', icon: '📄' },
+    FileLoader:             { color: '#8a6450', icon: '📄' },
+    QueryTransform:         { color: '#475569', icon: '▦' },
+    XMLMapTransform:        { color: '#475569', icon: '⟨⟩' },
+    RowGenerationTransform: { color: '#7d7866', icon: '🔢' },
+    MergeTransform:         { color: '#5a5e6e', icon: '◆' },
+    CaseTransform:          { color: '#5a5e6e', icon: '◆' },
+    ValidationTransform:    { color: '#5a5e6e', icon: '✓' },
+    SQLTransform:           { color: '#5a5e6e', icon: 'SQL' },
+    MapOperationTransform:  { color: '#5a5e6e', icon: '⟲' },
   };
 
   // Construye datasets vis-network compartidos por la vista embebida y el modal fullscreen
@@ -774,8 +789,8 @@ const Explorer = (function () {
         ].filter(Boolean)),
         shape:  'box',
         margin: 8,
-        color:  { background: st.color, border: st.color, highlight: { background: '#fff', border: st.color } },
-        font:   { color: '#000', size: 12 }
+        color:  { background: st.color, border: st.color, highlight: { background: '#1f2937', border: '#F7A800' } },
+        font:   { color: '#f5f7fa', size: 12 }
       };
       if (n.location) {
         node.x = n.location.x;
@@ -913,20 +928,20 @@ const Explorer = (function () {
           <div class="ex-df-filter-label">WHERE</div>
           <pre class="ex-filter-expr">${escH(n.filterExpression)}</pre>
         </div>` : '';
-      const fieldsBody = (n.fields || []).length === 0 ? '' : `
-        <div class="ex-df-section-label">Mappings (${n.fields.length})</div>
+      // Solo campos con projection (consistente con el tab Mappings)
+      const mappedFields = (n.fields || []).filter(f => f.projectionExpression && f.projectionExpression.trim());
+      const fieldsBody = mappedFields.length === 0 ? '' : `
+        <div class="ex-df-section-label">Mappings (${mappedFields.length})</div>
         <div style="overflow-x:auto">
           <table class="ex-df-mapping-table">
             <thead><tr><th style="width:30%">Campo</th><th>Projection</th></tr></thead>
-            <tbody>${n.fields.map(f => `
+            <tbody>${mappedFields.map(f => `
               <tr>
                 <td>
                   <b>${escH(f.name)}</b>
                   ${f.description ? `<div class="ex-dst-desc">${escH(f.description)}</div>` : ''}
                 </td>
-                <td>${f.projectionExpression
-                  ? `<code class="ex-ops-code">${escH(f.projectionExpression)}</code>`
-                  : '<span style="color:var(--text2)">(sin proyección)</span>'}</td>
+                <td><code class="ex-ops-code">${escH(f.projectionExpression)}</code></td>
               </tr>`).join('')}</tbody>
           </table>
         </div>`;

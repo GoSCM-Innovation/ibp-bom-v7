@@ -2554,7 +2554,7 @@ button[disabled][title]:hover::after {
   border-bottom: 1px solid #243350;
 }
 .ex-df-type-badge {
-  color: #000;
+  color: #f5f7fa;
   padding: 2px 8px;
   border-radius: 4px;
   font-size: 10px;
