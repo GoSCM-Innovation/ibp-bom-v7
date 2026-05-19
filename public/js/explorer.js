@@ -772,45 +772,47 @@ const Explorer = (function () {
     MapOperationTransform:  { color: '#5a5e6e', icon: '⟲' },
   };
 
-  // ── Layout snap-to-grid para el diagrama del DataFlow ──────
-  // Las coordenadas crudas del XML provocan solapamientos cuando los labels
-  // tienen anchos variables (vis-network no las escala a píxel). Esta función
-  // bin-ea los nodos en columnas por su X (gap-threshold) y los apila por su Y
-  // dentro de cada columna, asignando posiciones uniformes en una grilla con
-  // COL_WIDTH > anchoMaxCaja y ROW_HEIGHT > altoMaxCaja — sin solapamientos.
+  // ── Layout por coordenadas XML directas con Y-nudge anti-solapamiento ──────
+  // Escala las coordenadas reales del XML (SCALE) preservando la topologia
+  // del CI-DS Designer. Un nudge O(n²) en eje Y resuelve solapamientos
+  // residuales que ocurren cuando dos nodos distintos tienen X muy cercana
+  // pero Y identica o demasiado proxima para las cajas compactas.
   function layoutDataflowNodes(diagramNodes) {
     const positions = new Map();
-    const withLoc = diagramNodes.filter(n => n.location);
+    const withLoc   = diagramNodes.filter(n => n.location);
     if (withLoc.length === 0) return positions;
 
-    const GAP_THRESHOLD = 40;   // px en unidades XML
-    const COL_WIDTH     = 240;
-    const ROW_HEIGHT    = 90;
+    const SCALE     = 2.5;    // factor de escala sobre coordenadas XML
+    const MIN_X_GAP = 140;    // distancia horizontal minima entre centros (px)
+    const MIN_Y_GAP = 50;     // distancia vertical minima entre centros (px)
 
-    // Sort por X ascendente; agrupar por gap entre nodos consecutivos
-    const sortedX = [...withLoc].sort((a, b) => a.location.x - b.location.x);
-    const columns = [[sortedX[0]]];
-    for (let i = 1; i < sortedX.length; i++) {
-      const prev = sortedX[i - 1].location.x;
-      const curr = sortedX[i].location.x;
-      if (curr - prev > GAP_THRESHOLD) columns.push([sortedX[i]]);
-      else                              columns[columns.length - 1].push(sortedX[i]);
+    // Paso 1: escalar coordenadas; invertir Y (CI-DS Y crece hacia arriba, vis hacia abajo)
+    const nodePos = withLoc.map(n => ({
+      id: n.id,
+      x:   n.location.x * SCALE,
+      y:  -n.location.y * SCALE
+    }));
+
+    // Paso 2: nudge Y iterativo — desplazar el nodo mas bajo cuando dos nodos
+    // estan horizontalmente solapados (|dx| < MIN_X_GAP) y verticalmente
+    // demasiado cercanos (|dy| < MIN_Y_GAP).
+    for (let iter = 0; iter < 8; iter++) {
+      let changed = false;
+      for (let i = 0; i < nodePos.length; i++) {
+        for (let j = i + 1; j < nodePos.length; j++) {
+          const a = nodePos[i];
+          const b = nodePos[j];
+          if (Math.abs(a.x - b.x) < MIN_X_GAP && Math.abs(a.y - b.y) < MIN_Y_GAP) {
+            if (a.y <= b.y) b.y = a.y + MIN_Y_GAP;
+            else             a.y = b.y + MIN_Y_GAP;
+            changed = true;
+          }
+        }
+      }
+      if (!changed) break;
     }
 
-    // Dentro de cada columna: sortear por Y (menor Y = más arriba, igual que vis-network)
-    columns.forEach(col => col.sort((a, b) => a.location.y - b.location.y));
-
-    // Centrar verticalmente cada columna alrededor de y=0
-    columns.forEach((col, colIdx) => {
-      const startY = -((col.length - 1) * ROW_HEIGHT) / 2;
-      col.forEach((node, rowIdx) => {
-        positions.set(node.id, {
-          x: colIdx * COL_WIDTH,
-          y: startY + rowIdx * ROW_HEIGHT
-        });
-      });
-    });
-
+    nodePos.forEach(np => positions.set(np.id, { x: np.x, y: np.y }));
     return positions;
   }
 
@@ -833,10 +835,10 @@ const Explorer = (function () {
           n.rowCount  ? `Rows: ${escH(n.rowCount)}` : '',
         ].filter(Boolean)),
         shape:           'box',
-        margin:          8,
-        widthConstraint: { minimum: 140, maximum: 200 },
+        margin:          6,
+        widthConstraint: { minimum: 100, maximum: 140 },
         color:           { background: st.color, border: st.color, highlight: { background: '#1f2937', border: '#F7A800' } },
-        font:            { color: '#f5f7fa', size: 12, multi: false }
+        font:            { color: '#f5f7fa', size: 11, multi: false }
       };
       const pos = positions.get(n.id);
       if (pos) {
@@ -846,16 +848,20 @@ const Explorer = (function () {
       return node;
     }));
 
-    const edges = new vis.DataSet(p.diagram.edges.map((e, i) => ({
+    const edges = new vis.DataSet(p.diagram.edges.map((e, i) => {
+      const rawLabel = e.schemaName || '';
+      return {
       id:     i,
       from:   e.from,
       to:     e.to,
-      label:  e.schemaName || '',
+      label:  rawLabel.length > 14 ? rawLabel.slice(0, 13) + '…' : rawLabel,
+      title:  rawLabel || undefined,
       arrows: 'to',
       color:  { color: '#9db4d0', highlight: '#F7A800' },
       font:   { size: 10, color: '#9db4d0', align: 'middle', strokeColor: '#0a1320', strokeWidth: 3 },
       smooth: { type: 'cubicBezier', forceDirection: 'horizontal', roundness: 0.3 }
-    })));
+      };
+    }));
 
     const options = {
       physics:     false,
