@@ -20,9 +20,11 @@ const Explorer = (function () {
   let currentView   = 'list';
   let currentDim    = 'integration'; // 'integration'|'dst-table'|'src-table'|'dst-field'|'src-field'
   let selectedDimKey = null;
-  let visNetwork    = null;
-  let dfVisNetwork  = null;   // network del diagrama tipo CI-DS por integración
-  let analyzing     = false;
+  let visNetwork      = null;
+  let dfVisNetwork    = null;   // network embebido del diagrama tipo CI-DS
+  let dfVisNetworkFs  = null;   // network del mismo diagrama en modal fullscreen
+  let dfFsIntIdx      = null;   // integración actualmente abierta en fullscreen
+  let analyzing       = false;
   let activePA      = new Set(); // PAs seleccionados; vacío = todos
 
   // ── Estado CI-DS ─────────────────────────────────────────────
@@ -614,7 +616,9 @@ const Explorer = (function () {
     });
 
     // Liberar el network del diagrama anterior antes de re-renderizar el panel
-    if (dfVisNetwork) { try { dfVisNetwork.destroy(); } catch (e) {} dfVisNetwork = null; }
+    if (dfVisNetwork)   { try { dfVisNetwork.destroy();   } catch (e) {} dfVisNetwork   = null; }
+    // Si quedó el modal fullscreen abierto de otra integración, cerrarlo
+    if (dfVisNetworkFs) { closeDataflowFullscreen(); }
 
     const p   = integrations[idx];
     const det = document.getElementById('ex-detail');
@@ -660,7 +664,10 @@ const Explorer = (function () {
     const diagramHtml = hasDiagram ? buildSection(
       '🗺️ Diagrama del DataFlow',
       p.diagram.nodes.length,
-      `<div id="ex-df-diagram-${idx}" class="ex-df-diagram"></div>
+      `<div class="ex-df-diagram-wrap">
+         <button class="ex-df-fs-btn" onclick="Explorer.openDataflowFullscreen(${idx})" title="Pantalla completa">⛶</button>
+         <div id="ex-df-diagram-${idx}" class="ex-df-diagram"></div>
+       </div>
        <div id="ex-df-node-detail-${idx}" class="ex-df-node-detail"></div>`
     ) : '';
 
@@ -750,14 +757,8 @@ const Explorer = (function () {
     MapOperationTransform:  { color: '#a78bfa', icon: '⟲' },
   };
 
-  function renderDataflowDiagram(idx) {
-    const p = integrations[idx];
-    if (!p || !p.diagram || typeof vis === 'undefined') return;
-    const container = document.getElementById('ex-df-diagram-' + idx);
-    if (!container) return;
-
-    if (dfVisNetwork) { try { dfVisNetwork.destroy(); } catch (e) {} dfVisNetwork = null; }
-
+  // Construye datasets vis-network compartidos por la vista embebida y el modal fullscreen
+  function buildDataflowVisData(p) {
     const nodes = new vis.DataSet(p.diagram.nodes.map(n => {
       const st = DF_TYPE_STYLE[n.xmiType] || { color: '#7d9abf', icon: '◇' };
       const node = {
@@ -804,7 +805,18 @@ const Explorer = (function () {
         ? { hierarchical: false }
         : { hierarchical: { direction: 'LR', sortMethod: 'directed', levelSeparation: 180, nodeSpacing: 80 } }
     };
+    return { nodes, edges, options };
+  }
 
+  function renderDataflowDiagram(idx) {
+    const p = integrations[idx];
+    if (!p || !p.diagram || typeof vis === 'undefined') return;
+    const container = document.getElementById('ex-df-diagram-' + idx);
+    if (!container) return;
+
+    if (dfVisNetwork) { try { dfVisNetwork.destroy(); } catch (e) {} dfVisNetwork = null; }
+
+    const { nodes, edges, options } = buildDataflowVisData(p);
     dfVisNetwork = new vis.Network(container, { nodes, edges }, options);
     dfVisNetwork.once('afterDrawing', () => {
       try { dfVisNetwork.fit({ animation: false }); } catch (e) {}
@@ -814,13 +826,67 @@ const Explorer = (function () {
     });
   }
 
+  // ── Modal fullscreen del diagrama del DataFlow ────────────
+  function openDataflowFullscreen(idx) {
+    const p = integrations[idx];
+    if (!p || !p.diagram || typeof vis === 'undefined') return;
+    const modal = document.getElementById('ex-df-fs-modal');
+    const graph = document.getElementById('ex-df-fs-graph');
+    const title = document.getElementById('ex-df-fs-title');
+    const det   = document.getElementById('ex-df-fs-node-detail');
+    if (!modal || !graph) return;
+
+    if (dfVisNetworkFs) { try { dfVisNetworkFs.destroy(); } catch (e) {} dfVisNetworkFs = null; }
+
+    dfFsIntIdx = idx;
+    if (title) {
+      const dfName = p.dataflowName || p.jobName || '';
+      title.innerHTML = `<span class="ex-type-badge ex-type-${p.tipoIntegracion || 'MD'}">${escH(p.tipoIntegracion || 'MD')}</span>
+        ${escH(p.jobName || '')}${p.dataflowName && p.dataflowName !== p.jobName ? ` <span class="ex-df-fs-sub">↳ ${escH(p.dataflowName)}</span>` : ''}`;
+    }
+    if (det) det.innerHTML = '<div class="ex-df-fs-detail-hint">Click en un nodo del diagrama para ver sus detalles</div>';
+
+    modal.style.display = 'flex';
+    document.body.style.overflow = 'hidden';
+    document.addEventListener('keydown', handleFsKeydown);
+
+    const { nodes, edges, options } = buildDataflowVisData(p);
+    dfVisNetworkFs = new vis.Network(graph, { nodes, edges }, options);
+    dfVisNetworkFs.once('afterDrawing', () => {
+      try { dfVisNetworkFs.fit({ animation: false }); } catch (e) {}
+    });
+    dfVisNetworkFs.on('click', params => {
+      if (params.nodes.length) renderDataflowNodeDetail(idx, params.nodes[0]);
+    });
+  }
+
+  function closeDataflowFullscreen() {
+    const modal = document.getElementById('ex-df-fs-modal');
+    if (modal) modal.style.display = 'none';
+    document.body.style.overflow = '';
+    document.removeEventListener('keydown', handleFsKeydown);
+    if (dfVisNetworkFs) { try { dfVisNetworkFs.destroy(); } catch (e) {} dfVisNetworkFs = null; }
+    dfFsIntIdx = null;
+  }
+
+  function handleFsKeydown(e) {
+    if (e.key === 'Escape') closeDataflowFullscreen();
+  }
+
   function renderDataflowNodeDetail(intIdx, nodeId) {
     const p = integrations[intIdx];
     if (!p || !p.diagram) return;
     const n = p.diagram.nodes.find(x => x.id === nodeId);
     if (!n) return;
-    const target = document.getElementById('ex-df-node-detail-' + intIdx);
-    if (!target) return;
+    // Targets: panel inline + panel del modal fullscreen si está abierto para esta integración
+    const targets = [];
+    const inline = document.getElementById('ex-df-node-detail-' + intIdx);
+    if (inline) targets.push(inline);
+    if (dfFsIntIdx === intIdx) {
+      const fs = document.getElementById('ex-df-fs-node-detail');
+      if (fs) targets.push(fs);
+    }
+    if (!targets.length) return;
 
     const st = DF_TYPE_STYLE[n.xmiType] || { color: '#7d9abf', icon: '◇' };
 
@@ -871,12 +937,13 @@ const Explorer = (function () {
       body = `<div style="color:var(--text2);">Sin detalle adicional disponible para este tipo de nodo.</div>`;
     }
 
-    target.innerHTML = `
+    const html = `
       <div class="ex-df-node-header">
         <span class="ex-df-type-badge" style="background:${st.color};">${escH(n.xmiType)}</span>
         <b>${escH(n.displayName || '')}</b>
       </div>
       ${body}`;
+    targets.forEach(t => { t.innerHTML = html; });
   }
 
   function buildSection(title, count, body, collapsed = false) {
@@ -1334,6 +1401,8 @@ const Explorer = (function () {
     togglePromoted,
     renderDataflowDiagram,
     renderDataflowNodeDetail,
+    openDataflowFullscreen,
+    closeDataflowFullscreen,
     init
   };
 
