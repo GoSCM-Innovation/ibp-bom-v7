@@ -2691,8 +2691,22 @@ button[disabled][title]:hover::after {
   background: #0a1320;
   min-width: 0;
 }
+.ex-df-fs-resizer {
+  flex: 0 0 6px;
+  cursor: col-resize;
+  background: #243350;
+  transition: background 0.15s;
+  user-select: none;
+  touch-action: none;
+}
+.ex-df-fs-resizer:hover,
+.ex-df-fs-resizer.dragging {
+  background: var(--accent);
+}
 .ex-df-fs-node-detail {
-  flex: 0 0 380px;
+  flex: 0 0 var(--df-fs-detail-w, 380px);
+  min-width: 240px;
+  max-width: 60vw;
   border-left: 1px solid #243350;
   background: #0f1829;
   padding: 14px 16px;
@@ -2707,8 +2721,11 @@ button[disabled][title]:hover::after {
 }
 @media (max-width: 900px) {
   .ex-df-fs-body { flex-direction: column; }
+  .ex-df-fs-resizer { display: none; }
   .ex-df-fs-node-detail {
     flex: 0 0 240px;
+    min-width: 0;
+    max-width: none;
     border-left: none;
     border-top: 1px solid #243350;
   }
@@ -3717,3 +3734,87 @@ button[disabled][title]:hover::after {
   padding: 0 var(--sp-4) 6px;
 }
 }
+
+/* ══════════════════════════════════════════════════════════════
+   Integration Explorer — optimización mobile (≤ 768 px)
+   ══════════════════════════════════════════════════════════════ */
+@media (max-width: 768px) {
+  /* Layout master/detail — apilado vertical */
+  .ex-split {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    gap: 8px;
+  }
+  .ex-master {
+    max-height: 38vh;
+  }
+  .ex-detail {
+    max-height: none;
+    padding: 2px 0;
+  }
+
+  /* Toolbar — chips scroll horizontal sin wrap caótico */
+  .ex-toolbar { gap: 6px; }
+  .ex-dim-toggle {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: 4px;
+  }
+  .ex-dim-toggle::-webkit-scrollbar { height: 4px; }
+  .dim-btn {
+    padding: 6px 10px;
+    font-size: 11px;
+    flex-shrink: 0;
+  }
+  .ex-toolbar-row2 .sel-search { min-width: 120px; }
+  .ex-view-toggle .mode-btn { padding: 6px 8px; font-size: 11px; }
+  .sel-counter { font-size: 11px; }
+
+  /* PA filter chips */
+  .ex-pa-chip { padding: 4px 8px; font-size: 11px; }
+
+  /* Drop zone y upload actions */
+  .ex-upload-actions { flex-direction: column; align-items: stretch; gap: 8px; }
+  .ex-cids-bar { justify-content: flex-start; flex-wrap: wrap; }
+
+  /* Items del master — más espacio para tap */
+  .ex-item { padding: 12px; }
+  .ex-item .ex-name { font-size: 13px; }
+
+  /* Detail sections */
+  .ex-section-header { padding: 10px 12px; font-size: 13px; }
+  .ex-section-body   { padding: 10px 12px; }
+  .ex-h-title        { font-size: 14px; }
+
+  /* Tablas de mappings — fuente más compacta, scroll horizontal */
+  .ex-mapping-table    { font-size: 11px; }
+  .ex-mapping-table th,
+  .ex-mapping-table td { padding: 4px 6px; }
+  .ex-ops-code         { font-size: 10px; }
+
+  /* Diagrama del DataFlow — altura reducida */
+  .ex-df-diagram { height: 320px; }
+  .ex-df-fs-btn  { width: 36px; height: 36px; font-size: 18px; }
+
+  /* Detalle del nodo dentro del diagrama */
+  .ex-df-mapping-table { font-size: 10px; }
+  .ex-df-mapping-table th,
+  .ex-df-mapping-table td { padding: 3px 5px; }
+
+  /* Grafo de cadenas global */
+  #ex-graph-view { height: 420px !important; }
+  .ex-graph-legend {
+    position: static;
+    margin-top: 8px;
+    pointer-events: auto;
+    width: 100%;
+  }
+
+  /* Modal fullscreen — header más compacto */
+  .ex-df-fs-header { padding: 8px 12px; }
+  .ex-df-fs-title  { font-size: 12px; }
+  .ex-df-fs-close  { width: 36px; height: 36px; font-size: 18px; }
+}
+

@@ -888,6 +888,51 @@ const Explorer = (function () {
   }
 
   // ── Modal fullscreen del diagrama del DataFlow ────────────
+  let dfFsResizerInit = false;   // listener mousedown se registra una sola vez
+
+  function initDataflowFsResizer() {
+    if (dfFsResizerInit) return;
+    const resizer = document.getElementById('ex-df-fs-resizer');
+    const modal   = document.getElementById('ex-df-fs-modal');
+    const body    = modal ? modal.querySelector('.ex-df-fs-body') : null;
+    if (!resizer || !modal || !body) return;
+
+    const startDrag = (clientX) => {
+      resizer.classList.add('dragging');
+      document.body.style.cursor = 'col-resize';
+
+      const onMove = (mvClientX) => {
+        const rect    = body.getBoundingClientRect();
+        const newW    = rect.right - mvClientX;
+        const minW    = 240;
+        const maxW    = Math.max(minW, Math.floor(window.innerWidth * 0.6));
+        const clamped = Math.min(maxW, Math.max(minW, newW));
+        modal.style.setProperty('--df-fs-detail-w', clamped + 'px');
+        if (dfVisNetworkFs) { try { dfVisNetworkFs.redraw(); } catch (e) {} }
+      };
+      const endDrag = () => {
+        resizer.classList.remove('dragging');
+        document.body.style.cursor = '';
+        document.removeEventListener('mousemove', mouseMoveH);
+        document.removeEventListener('mouseup',   endDrag);
+        document.removeEventListener('touchmove', touchMoveH);
+        document.removeEventListener('touchend',  endDrag);
+        if (dfVisNetworkFs) { try { dfVisNetworkFs.redraw(); } catch (e) {} }
+      };
+      const mouseMoveH = (e) => onMove(e.clientX);
+      const touchMoveH = (e) => { if (e.touches[0]) { onMove(e.touches[0].clientX); e.preventDefault(); } };
+
+      document.addEventListener('mousemove', mouseMoveH);
+      document.addEventListener('mouseup',   endDrag);
+      document.addEventListener('touchmove', touchMoveH, { passive: false });
+      document.addEventListener('touchend',  endDrag);
+    };
+
+    resizer.addEventListener('mousedown',  e => { e.preventDefault(); startDrag(e.clientX); });
+    resizer.addEventListener('touchstart', e => { if (e.touches[0]) { e.preventDefault(); startDrag(e.touches[0].clientX); } }, { passive: false });
+    dfFsResizerInit = true;
+  }
+
   function openDataflowFullscreen(idx) {
     const p = integrations[idx];
     if (!p || !p.diagram || typeof vis === 'undefined') return;
@@ -910,6 +955,7 @@ const Explorer = (function () {
     modal.style.display = 'flex';
     document.body.style.overflow = 'hidden';
     document.addEventListener('keydown', handleFsKeydown);
+    initDataflowFsResizer();
 
     const { nodes, edges, options } = buildDataflowVisData(p);
     dfVisNetworkFs = new vis.Network(graph, { nodes, edges }, options);
