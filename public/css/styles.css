@@ -2503,7 +2503,7 @@ button[disabled][title]:hover::after {
 }
 .ex-df-diagram {
   width: 100%;
-  height: 380px;
+  height: 460px;
   background: #0a1320;
   border: 1px solid #243350;
   border-radius: 6px;

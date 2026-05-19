@@ -772,8 +772,53 @@ const Explorer = (function () {
     MapOperationTransform:  { color: '#5a5e6e', icon: '⟲' },
   };
 
+  // ── Layout snap-to-grid para el diagrama del DataFlow ──────
+  // Las coordenadas crudas del XML provocan solapamientos cuando los labels
+  // tienen anchos variables (vis-network no las escala a píxel). Esta función
+  // bin-ea los nodos en columnas por su X (gap-threshold) y los apila por su Y
+  // dentro de cada columna, asignando posiciones uniformes en una grilla con
+  // COL_WIDTH > anchoMaxCaja y ROW_HEIGHT > altoMaxCaja — sin solapamientos.
+  function layoutDataflowNodes(diagramNodes) {
+    const positions = new Map();
+    const withLoc = diagramNodes.filter(n => n.location);
+    if (withLoc.length === 0) return positions;
+
+    const GAP_THRESHOLD = 40;   // px en unidades XML
+    const COL_WIDTH     = 240;
+    const ROW_HEIGHT    = 90;
+
+    // Sort por X ascendente; agrupar por gap entre nodos consecutivos
+    const sortedX = [...withLoc].sort((a, b) => a.location.x - b.location.x);
+    const columns = [[sortedX[0]]];
+    for (let i = 1; i < sortedX.length; i++) {
+      const prev = sortedX[i - 1].location.x;
+      const curr = sortedX[i].location.x;
+      if (curr - prev > GAP_THRESHOLD) columns.push([sortedX[i]]);
+      else                              columns[columns.length - 1].push(sortedX[i]);
+    }
+
+    // Dentro de cada columna: sortear por Y (menor Y = más arriba, igual que vis-network)
+    columns.forEach(col => col.sort((a, b) => a.location.y - b.location.y));
+
+    // Centrar verticalmente cada columna alrededor de y=0
+    columns.forEach((col, colIdx) => {
+      const startY = -((col.length - 1) * ROW_HEIGHT) / 2;
+      col.forEach((node, rowIdx) => {
+        positions.set(node.id, {
+          x: colIdx * COL_WIDTH,
+          y: startY + rowIdx * ROW_HEIGHT
+        });
+      });
+    });
+
+    return positions;
+  }
+
   // Construye datasets vis-network compartidos por la vista embebida y el modal fullscreen
   function buildDataflowVisData(p) {
+    const positions    = layoutDataflowNodes(p.diagram.nodes);
+    const hasPositions = positions.size === p.diagram.nodes.length;
+
     const nodes = new vis.DataSet(p.diagram.nodes.map(n => {
       const st = DF_TYPE_STYLE[n.xmiType] || { color: '#7d9abf', icon: '◇' };
       const node = {
@@ -787,14 +832,16 @@ const Explorer = (function () {
           n.fileName  ? `Archivo: ${escH(n.fileName)}` : '',
           n.rowCount  ? `Rows: ${escH(n.rowCount)}` : '',
         ].filter(Boolean)),
-        shape:  'box',
-        margin: 8,
-        color:  { background: st.color, border: st.color, highlight: { background: '#1f2937', border: '#F7A800' } },
-        font:   { color: '#f5f7fa', size: 12 }
+        shape:           'box',
+        margin:          8,
+        widthConstraint: { minimum: 140, maximum: 200 },
+        color:           { background: st.color, border: st.color, highlight: { background: '#1f2937', border: '#F7A800' } },
+        font:            { color: '#f5f7fa', size: 12, multi: false }
       };
-      if (n.location) {
-        node.x = n.location.x;
-        node.y = -n.location.y;  // CI-DS Y crece hacia arriba; vis-network al revés
+      const pos = positions.get(n.id);
+      if (pos) {
+        node.x = pos.x;
+        node.y = pos.y;
       }
       return node;
     }));
@@ -810,15 +857,14 @@ const Explorer = (function () {
       smooth: { type: 'cubicBezier', forceDirection: 'horizontal', roundness: 0.3 }
     })));
 
-    const hasLocations = p.diagram.nodes.length > 0 && p.diagram.nodes.every(n => n.location);
     const options = {
       physics:     false,
       interaction: { hover: true, tooltipDelay: 100, zoomView: true, dragView: true, dragNodes: true },
       nodes:       { borderWidth: 1, borderWidthSelected: 2 },
       edges:       { smooth: { type: 'cubicBezier' } },
-      layout:      hasLocations
+      layout:      hasPositions
         ? { hierarchical: false }
-        : { hierarchical: { direction: 'LR', sortMethod: 'directed', levelSeparation: 180, nodeSpacing: 80 } }
+        : { hierarchical: { direction: 'LR', sortMethod: 'directed', levelSeparation: 240, nodeSpacing: 100 } }
     };
     return { nodes, edges, options };
   }
