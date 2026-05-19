@@ -341,6 +341,94 @@ const FIELD_DESC_FALLBACK = {
   DATE:         'Fecha',
 };
 
+// ── Parser del diagrama interno del DataFlow (estilo CI-DS) ──────────────
+// Extrae los <elements> con su tipo XMI, displayName, location [x,y], y los
+// <connections sourceElement="/2/@elements.N" targetElement=...> que los unen.
+// Para QueryTransform / XMLMapTransform también guarda inputSchemas, joins,
+// filterExpression y schemaNodes (mapping interno) para que el Explorer
+// pueda mostrar paso-a-paso lo que ocurre en cada nodo.
+function parseDataflowDiagram(dfEl, dsIdx) {
+  const elements = [];
+  for (const child of dfEl.children) {
+    if (child.localName === 'elements') elements.push(child);
+  }
+
+  const nodes = elements.map((el, idx) => {
+    const rawType     = xmiType(el);                         // "dataflow:TableReader"
+    const xmiTypeName = rawType.replace(/^[a-z]+:/i, '');    // "TableReader"
+    const displayName = el.getAttribute('displayName') ||
+                        el.getAttribute('outputSchemaName') || '';
+    const locAttr  = el.getAttribute('location') || '';
+    const locMatch = locAttr.match(/\[\s*(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)\s*\]/);
+    const location = locMatch ? { x: +locMatch[1], y: +locMatch[2] } : null;
+
+    const node = { id: idx, xmiType: xmiTypeName, displayName, location };
+
+    if (xmiTypeName.includes('TableReader') || xmiTypeName.includes('TableLoader')) {
+      node.tableName = el.getAttribute('tableName') || '';
+      node.dsName    = dsFromRef(el.getAttribute('referencedDataStore') || '', dsIdx);
+    }
+    if (xmiTypeName.includes('FileReader') || xmiTypeName.includes('FileLoader')) {
+      node.dsName = dsFromRef(el.getAttribute('referencedDataStore') || '', dsIdx);
+      for (const c of el.children) {
+        if (c.localName === 'properties' && c.getAttribute('name') === 'file_name') {
+          node.fileName = c.getAttribute('value') || '';
+          break;
+        }
+      }
+    }
+    if (xmiTypeName.includes('RowGenerationTransform')) {
+      node.rowCount = el.getAttribute('rowCount') || '';
+    }
+    if (xmiTypeName.includes('QueryTransform') || xmiTypeName.includes('XMLMapTransform')) {
+      let outSchema = null;
+      for (const c of el.children) { if (c.localName === 'outputSchema') { outSchema = c; break; } }
+      if (outSchema) {
+        node.filterExpression = (outSchema.getAttribute('filterExpression') || '').replace(/&#xA;/g, '\n');
+        node.inputSchemas     = [];
+        node.joins            = [];
+        node.fields           = [];
+        for (const c of outSchema.children) {
+          if (c.localName === 'inputSchemas') {
+            const sn = c.getAttribute('schemaName') || '';
+            if (sn) node.inputSchemas.push(sn);
+          } else if (c.localName === 'joins') {
+            node.joins.push({
+              leftSchemaName:  c.getAttribute('leftSchemaName')  || '',
+              rightSchemaName: c.getAttribute('rightSchemaName') || '',
+              expression:      (c.getAttribute('expression') || '').replace(/&#xA;/g, '\n')
+            });
+          } else if (c.localName === 'schemaNodes') {
+            node.fields.push({
+              name:                 c.getAttribute('name') || '',
+              description:          c.getAttribute('description') || '',
+              projectionExpression: (c.getAttribute('projectionExpression') || '').replace(/&#xA;/g, '\n')
+            });
+          }
+        }
+      }
+    }
+    return node;
+  });
+
+  const edges = [];
+  for (const child of dfEl.children) {
+    if (child.localName !== 'connections') continue;
+    const srcRef = child.getAttribute('sourceElement') || '';
+    const dstRef = child.getAttribute('targetElement') || '';
+    const sm = srcRef.match(/elements\.(\d+)/);
+    const dm = dstRef.match(/elements\.(\d+)/);
+    if (!sm || !dm) continue;
+    edges.push({
+      from:       +sm[1],
+      to:         +dm[1],
+      schemaName: child.getAttribute('schemaName') || ''
+    });
+  }
+
+  return { nodes, edges };
+}
+
 /**
  * Parse one <dataflow:DataFlow> element.
  * Fix #8: now returns an ARRAY of results (one per writer element found),
@@ -486,7 +574,10 @@ function parseDataflow(dfEl, dsIdx, ffIdx, srcDSFallback, dstDSFallback) {
   const dataflowName = dfEl.getAttribute('name') || dfEl.getAttribute('displayName') || '';
   const dataflowGuid = dfEl.getAttribute('guid') || '';
 
-  return { mappings, filters, lookups, targetTable, targetDS, dataflowName, dataflowGuid, fileLoaderFileName };
+  // Diagrama tipo CI-DS (nodos + connections con location del XML)
+  const diagram = parseDataflowDiagram(dfEl, dsIdx);
+
+  return { mappings, filters, lookups, targetTable, targetDS, dataflowName, dataflowGuid, fileLoaderFileName, diagram };
 }
 
 /**
@@ -574,6 +665,7 @@ function parseIntegration(xmlStr, batchEntry) {
       mappings:    r.mappings,
       filters:     r.filters,
       lookups:     r.lookups,
+      diagram:     r.diagram || { nodes: [], edges: [] },
       variables,
       planArea,
     });
