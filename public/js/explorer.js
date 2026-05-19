@@ -21,6 +21,7 @@ const Explorer = (function () {
   let currentDim    = 'integration'; // 'integration'|'dst-table'|'src-table'|'dst-field'|'src-field'
   let selectedDimKey = null;
   let visNetwork    = null;
+  let dfVisNetwork  = null;   // network del diagrama tipo CI-DS por integración
   let analyzing     = false;
   let activePA      = new Set(); // PAs seleccionados; vacío = todos
 
@@ -612,6 +613,9 @@ const Explorer = (function () {
       el.classList.toggle('active', +el.dataset.idx === idx);
     });
 
+    // Liberar el network del diagrama anterior antes de re-renderizar el panel
+    if (dfVisNetwork) { try { dfVisNetwork.destroy(); } catch (e) {} dfVisNetwork = null; }
+
     const p   = integrations[idx];
     const det = document.getElementById('ex-detail');
     if (!p || !det) return;
@@ -650,6 +654,15 @@ const Explorer = (function () {
         <div class="ex-h-sub">Target: <b>${escH(p.targetTable)}</b>${p.fileLoaderFileName ? ` · Archivo: <b>${escH(p.fileLoaderFileName)}</b>` : ''}</div>
         <div class="ex-h-sub" style="margin-top:2px;">ZIP: ${escH(p._zipName)}</div>
       </div>`;
+
+    // diagrama tipo CI-DS (nodos + connections del DataFlow)
+    const hasDiagram = p.diagram && Array.isArray(p.diagram.nodes) && p.diagram.nodes.length > 0;
+    const diagramHtml = hasDiagram ? buildSection(
+      '🗺️ Diagrama del DataFlow',
+      p.diagram.nodes.length,
+      `<div id="ex-df-diagram-${idx}" class="ex-df-diagram"></div>
+       <div id="ex-df-node-detail-${idx}" class="ex-df-node-detail"></div>`
+    ) : '';
 
     // mappings
     const mappingsHtml = buildSection('🗂️ Mappings', p.mappings.length,
@@ -708,11 +721,162 @@ const Explorer = (function () {
         </div>`).join('')
     ) : '';
 
-    det.innerHTML = headerHtml + chainsHtml + mappingsHtml + filtersHtml + lookupsHtml + varsHtml;
+    det.innerHTML = headerHtml + chainsHtml + diagramHtml + mappingsHtml + filtersHtml + lookupsHtml + varsHtml;
+
+    // Render del network vis.js una vez el contenedor existe en el DOM
+    if (hasDiagram) {
+      setTimeout(() => renderDataflowDiagram(idx), 0);
+    }
 
     // scroll master al item activo
     const activeItem = document.querySelector('#ex-master .ex-item.active');
     if (activeItem) activeItem.scrollIntoView({ block: 'nearest' });
+  }
+
+  // ── Diagrama tipo CI-DS por DataFlow ─────────────────────
+  // typeStyle: color de fondo + icono prefijo del label, agrupado por categoría.
+  const DF_TYPE_STYLE = {
+    TableReader:            { color: '#34d399', icon: '📋' },
+    TableLoader:            { color: '#E8622A', icon: '🎯' },
+    FileReader:             { color: '#a78bfa', icon: '📄' },
+    FileLoader:             { color: '#E8622A', icon: '📄' },
+    QueryTransform:         { color: '#F7A800', icon: '▦' },
+    XMLMapTransform:        { color: '#F7A800', icon: '⟨⟩' },
+    RowGenerationTransform: { color: '#29ABE2', icon: '🔢' },
+    MergeTransform:         { color: '#a78bfa', icon: '◆' },
+    CaseTransform:          { color: '#a78bfa', icon: '◆' },
+    ValidationTransform:    { color: '#a78bfa', icon: '✓' },
+    SQLTransform:           { color: '#a78bfa', icon: 'SQL' },
+    MapOperationTransform:  { color: '#a78bfa', icon: '⟲' },
+  };
+
+  function renderDataflowDiagram(idx) {
+    const p = integrations[idx];
+    if (!p || !p.diagram || typeof vis === 'undefined') return;
+    const container = document.getElementById('ex-df-diagram-' + idx);
+    if (!container) return;
+
+    if (dfVisNetwork) { try { dfVisNetwork.destroy(); } catch (e) {} dfVisNetwork = null; }
+
+    const nodes = new vis.DataSet(p.diagram.nodes.map(n => {
+      const st = DF_TYPE_STYLE[n.xmiType] || { color: '#7d9abf', icon: '◇' };
+      const node = {
+        id:    n.id,
+        label: `${st.icon}  ${n.displayName || n.xmiType}`,
+        title: makeTooltip([
+          `<b>${escH(n.displayName || '')}</b>`,
+          `Tipo: ${escH(n.xmiType)}`,
+          n.tableName ? `Tabla: ${escH(n.tableName)}` : '',
+          n.dsName    ? `Datastore: ${escH(n.dsName)}` : '',
+          n.fileName  ? `Archivo: ${escH(n.fileName)}` : '',
+          n.rowCount  ? `Rows: ${escH(n.rowCount)}` : '',
+        ].filter(Boolean)),
+        shape:  'box',
+        margin: 8,
+        color:  { background: st.color, border: st.color, highlight: { background: '#fff', border: st.color } },
+        font:   { color: '#000', size: 12 }
+      };
+      if (n.location) {
+        node.x = n.location.x;
+        node.y = -n.location.y;  // CI-DS Y crece hacia arriba; vis-network al revés
+      }
+      return node;
+    }));
+
+    const edges = new vis.DataSet(p.diagram.edges.map((e, i) => ({
+      id:     i,
+      from:   e.from,
+      to:     e.to,
+      label:  e.schemaName || '',
+      arrows: 'to',
+      color:  { color: '#9db4d0', highlight: '#F7A800' },
+      font:   { size: 10, color: '#9db4d0', align: 'middle', strokeColor: '#0a1320', strokeWidth: 3 },
+      smooth: { type: 'cubicBezier', forceDirection: 'horizontal', roundness: 0.3 }
+    })));
+
+    const hasLocations = p.diagram.nodes.length > 0 && p.diagram.nodes.every(n => n.location);
+    const options = {
+      physics:     false,
+      interaction: { hover: true, tooltipDelay: 100, zoomView: true, dragView: true, dragNodes: true },
+      nodes:       { borderWidth: 1, borderWidthSelected: 2 },
+      edges:       { smooth: { type: 'cubicBezier' } },
+      layout:      hasLocations
+        ? { hierarchical: false }
+        : { hierarchical: { direction: 'LR', sortMethod: 'directed', levelSeparation: 180, nodeSpacing: 80 } }
+    };
+
+    dfVisNetwork = new vis.Network(container, { nodes, edges }, options);
+    dfVisNetwork.once('afterDrawing', () => {
+      try { dfVisNetwork.fit({ animation: false }); } catch (e) {}
+    });
+    dfVisNetwork.on('click', params => {
+      if (params.nodes.length) renderDataflowNodeDetail(idx, params.nodes[0]);
+    });
+  }
+
+  function renderDataflowNodeDetail(intIdx, nodeId) {
+    const p = integrations[intIdx];
+    if (!p || !p.diagram) return;
+    const n = p.diagram.nodes.find(x => x.id === nodeId);
+    if (!n) return;
+    const target = document.getElementById('ex-df-node-detail-' + intIdx);
+    if (!target) return;
+
+    const st = DF_TYPE_STYLE[n.xmiType] || { color: '#7d9abf', icon: '◇' };
+
+    let body = '';
+    if (n.xmiType.includes('TableReader') || n.xmiType.includes('TableLoader')) {
+      body = `
+        <div class="ex-df-kv">Datastore: <b>${escH(n.dsName || '—')}</b></div>
+        <div class="ex-df-kv">Tabla: <b>${escH(n.tableName || '—')}</b></div>`;
+    } else if (n.xmiType.includes('FileReader') || n.xmiType.includes('FileLoader')) {
+      body = `
+        <div class="ex-df-kv">Datastore: <b>${escH(n.dsName || '—')}</b></div>
+        <div class="ex-df-kv">Archivo: <b>${escH(n.fileName || '—')}</b></div>`;
+    } else if (n.xmiType.includes('RowGenerationTransform')) {
+      body = `<div class="ex-df-kv">Row count: <b>${escH(n.rowCount || '—')}</b></div>`;
+    } else if (n.xmiType.includes('QueryTransform') || n.xmiType.includes('XMLMapTransform')) {
+      const inputs = (n.inputSchemas || []).map(s => `<span class="ex-df-input-chip">${escH(s)}</span>`).join('');
+      const joins  = (n.joins || []).map(j => `
+        <div class="ex-df-join">
+          <div class="ex-df-join-heads">${escH(j.leftSchemaName)} ⋈ ${escH(j.rightSchemaName)}</div>
+          <pre class="ex-filter-expr">${escH(j.expression)}</pre>
+        </div>`).join('');
+      const filterBlock = n.filterExpression ? `
+        <div class="ex-df-filter-block">
+          <div class="ex-df-filter-label">WHERE</div>
+          <pre class="ex-filter-expr">${escH(n.filterExpression)}</pre>
+        </div>` : '';
+      const fieldsBody = (n.fields || []).length === 0 ? '' : `
+        <div class="ex-df-section-label">Mappings (${n.fields.length})</div>
+        <div style="overflow-x:auto">
+          <table class="ex-df-mapping-table">
+            <thead><tr><th style="width:30%">Campo</th><th>Projection</th></tr></thead>
+            <tbody>${n.fields.map(f => `
+              <tr>
+                <td>
+                  <b>${escH(f.name)}</b>
+                  ${f.description ? `<div class="ex-dst-desc">${escH(f.description)}</div>` : ''}
+                </td>
+                <td>${f.projectionExpression
+                  ? `<code class="ex-ops-code">${escH(f.projectionExpression)}</code>`
+                  : '<span style="color:var(--text2)">(sin proyección)</span>'}</td>
+              </tr>`).join('')}</tbody>
+          </table>
+        </div>`;
+      body =
+        (inputs ? `<div class="ex-df-inputs"><span class="ex-df-section-label">Inputs:</span> ${inputs}</div>` : '') +
+        joins + filterBlock + fieldsBody;
+    } else {
+      body = `<div style="color:var(--text2);">Sin detalle adicional disponible para este tipo de nodo.</div>`;
+    }
+
+    target.innerHTML = `
+      <div class="ex-df-node-header">
+        <span class="ex-df-type-badge" style="background:${st.color};">${escH(n.xmiType)}</span>
+        <b>${escH(n.displayName || '')}</b>
+      </div>
+      ${body}`;
   }
 
   function buildSection(title, count, body, collapsed = false) {
@@ -1168,6 +1332,8 @@ const Explorer = (function () {
     submitCidsConnect,
     cidsDisconnect,
     togglePromoted,
+    renderDataflowDiagram,
+    renderDataflowNodeDetail,
     init
   };
 
