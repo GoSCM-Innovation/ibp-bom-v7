@@ -889,8 +889,13 @@
     renderContent(sections);
   };
 
+  var _scrollLocked = false;
+  var _scrollLockTimer = null;
+
   window.glosarioNavClick = function (e, id) {
     e.preventDefault();
+    _scrollLocked = true;
+    clearTimeout(_scrollLockTimer);
     var el = document.getElementById(id);
     var cont = document.getElementById('glosarioContent');
     if (el && cont) {
@@ -901,6 +906,7 @@
     document.querySelectorAll('.glos-nav-link').forEach(function (a) {
       a.classList.toggle('active', a.getAttribute('href') === '#' + id);
     });
+    _scrollLockTimer = setTimeout(function () { _scrollLocked = false; }, 600);
   };
 
   /* Scrollspy */
@@ -908,6 +914,7 @@
     var cont = document.getElementById('glosarioContent');
     if (!cont) return;
     cont.addEventListener('scroll', function () {
+      if (_scrollLocked) return;
       var sections = cont.querySelectorAll('.glos-section');
       var scrollTop = cont.scrollTop + 40;
       var activeId = null;
