@@ -3023,6 +3023,30 @@ button[disabled][title]:hover::after {
   font-weight: 600;
 }
 
+/* PDF export button — right-aligned in module bar */
+.glosario-pdf-btn {
+  margin-left: auto;
+  padding: var(--sp-2) var(--sp-4);
+  border-radius: var(--r);
+  border: 1px solid var(--accent2);
+  background: transparent;
+  color: var(--accent2);
+  font-size: 13px;
+  font-family: var(--font);
+  cursor: pointer;
+  transition: background var(--dur-micro) var(--ease-out),
+              color var(--dur-micro) var(--ease-out);
+}
+.glosario-pdf-btn:hover {
+  background: rgba(232, 98, 42, 0.12);
+  color: var(--accent2);
+}
+.glosario-pdf-btn:active { opacity: 0.75; }
+.glosario-pdf-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
 /* Body: sidenav + content */
 .glosario-body {
   display: flex;

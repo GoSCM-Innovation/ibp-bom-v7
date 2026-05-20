@@ -17,6 +17,12 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"
     integrity="sha512-XMVd28F1oH/O71fzwBnV7HucLxVwtxf26XV8P4wPk26EDxuGZ91N8bsOttmnomcCD3CS5ZMRL50H0GgOHvegtg=="
     crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"
+    integrity="sha512-qZvrmS2ekKPF2mSznTQsxqPgnpkI4DNTlrdUmTzrDgektczlKNRRhy5X5AAOnx5S09ydFYWWNSfcEqDTTHgtNA=="
+    crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"
+    integrity="sha512-2/YdOMV+YNpanLCF5MdQwaoFRVbTmrJ4u4EpqS/USXAQNUDgI5uwYi6J98WVtJKcfe1AbgerygzDFToxAlOGEQ=="
+    crossorigin="anonymous" referrerpolicy="no-referrer"></script>
   <link rel="stylesheet" href="css/styles.css">
   <script defer src="https://cdn.vercel-insights.com/v1/script.js"></script>
   <link rel="icon" type="image/png" href="favicon.png">
@@ -1828,6 +1834,9 @@
         </button>
         <button class="glosario-mod-btn" id="glosModBtn-sn" onclick="glosarioSwitchModule('sn')">
           🌐 Network Analyzer
+        </button>
+        <button class="glosario-pdf-btn" id="glosarioPdfBtn" onclick="glosarioExportPDF()" title="Exportar glosario a PDF">
+          ↓ Exportar PDF
         </button>
       </div>
       <div class="glosario-body">
