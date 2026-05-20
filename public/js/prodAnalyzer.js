@@ -1063,7 +1063,7 @@ async function paAnalyzeAndExport(
           if (_sevOrder.indexOf(s) > _sevOrder.indexOf(finalSev)) finalSev = s;
         });
       }
-      if (isUncategorized && finalSev === 'none') finalSev = 'yellow';
+      // Sin categoría sin hallazgos → ✅ OK (glosario documenta "sin hallazgos en modo permisivo" como OK)
       var fill = severityToFill(finalSev);
 
       var _s1Row = [
@@ -1397,7 +1397,7 @@ async function paAnalyzeAndExport(
       if (roles[0] === 'Sin actividad') { obs.push('Ubicación en maestro sin actividad en otros datos'); fills.push('info'); }
       if (!obs.length) {
         var okParts = [];
-        if (isPlanta)        okParts.push('BOMs con PSI, PSR y lead time | Sin componentes descubiertos | Sin recursos ociosos');
+        if (isPlanta)        okParts.push('BOMs con PSI, PSR y lead time | Sin componentes sin cobertura | Sin recursos ociosos');
         if (isProveedor)     okParts.push('Abastecimiento con consumo PSI y cobertura LP en destino');
         if (isTransferencia) okParts.push(transfDistrib.size > 0
           ? 'Distribuye ' + transfDistrib.size + ' producto(s) terminado(s)/mercadería sin hallazgos'
@@ -1409,7 +1409,13 @@ async function paAnalyzeAndExport(
         obs.push(okParts.join(' | '));
       }
 
-      var finalSev = fills.length ? mattypeResolveSeverity(fills) : 'none';
+      var _sevOrderLoc = ['none', 'info', 'yellow', 'red'];
+      var _maxSevLoc = 'none';
+      fills.forEach(function(f) {
+        var s = f === 'red' ? 'red' : f === 'yellow' ? 'yellow' : f === 'info' ? 'info' : 'none';
+        if (_sevOrderLoc.indexOf(s) > _sevOrderLoc.indexOf(_maxSevLoc)) _maxSevLoc = s;
+      });
+      var finalSev = fills.length ? _maxSevLoc : 'none';
       var fill = finalSev === 'red' ? C_RED : finalSev === 'yellow' ? C_YEL : null;
 
       var _s9Row = [

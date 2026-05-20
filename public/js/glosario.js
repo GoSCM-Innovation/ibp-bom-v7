@@ -108,7 +108,7 @@
         return p('El <strong>Production Analyzer</strong> analiza la configuración de producción en SAP IBP y exporta un Excel con hasta 9 hojas. Cada hoja examina una entidad distinta desde el punto de vista de su completitud y consistencia para la planificación.') +
           p('El análisis cruza diez entidades: Production Source Header (PSH), Production Source Item (PSI), Production Source Resource (PSR), Resource, Resource Location, Product, Location, Location Product y Location Source. Los hallazgos se expresan siempre en términos de qué falta o qué está mal configurado respecto a lo que IBP necesita para planificar correctamente.') +
           legendEstados() +
-          callout('info', '<strong>Hojas condicionales:</strong> Las hojas Product, Location, Resource, Resource Location, Prod Source Item y Prod Source Resource solo se crean si el usuario seleccionó la entidad correspondiente antes de ejecutar el análisis. La hoja Tipos Excluidos solo aparece si existen tipos de material excluidos que actúan como componentes. La hoja Resumen siempre se genera.') +
+          callout('info', '<strong>Hojas condicionales:</strong> Las hojas Product, Location, Resource, Resource Location, Prod Source Item y Prod Source Resource solo se crean si el usuario seleccionó la entidad correspondiente antes de ejecutar el análisis. La hoja Tipos Excluidos solo aparece si existen tipos de material excluidos del análisis principal. La hoja Resumen siempre se genera.') +
           callout('info', '<strong>Importante:</strong> Los resultados dependen de la categorización de tipos de material (MATTYPEID). Un mismo hallazgo puede ser ⛔ Alerta para un Producto Terminado y no aplicar para una Materia Prima. Ver sección <em>Tipos de Material</em>.');
       }
     },
@@ -281,7 +281,12 @@
             ['N componente(s) Mat. Prima/Semiterminado recibidos en ubicación sin producción asociada', 'yellow', ['rawmat', 'semi'], 'Esta ubicación recibe insumos o semiterminados pero no tiene ninguna receta de producción — los insumos llegan sin uso productivo declarado.', 'Verificar si esta ubicación debería tener producción configurada o si los arcos de abastecimiento son incorrectos.'],
             ['Ubicación en maestro sin actividad en otros datos', 'info', ['all'], 'La ubicación existe en el maestro pero no aparece en ninguna entidad de red (PSH, Location Source, Customer Source, Location Product).', 'Verificar si la ubicación es obsoleta y puede depurarse del maestro, o si falta configurar su participación en la red.'],
             ['BOMs con PSI, PSR y lead time | Sin componentes sin cobertura | Sin recursos ociosos', 'ok', ['finished', 'semi'], 'Planta completamente configurada: todas las recetas tienen BOM, recursos y lead time; todos los insumos tienen cobertura; no hay recursos sin uso.', 'Sin acción requerida.'],
-            ['Abastecimiento con consumo PSI y cobertura LP en destino', 'ok', ['rawmat', 'semi'], 'Todos los productos que esta ubicación envía son consumidos como PSI en las plantas destino y están habilitados en Location Product.', 'Sin acción requerida.']
+            ['Abastecimiento con consumo PSI y cobertura LP en destino', 'ok', ['rawmat', 'semi'], 'Todos los productos que esta ubicación envía son consumidos como PSI en las plantas destino y están habilitados en Location Product.', 'Sin acción requerida.'],
+            ['Distribuye N producto(s) terminado(s)/mercadería sin hallazgos', 'ok', ['finished', 'trading'], 'Nodo de transferencia que redistribuye productos terminados o mercadería sin anomalías detectadas.', 'Sin acción requerida.'],
+            ['Nodo de transferencia sin hallazgos', 'ok', ['all'], 'La ubicación actúa como nodo de transferencia y no se detectaron problemas de configuración en los productos que redistribuye.', 'Sin acción requerida.'],
+            ['Recibe N producto(s) | Location Product OK | Sin componentes sin producción', 'ok', ['all'], 'Nodo receptor correctamente configurado: todos los productos recibidos están habilitados en Location Product y ningún insumo llega a una ubicación sin producción asociada.', 'Sin acción requerida.'],
+            ['Nodo receptor sin hallazgos', 'ok', ['all'], 'La ubicación solo recibe productos y no se detectaron problemas de configuración.', 'Sin acción requerida.'],
+            ['Ubicación activa sin hallazgos', 'ok', ['all'], 'La ubicación tiene actividad en la red y no se detectaron anomalías de configuración.', 'Sin acción requerida.']
           ]));
       }
     },
@@ -382,7 +387,7 @@
             ['PRDDESCR comp', 'Descripción del componente.'],
             ['MATTYPEID comp', 'Tipo de material del componente. Determina si se trata como semiterminado o insumo externo.'],
             ['COMPONENTCOEFFICIENT', 'Unidades del componente consumidas por unidad de producto terminado. Si es 0, IBP no planifica la compra de este insumo.'],
-            ['Tipo componente', 'Semielaborado = se fabrica en la misma planta (tiene PSH propio ahí) | Insumo = debe llegar desde fuera vía Location Source | No determinado = no se pudo clasificar con la información disponible.'],
+            ['Tipo componente', 'Semielaborado = se fabrica en la misma planta (tiene PSH propio ahí) | Semielaborado (ext.) = se fabrica en otra planta (PSH en planta distinta) | Semielaborado (sin receta) = categorizado como semi pero sin PSH activo en ninguna planta | Insumo = debe llegar desde fuera vía Location Source | No determinado = no se pudo clasificar con la información disponible.'],
             ['PRDID comp+LOCID en Location Product', 'Sí/No — ¿El componente está habilitado en Location Product para esta planta? Sin esto IBP no puede planificar su consumo aquí.'],
             ['En Location Source (insumo)', 'Sí/No — ¿Hay arco de Location Source que traiga este insumo a esta planta? Muestra N/A para semielaborados (se producen localmente).'],
             ['LOCFR origen', 'Código(s) de las ubicaciones de origen en Location Source para este componente en esta planta.'],
@@ -448,6 +453,11 @@
             ['Componentes sin cobertura LocSrc', 'Cuántas combinaciones componente+planta (de este tipo excluido) NO tienen arco de Location Source. Si > 0, hay insumos sin ruta de llegada a la planta que los consume.'],
             ['Observacion', 'Texto descriptivo del estado: indica si el tipo aparece como componente y si hay brechas de abastecimiento.']
           ])) +
+          sub('Observaciones posibles', obsTable([
+            ['Excluido del análisis principal. Validado como componente en N fuente(s) de producción.', 'info', ['all'], 'El tipo de material está excluido del análisis principal pero sus productos aparecen como componentes PSI en N recetas distintas de productos incluidos. Se validan en contexto.', 'Sin acción requerida si la exclusión es intencional. Revisar las columnas de cobertura LocSrc para confirmar que los componentes tienen arcos de abastecimiento configurados.'],
+            ['Excluido del análisis principal. No aparece como componente en ninguna fuente de producción.', 'info', ['all'], 'El tipo está excluido y ninguno de sus productos aparece como componente PSI de productos incluidos. No participa activamente en el análisis.', 'Sin acción requerida. La fila se incluye como registro de la exclusión y su impacto nulo en otros BOMs.'],
+            ['⚠ N combinación(es) componente-planta sin arco de abastecimiento.', 'yellow', ['all'], 'Sufijo que se concatena a la observación cuando existen productos del tipo excluido que actúan como componentes y no tienen arco de Location Source hacia la planta donde se consumen.', 'Configurar el arco de Location Source para las combinaciones componente+planta sin cobertura, o revisar si la exclusión del tipo es realmente apropiada.']
+          ])) +
           callout('info', 'Un tipo excluido que actúa como componente PSI de productos incluidos se valida igualmente. La exclusión solo omite el análisis principal de los productos de ese tipo, no su validación como ingrediente en otros BOMs.');
       }
     },
@@ -467,9 +477,9 @@
                   '<ul>' +
                     '<li>Requiere BOM completo (PSH + PSI + PSR)</li>' +
                     '<li>PLEADTIME ausente o cero → ⛔ Alerta</li>' +
+                    '<li>OUTPUTCOEFFICIENT ausente o cero → ⛔ Alerta</li>' +
                     '<li>Sin Location Product → ⛔ Alerta</li>' +
                     '<li>Planta productora no es origen en Location Source → ⛔ Alerta</li>' +
-                    '<li>Sin ruta a cliente → aplica detección de Ghost Nodes, Dead-ends y plantas aisladas</li>' +
                   '</ul>' +
                 '</div>' +
               '</div>' +
@@ -504,8 +514,7 @@
                   '<p>Producto comprado y revendido sin transformación interna.</p>' +
                   '<ul>' +
                     '<li>No requiere PSH, PSI ni PSR</li>' +
-                    '<li>Debe tener Location Source definida → si falta = ⛔ Alerta</li>' +
-                    '<li>Arcos LS y CS deben compartir ubicaciones → si no = ⛔ Red desconectada</li>' +
+                    '<li>Debe tener Location Source y Customer Source → sin ninguno = ⚠ Advertencia</li>' +
                     '<li>PLEADTIME no se evalúa</li>' +
                   '</ul>' +
                 '</div>' +
@@ -603,7 +612,7 @@
             '<div class="glos-table-wrap"><table class="glos-col-table"><thead><tr><th>Categoría</th><th>Bonificaciones</th><th>Penalizaciones</th></tr></thead><tbody>' +
               '<tr><td>' + catBadge(['finished']) + ' Terminado / Sin cat.</td><td>+50 si hay rutas completas; +15 si múltiples clientes; +15 si múltiples rutas; +20 si múltiples plantas.</td><td>-20 por ghost nodes; -15 por dead-ends; -20 por clientes con ruta única; -15 por fuente única de producción.</td></tr>' +
               '<tr><td>' + catBadge(['semi']) + ' Semiterminado</td><td>+30 si tiene PSH; +40 si tiene consumo PSI; +20 si múltiples plantas; +10 si tiene Location Source.</td><td>Sin penalizaciones.</td></tr>' +
-              '<tr><td>' + catBadge(['rawmat']) + ' Mat. Prima</td><td>+60 si tiene Location Source; +20 si llega a plantas consumidoras; +20 si tiene Customer Source.</td><td>Sin penalizaciones.</td></tr>' +
+              '<tr><td>' + catBadge(['rawmat']) + ' Mat. Prima</td><td>+60 si tiene Location Source; +20 si tiene al menos un destino intermedio (DC) en Location Source; +20 si tiene Customer Source.</td><td>Sin penalizaciones.</td></tr>' +
               '<tr><td>' + catBadge(['trading']) + ' Mercadería</td><td>+40 si tiene Location Source; +40 si tiene Customer Source; +20 si múltiples clientes.</td><td>Sin penalizaciones.</td></tr>' +
             '</tbody></table></div>'
           ) +
@@ -651,7 +660,7 @@
             ['Huérfano', 'red', ['all'], 'El producto solo existe en el maestro de materiales — no tiene ninguna actividad en la red. Aparece textualmente en Observacion.', 'Verificar si el producto es obsoleto o si falta configurar su participación en la red (PSH, Location Source, Customer Source o Location Product).'],
             ['Ghost node: X', 'red', ['finished', 'trading', 'uncategorized'], 'La ubicación X recibe el producto pero todas sus salidas terminan en un callejón sin salida — no llega a ningún cliente.', 'Revisar la configuración de arcos salientes de la ubicación X en Location Source. Puede faltar un arco hacia el siguiente nodo o hacia un Customer Source.'],
             ['Dead-end: X', 'red', ['finished', 'trading', 'uncategorized'], 'La ubicación X recibe el producto por Location Source pero no tiene ninguna salida configurada — el producto llega y no puede continuar.', 'Agregar el arco de salida faltante en Location Source o en Customer Source desde la ubicación X, o verificar si ese nodo es el destino final (y entonces falta un Customer Source).'],
-            ['Planta aislada: X', 'red', ['finished', 'uncategorized'], 'La planta X produce este producto pero no tiene ninguna ruta que llegue a algún cliente — producción sin mercado alcanzable.', 'Revisar arcos de distribución desde la planta X en Location Source. Puede faltar el arco inicial desde la planta hacia el primer nodo de distribución.'],
+            ['Planta aislada: X', 'red', ['finished', 'trading', 'uncategorized'], 'La planta X produce este producto pero no tiene ninguna ruta que llegue a algún cliente — producción sin mercado alcanzable.', 'Revisar arcos de distribución desde la planta X en Location Source. Puede faltar el arco inicial desde la planta hacia el primer nodo de distribución.'],
             ['Ciclo: X → Y → Z → X', 'red', ['all'], 'Se detectó un ciclo en la red: el producto puede circular indefinidamente entre estas ubicaciones sin llegar a ningún cliente.', 'Revisar los arcos de Location Source entre las ubicaciones del ciclo e identificar cuál está configurado en sentido incorrecto.'],
             ['PLEADTIME faltante: X', 'red', ['finished', 'semi', 'uncategorized'], 'La planta X produce este producto pero su PLEADTIME es 0 o está vacío. IBP planifica producción instantánea.', 'Ingresar el PLEADTIME real en días en el Production Source Header para la planta X y este producto.'],
             ['TLEADTIME faltante: X→Y', 'yellow', ['all'], 'El arco de transferencia X→Y tiene TLEADTIME = 0 o vacío. IBP planifica transferencias instantáneas en ese tramo.', 'Ingresar el TLEADTIME real en días en el arco de Location Source X→Y para este producto.'],
@@ -665,7 +674,7 @@
             ['Semiterminado consumido en destino de transferencia', 'ok', ['semi'], 'El semiterminado se transfiere a otra planta donde es consumido como PSI — flujo correcto.', 'Sin acción requerida.'],
             ['Semiterminado consumido en planta productora', 'ok', ['semi'], 'El semiterminado se consume localmente en la planta donde se fabrica.', 'Sin acción requerida.'],
             ['Habilitado en Location Product', 'ok', ['all'], 'El producto está habilitado en Location Product en todas las ubicaciones activas de su red.', 'Sin acción requerida.'],
-            ['Lead times definidos', 'ok', ['all'], 'Todos los arcos de transferencia y entrega del producto tienen lead time mayor que cero.', 'Sin acción requerida.'],
+            ['Lead times definidos', 'ok', ['semi', 'finished', 'uncategorized'], 'Todos los arcos de transferencia y entrega del producto tienen lead time mayor que cero.', 'Sin acción requerida.'],
             ['Mercadería con arcos de distribución y entrega', 'ok', ['trading'], 'La mercadería tiene Location Source y Customer Source correctamente configurados.', 'Sin acción requerida.'],
             ['Red completa sin anomalias', 'ok', ['finished', 'uncategorized'], 'El producto tiene rutas completas de planta a cliente y no se detectaron Ghost Nodes, Dead-ends ni ciclos.', 'Sin acción requerida.'],
             ['N ruta(s) a cliente', 'ok', ['finished', 'trading', 'uncategorized'], 'El producto tiene N rutas completas desde plantas productoras hasta clientes. A mayor número de rutas, mayor resiliencia.', 'Sin acción requerida.']
@@ -875,6 +884,317 @@
       return section(s.id, s.icon, s.title, s.content());
     }).join('<hr class="glos-hr">');
     cont.scrollTop = 0;
+  }
+
+  /* ─── PDF EXPORT ─────────────────────────────────────────────── */
+
+  window.glosarioExportPDF = function () {
+    var J = window.jspdf;
+    if (!J || !J.jsPDF) { alert('Librería PDF no disponible. Recarga la página.'); return; }
+
+    var modName  = _currentModule === 'pa' ? 'Production Analyzer' : 'Network Analyzer';
+    var today    = new Date();
+    var dateStr  = today.toISOString().slice(0, 10);
+    var fileName = 'Glosario_' + _currentModule.toUpperCase() + '_' + dateStr + '.pdf';
+
+    var btn = document.getElementById('glosarioPdfBtn');
+    if (btn) { btn.disabled = true; btn.textContent = 'Generando...'; }
+
+    setTimeout(function () {
+      try { _buildPDF(J, modName, today, fileName); }
+      finally {
+        if (btn) { btn.disabled = false; btn.textContent = '↓ Exportar PDF'; }
+      }
+    }, 0);
+  };
+
+  function _buildPDF(J, modName, today, fileName) {
+    var doc = new J.jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+
+    var PW = 210, PH = 297, ML = 15, MR = 15;
+    var CW  = PW - ML - MR;          // 180 mm usable
+    var HDR = 12, FTR = 12;
+    var TOP = HDR + 3, BOT = PH - FTR;
+
+    var C = {
+      accent: [247, 168, 0],
+      dark:   [30, 41, 59],
+      text:   [25, 25, 35],
+      muted:  [100, 105, 125],
+      border: [210, 215, 225],
+      cInfo:  [41, 171, 226],
+      cTip:   [52, 211, 153],
+      cWarn:  [232, 98, 42],
+      tHead:  [30, 41, 59],
+      tAlt:   [244, 246, 252],
+    };
+
+    var y = TOP;
+
+    function F(c) { doc.setFillColor(c[0], c[1], c[2]); }
+    function D(c) { doc.setDrawColor(c[0], c[1], c[2]); }
+    function T(c) { doc.setTextColor(c[0], c[1], c[2]); }
+
+    function strip(html) {
+      var d = document.createElement('div');
+      d.innerHTML = html;
+      var t = (d.textContent || d.innerText || '').replace(/\s+/g, ' ').trim();
+      return t.replace(/[^ -ɏ–—‘’“”…]/g, '')
+              .replace(/\s+/g, ' ').trim();
+    }
+
+    function drawHeader() {
+      F(C.dark);
+      doc.rect(0, 0, PW, HDR, 'F');
+      doc.setFontSize(7.5);
+      doc.setFont('helvetica', 'normal');
+      T([185, 200, 220]);
+      doc.text('GoSCM  |  Glosario ' + modName, ML, 8);
+    }
+
+    function newPage() {
+      doc.addPage();
+      y = TOP;
+      drawHeader();
+    }
+
+    function ensure(h) { if (y + h > BOT - 3) newPage(); }
+
+    /* ── COVER ── */
+    F([13, 21, 40]);
+    doc.rect(0, 0, PW, PH, 'F');
+    F(C.accent);
+    doc.rect(0, 72, PW, 58, 'F');
+
+    doc.setFontSize(8.5); T([90, 110, 150]); doc.setFont('helvetica', 'normal');
+    doc.text('GOSCM APPLICATIONS HUB', PW / 2, 62, { align: 'center' });
+
+    doc.setFontSize(30); T([10, 10, 10]); doc.setFont('helvetica', 'bold');
+    doc.text('Glosario', PW / 2, 94, { align: 'center' });
+    doc.setFontSize(17);
+    doc.text(modName, PW / 2, 108, { align: 'center' });
+
+    D([10, 10, 10]); doc.setLineWidth(0.4);
+    doc.line(ML + 25, 140, PW - MR - 25, 140);
+
+    var dateLocale = today.toLocaleDateString('es-CL', { year: 'numeric', month: 'long', day: 'numeric' });
+    doc.setFontSize(9.5); T([150, 165, 205]); doc.setFont('helvetica', 'normal');
+    doc.text('Guia de referencia para la lectura del analisis exportado', PW / 2, 149, { align: 'center' });
+    doc.text('Generado el ' + dateLocale, PW / 2, 159, { align: 'center' });
+
+    /* ── CONTENT PAGES ── */
+    newPage();
+
+    var secEls = document.querySelectorAll('#glosarioContent .glos-section');
+    secEls.forEach(function (sec) {
+      var h2    = sec.querySelector('.glos-section-title');
+      var title = h2 ? strip(h2.innerHTML) : '';
+
+      ensure(14);
+      F(C.accent);
+      doc.rect(ML, y, CW, 9, 'F');
+      doc.setFontSize(11); T([10, 10, 10]); doc.setFont('helvetica', 'bold');
+      doc.text(title, ML + 3, y + 6.2);
+      y += 11;
+
+      var kids = sec.children;
+      for (var i = 0; i < kids.length; i++) {
+        if (kids[i].tagName === 'H2') continue;
+        renderEl(kids[i]);
+      }
+      y += 4;
+    });
+
+    /* ── FOOTERS (post-process) ── */
+    var totalPg = doc.getNumberOfPages();
+    var contPg  = totalPg - 1;
+    for (var pg = 2; pg <= totalPg; pg++) {
+      doc.setPage(pg);
+      D(C.border); doc.setLineWidth(0.2);
+      doc.line(ML, PH - FTR + 2, PW - MR, PH - FTR + 2);
+      doc.setFontSize(7); T(C.muted); doc.setFont('helvetica', 'normal');
+      doc.text('GoSCM Applications Hub', ML, PH - 5.5);
+      doc.text('Pagina ' + (pg - 1) + ' de ' + contPg, PW - MR, PH - 5.5, { align: 'right' });
+    }
+
+    doc.save(fileName);
+
+    /* ── ELEMENT RENDERERS ── */
+
+    function renderEl(el) {
+      var cls = el.className || '';
+      var tag = el.tagName;
+      if (tag === 'HR') return;
+      if (tag === 'P')                            { renderPara(el);              return; }
+      if (tag === 'UL' || tag === 'OL')           { renderList(el);              return; }
+      if (cls.indexOf('glos-section-title') >= 0) return;
+      if (cls.indexOf('glos-p') >= 0)             { renderPara(el);              return; }
+      if (cls.indexOf('glos-callout') >= 0)        { renderCallout(el, cls);     return; }
+      if (cls.indexOf('glos-mattype-card') >= 0)   { renderMattypeCard(el);      return; }
+      if (cls.indexOf('glos-sub') >= 0) {
+        var h3 = el.querySelector('.glos-sub-title');
+        if (h3) renderSubTitle(strip(h3.innerHTML));
+        var ch = el.children;
+        for (var i = 0; i < ch.length; i++) {
+          if (ch[i].tagName === 'H3') continue;
+          renderEl(ch[i]);
+        }
+        return;
+      }
+      if (cls.indexOf('glos-table-wrap') >= 0) { var t = el.querySelector('table'); if (t) renderTable(t); return; }
+      if (cls.indexOf('glos-legend') >= 0)      { renderLegend(el); return; }
+      var gc = el.children;
+      for (var j = 0; j < gc.length; j++) renderEl(gc[j]);
+    }
+
+    function renderPara(el) {
+      var text = strip(el.innerHTML);
+      if (!text) return;
+      doc.setFontSize(9); doc.setFont('helvetica', 'normal'); T(C.text);
+      var lines = doc.splitTextToSize(text, CW - 4);
+      ensure(lines.length * 4.5 + 3);
+      doc.text(lines, ML + 2, y);
+      y += lines.length * 4.5 + 3;
+    }
+
+    function renderSubTitle(text) {
+      if (!text) return;
+      doc.setFontSize(9.5); doc.setFont('helvetica', 'bold');
+      var lines = doc.splitTextToSize(text, CW - 6);
+      var rectH = lines.length * 5.2 + 2;
+      ensure(rectH + 3);
+      F(C.dark); doc.rect(ML, y, CW, rectH, 'F');
+      T(C.accent);
+      for (var li = 0; li < lines.length; li++) {
+        doc.text(lines[li], ML + 3, y + 4.5 + li * 5.2);
+      }
+      y += rectH + 2;
+    }
+
+    function renderCallout(el, cls) {
+      var text = strip(el.innerHTML);
+      if (!text) return;
+      var ac = cls.indexOf('callout-tip')  >= 0 ? C.cTip  :
+               cls.indexOf('callout-warn') >= 0 ? C.cWarn : C.cInfo;
+      doc.setFontSize(8.5); doc.setFont('helvetica', 'normal');
+      var lines = doc.splitTextToSize(text, CW - 10);
+      var boxH  = lines.length * 4.3 + 6;
+      ensure(boxH + 3);
+      var bg = [
+        Math.min(255, Math.round(255 - (255 - ac[0]) * 0.10)),
+        Math.min(255, Math.round(255 - (255 - ac[1]) * 0.10)),
+        Math.min(255, Math.round(255 - (255 - ac[2]) * 0.10))
+      ];
+      F(bg);  doc.rect(ML, y, CW, boxH, 'F');
+      F(ac);  doc.rect(ML, y, 3, boxH, 'F');
+      T(C.text);
+      doc.text(lines, ML + 6, y + 4.5);
+      y += boxH + 3;
+    }
+
+    function renderLegend(el) {
+      var items = el.querySelectorAll('.glos-legend-item');
+      if (!items.length) return;
+      var rows = [];
+      items.forEach(function (item) {
+        var spans = item.querySelectorAll('span');
+        var badge = spans.length > 0 ? strip(spans[0].innerHTML) : '';
+        var desc  = spans.length > 1 ? strip(spans[spans.length - 1].innerHTML) : '';
+        rows.push([badge, desc]);
+      });
+      ensure(12);
+      doc.autoTable({
+        startY: y,
+        head: [['Estado', 'Significado']],
+        body: rows,
+        margin: { top: TOP, left: ML, right: MR, bottom: FTR + 3 },
+        tableWidth: CW,
+        styles: { fontSize: 8, cellPadding: 2.5, overflow: 'linebreak' },
+        headStyles: { fillColor: C.tHead, textColor: [255, 255, 255], fontStyle: 'bold' },
+        alternateRowStyles: { fillColor: C.tAlt },
+        columnStyles: { 0: { cellWidth: 28 }, 1: { cellWidth: CW - 29 } },
+        didDrawPage: drawHeader
+      });
+      y = doc.lastAutoTable.finalY + 4;
+      ensure(0);
+    }
+
+    function renderTable(tblEl) {
+      var thead = tblEl.querySelector('thead');
+      var tbody = tblEl.querySelector('tbody');
+      if (!tbody) return;
+      var head = [];
+      if (thead) {
+        head = [Array.from(thead.querySelectorAll('th')).map(function (th) { return strip(th.innerHTML); })];
+      }
+      var body = Array.from(tbody.querySelectorAll('tr')).map(function (tr) {
+        return Array.from(tr.querySelectorAll('td')).map(function (td) { return strip(td.innerHTML); });
+      });
+      if (!body.length) return;
+      var nc = head.length ? head[0].length : (body[0] ? body[0].length : 1);
+      var colStyles = {};
+      if (nc === 2) {
+        colStyles = { 0: { cellWidth: 55 }, 1: { cellWidth: CW - 56 } };
+      } else if (nc === 4) {
+        colStyles = { 0: { cellWidth: 44 }, 1: { cellWidth: 20 }, 2: { cellWidth: 24 }, 3: { cellWidth: CW - 91 } };
+      } else if (nc === 5) {
+        var rem = CW - 42 - 20 - 24 - 40 - 2;
+        colStyles = { 0: { cellWidth: 42 }, 1: { cellWidth: 20 }, 2: { cellWidth: 24 }, 3: { cellWidth: rem }, 4: { cellWidth: 40 } };
+      } else if (nc === 6) {
+        var w6 = (CW - 50) / 5;
+        colStyles = {
+          0: { cellWidth: 50 },
+          1: { cellWidth: w6 }, 2: { cellWidth: w6 }, 3: { cellWidth: w6 },
+          4: { cellWidth: w6 }, 5: { cellWidth: CW - 50 - w6 * 4 }
+        };
+      }
+      ensure(12);
+      doc.autoTable({
+        startY: y,
+        head: head.length ? head : undefined,
+        body: body,
+        margin: { top: TOP, left: ML, right: MR, bottom: FTR + 3 },
+        tableWidth: CW,
+        styles: { fontSize: 7.5, cellPadding: 2, overflow: 'linebreak' },
+        headStyles: { fillColor: C.tHead, textColor: [255, 255, 255], fontStyle: 'bold', fontSize: 8 },
+        alternateRowStyles: { fillColor: C.tAlt },
+        columnStyles: colStyles,
+        didDrawPage: drawHeader
+      });
+      y = doc.lastAutoTable.finalY + 4;
+      ensure(0);
+    }
+
+    function renderList(el) {
+      var items = el.querySelectorAll('li');
+      if (!items.length) return;
+      doc.setFontSize(9); doc.setFont('helvetica', 'normal'); T(C.text);
+      items.forEach(function (li) {
+        var text = strip(li.innerHTML);
+        if (!text) return;
+        var lines = doc.splitTextToSize(text, CW - 10);
+        ensure(lines.length * 4.5 + 1);
+        doc.text('-', ML + 4, y);
+        doc.text(lines[0], ML + 9, y);
+        for (var k = 1; k < lines.length; k++) {
+          y += 4.5;
+          doc.text(lines[k], ML + 9, y);
+        }
+        y += 5;
+      });
+      y += 2;
+    }
+
+    function renderMattypeCard(el) {
+      var headerEl = el.querySelector('.glos-mattype-header');
+      var bodyEl   = el.querySelector('.glos-mattype-body');
+      if (headerEl) renderSubTitle(strip(headerEl.innerHTML));
+      if (bodyEl) {
+        var ch = bodyEl.children;
+        for (var i = 0; i < ch.length; i++) renderEl(ch[i]);
+      }
+      y += 3;
+    }
   }
 
   /* ─── PUBLIC API ─────────────────────────────────────────────── */

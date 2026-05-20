@@ -1390,10 +1390,10 @@
               // PLEADTIME: aplica a terminados y semiterminados, no a insumos ni mercadería
               if (!useRawmatRules && !useTradingRules) obs.push('PLEADTIME faltante: ' + lt.loc);
             } else if (lt.type === 'loc') {
-              obs.push('TLEADTIME faltante: ' + lt.from + '->' + lt.to);
+              obs.push('TLEADTIME faltante: ' + lt.from + '→' + lt.to);
             } else {
               // CLEADTIME: solo aplica si el producto llega a clientes (no semi ni insumo)
-              if (!useSemiRules && !useRawmatRules) obs.push('CLEADTIME faltante: ' + lt.from + '->' + lt.to);
+              if (!useSemiRules && !useRawmatRules) obs.push('CLEADTIME faltante: ' + lt.from + '→' + lt.to);
             }
           });
           if (!inLP && (inPSH || inLS)) obs.push('Sin Location Product');
@@ -1428,17 +1428,23 @@
           }
 
           /* ── Semáforo Product (por categoría) ── */
+          var hasPleadtimeIssue = ltIssues.some(function(lt) { return lt.type === 'plant'; });
+          var hasTleadtimeIssue = ltIssues.some(function(lt) { return lt.type === 'loc'; });
+          var hasCleadtimeIssue = ltIssues.some(function(lt) { return lt.type === 'cust'; });
+          // Ghost/dead-end/plantas aisladas: solo terminados, sin cat y trading (no semi ni rawmat)
+          var hasGhostDeadIso = !useSemiRules && !useRawmatRules && (ghosts.length > 0 || deadEnds.length > 0 || isoPlants.length > 0);
+
           var pFill;
           if (useSemiRules) {
             var SEMI_RED = { 'Sin Producci\u00f3n': 1, 'Sin Consumo PSI': 1, 'Hu\u00e9rfano': 1, 'Semiterminado sin Transferencia': 1 };
             pFill = (SEMI_RED[networkStatus] || cycles.length > 0) ? C_RED
-              : ((!inLP && inPSH) || semiDestsNoPsi.length > 0) ? C_YEL
+              : ((!inLP && inPSH) || semiDestsNoPsi.length > 0 || hasPleadtimeIssue || hasTleadtimeIssue || paths._truncated) ? C_YEL
               : null;
           } else if (useTradingRules) {
             var TRADE_RED = { 'Solo Entrega': 1, 'Hu\u00e9rfano': 1 };
             var TRADE_YEL = { 'Solo Distribuci\u00f3n': 1, 'Sin arcos de red': 1 };
-            pFill = (cycles.length > 0 || TRADE_RED[networkStatus]) ? C_RED
-              : (TRADE_YEL[networkStatus] || tradingDisconnected || (!inLP && inLS) || (!inCP && inCS)) ? C_YEL
+            pFill = (cycles.length > 0 || TRADE_RED[networkStatus] || hasGhostDeadIso) ? C_RED
+              : (TRADE_YEL[networkStatus] || tradingDisconnected || (!inLP && inLS) || (!inCP && inCS) || hasTleadtimeIssue || hasCleadtimeIssue || paths._truncated) ? C_YEL
               : null;
           } else {
             // Terminado / insumo / sin categoría
@@ -1448,8 +1454,8 @@
                            'Solo Entrega': 1, 'Solo Distribuci\u00f3n': 1, 'Solo Distribuci\u00f3n + Entrega': 1, 'Sin arcos de red': 1,
                            'Distribuci\u00f3n sin ruta completa': 1, 'Sin Producci\u00f3n': 1 };
             var YEL_ST = { 'Abastecimiento Parcial': 1, 'Abastecimiento sin Consumo PSI': 1 };
-            pFill = (RED_ST[networkStatus] || cycles.length > 0) ? C_RED
-              : (YEL_ST[networkStatus] || tradingDisconnected || (!inLP && (inPSH || inLS)) || (!inCP && inCS)) ? C_YEL
+            pFill = (RED_ST[networkStatus] || cycles.length > 0 || hasGhostDeadIso || (hasPleadtimeIssue && !useRawmatRules)) ? C_RED
+              : (YEL_ST[networkStatus] || tradingDisconnected || (!inLP && (inPSH || inLS)) || (!inCP && inCS) || hasTleadtimeIssue || (!useRawmatRules && hasCleadtimeIssue) || paths._truncated) ? C_YEL
               : null;
           }
 
@@ -1470,6 +1476,7 @@
               okParts.push('Mercadería con arcos de distribución y entrega');
               if (inLP) okParts.push('Habilitado en Location Product');
               if (inCP && inCS) okParts.push('Habilitado en Customer Product');
+              if (ltIssues.length === 0) okParts.push('Lead times definidos');
             } else {
               okParts.push('Red completa sin anomalias');
               if (inLP)                  okParts.push('Habilitado en Location Product');
@@ -1731,7 +1738,7 @@
         if (!inLPFr) lsObs.push('Sin Location Product en origen (' + fr + ')');
         if (!inLPTo) lsObs.push('Sin Location Product en destino (' + to + ')');
         if (isDup)   lsObs.push('Arco duplicado en el dataset');
-        if (isInv)   lsObs.push('Existe arco inverso (' + to + '->' + fr + ')');
+        if (isInv)   lsObs.push('Existe arco inverso (' + to + '→' + fr + ')');
         if (ltSt !== 'OK') lsObs.push('TLEADTIME ' + ltSt.toLowerCase());
 
         var lsFill = (!inLPFr || !inLPTo || isDup) ? C_RED
