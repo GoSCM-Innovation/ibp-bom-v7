@@ -772,25 +772,42 @@ const Explorer = (function () {
     MapOperationTransform:  { color: '#5a5e6e', icon: '⟲' },
   };
 
-  // ── Layout por coordenadas XML directas con Y-nudge anti-solapamiento ──────
-  // Escala las coordenadas reales del XML (SCALE) preservando la topologia
-  // del CI-DS Designer. Un nudge O(n²) en eje Y resuelve solapamientos
-  // residuales que ocurren cuando dos nodos distintos tienen X muy cercana
-  // pero Y identica o demasiado proxima para las cajas compactas.
+  // ── Layout por coordenadas XML con escala adaptativa y Y-nudge ──────────
+  // Calcula un factor de escala dinamico que ajusta el bounding-box del XML
+  // al area target del canvas de vis-network. Esto evita flechas largas en
+  // dataflows grandes y espacio desperdiciado en dataflows pequenos, siempre
+  // preservando la topologia izquierda-derecha del CI-DS Designer.
   function layoutDataflowNodes(diagramNodes) {
     const positions = new Map();
     const withLoc   = diagramNodes.filter(n => n.location);
     if (withLoc.length === 0) return positions;
 
-    const SCALE     = 2.5;    // factor de escala sobre coordenadas XML
-    const MIN_X_GAP = 140;    // distancia horizontal minima entre centros (px)
-    const MIN_Y_GAP = 50;     // distancia vertical minima entre centros (px)
+    const MIN_X_GAP  = 140;   // distancia horizontal minima entre centros (px)
+    const MIN_Y_GAP  = 50;    // distancia vertical minima entre centros (px)
+    const TARGET_W   = 1200;  // ancho objetivo en unidades vis-network
+    const TARGET_H   = 450;   // alto objetivo en unidades vis-network
+    const SCALE_MIN  = 1.5;
+    const SCALE_MAX  = 4.0;
 
-    // Paso 1: escalar coordenadas; invertir Y (CI-DS Y crece hacia arriba, vis hacia abajo)
+    // Bounding box de coordenadas XML
+    const xs = withLoc.map(n => n.location.x);
+    const ys = withLoc.map(n => n.location.y);
+    const minX = Math.min(...xs), maxX = Math.max(...xs);
+    const minY = Math.min(...ys), maxY = Math.max(...ys);
+    const rangeX = maxX - minX || 1;
+    const rangeY = maxY - minY || 1;
+
+    // Escala uniforme: la dimension mas restrictiva manda; luego clampar
+    const rawScale = Math.min(TARGET_W / rangeX, TARGET_H / rangeY);
+    const scale    = Math.max(SCALE_MIN, Math.min(SCALE_MAX, rawScale));
+
+    // Paso 1: escalar y centrar; invertir Y (CI-DS Y crece hacia arriba, vis hacia abajo)
+    const cx = ((minX + maxX) / 2) * scale;
+    const cy = ((minY + maxY) / 2) * scale;
     const nodePos = withLoc.map(n => ({
       id: n.id,
-      x:   n.location.x * SCALE,
-      y:  -n.location.y * SCALE
+      x:   n.location.x * scale - cx,
+      y:  -(n.location.y * scale - cy)
     }));
 
     // Paso 2: nudge Y iterativo — desplazar el nodo mas bajo cuando dos nodos
