@@ -1131,6 +1131,13 @@
       } else if (nc === 5) {
         var rem = CW - 42 - 20 - 24 - 40 - 2;
         colStyles = { 0: { cellWidth: 42 }, 1: { cellWidth: 20 }, 2: { cellWidth: 24 }, 3: { cellWidth: rem }, 4: { cellWidth: 40 } };
+      } else if (nc === 6) {
+        var w6 = (CW - 50) / 5;
+        colStyles = {
+          0: { cellWidth: 50 },
+          1: { cellWidth: w6 }, 2: { cellWidth: w6 }, 3: { cellWidth: w6 },
+          4: { cellWidth: w6 }, 5: { cellWidth: CW - 50 - w6 * 4 }
+        };
       }
       ensure(12);
       doc.autoTable({
