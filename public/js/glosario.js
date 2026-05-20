@@ -108,7 +108,7 @@
         return p('El <strong>Production Analyzer</strong> analiza la configuración de producción en SAP IBP y exporta un Excel con hasta 9 hojas. Cada hoja examina una entidad distinta desde el punto de vista de su completitud y consistencia para la planificación.') +
           p('El análisis cruza diez entidades: Production Source Header (PSH), Production Source Item (PSI), Production Source Resource (PSR), Resource, Resource Location, Product, Location, Location Product y Location Source. Los hallazgos se expresan siempre en términos de qué falta o qué está mal configurado respecto a lo que IBP necesita para planificar correctamente.') +
           legendEstados() +
-          callout('info', '<strong>Hojas condicionales:</strong> Las hojas Product, Location, Resource, Resource Location, Prod Source Item y Prod Source Resource solo se crean si el usuario seleccionó la entidad correspondiente antes de ejecutar el análisis. La hoja Tipos Excluidos solo aparece si existen tipos de material excluidos que actúan como componentes. La hoja Resumen siempre se genera.') +
+          callout('info', '<strong>Hojas condicionales:</strong> Las hojas Product, Location, Resource, Resource Location, Prod Source Item y Prod Source Resource solo se crean si el usuario seleccionó la entidad correspondiente antes de ejecutar el análisis. La hoja Tipos Excluidos solo aparece si existen tipos de material excluidos del análisis principal. La hoja Resumen siempre se genera.') +
           callout('info', '<strong>Importante:</strong> Los resultados dependen de la categorización de tipos de material (MATTYPEID). Un mismo hallazgo puede ser ⛔ Alerta para un Producto Terminado y no aplicar para una Materia Prima. Ver sección <em>Tipos de Material</em>.');
       }
     },
@@ -448,6 +448,11 @@
             ['Componentes sin cobertura LocSrc', 'Cuántas combinaciones componente+planta (de este tipo excluido) NO tienen arco de Location Source. Si > 0, hay insumos sin ruta de llegada a la planta que los consume.'],
             ['Observacion', 'Texto descriptivo del estado: indica si el tipo aparece como componente y si hay brechas de abastecimiento.']
           ])) +
+          sub('Observaciones posibles', obsTable([
+            ['Excluido del análisis principal. Validado como componente en N fuente(s) de producción.', 'info', ['all'], 'El tipo de material está excluido del análisis principal pero sus productos aparecen como componentes PSI en N recetas distintas de productos incluidos. Se validan en contexto.', 'Sin acción requerida si la exclusión es intencional. Revisar las columnas de cobertura LocSrc para confirmar que los componentes tienen arcos de abastecimiento configurados.'],
+            ['Excluido del análisis principal. No aparece como componente en ninguna fuente de producción.', 'info', ['all'], 'El tipo está excluido y ninguno de sus productos aparece como componente PSI de productos incluidos. No participa activamente en el análisis.', 'Sin acción requerida. La fila se incluye como registro de la exclusión y su impacto nulo en otros BOMs.'],
+            ['⚠ N combinación(es) componente-planta sin arco de abastecimiento.', 'yellow', ['all'], 'Sufijo que se concatena a la observación cuando existen productos del tipo excluido que actúan como componentes y no tienen arco de Location Source hacia la planta donde se consumen.', 'Configurar el arco de Location Source para las combinaciones componente+planta sin cobertura, o revisar si la exclusión del tipo es realmente apropiada.']
+          ])) +
           callout('info', 'Un tipo excluido que actúa como componente PSI de productos incluidos se valida igualmente. La exclusión solo omite el análisis principal de los productos de ese tipo, no su validación como ingrediente en otros BOMs.');
       }
     },
@@ -467,9 +472,9 @@
                   '<ul>' +
                     '<li>Requiere BOM completo (PSH + PSI + PSR)</li>' +
                     '<li>PLEADTIME ausente o cero → ⛔ Alerta</li>' +
+                    '<li>OUTPUTCOEFFICIENT ausente o cero → ⛔ Alerta</li>' +
                     '<li>Sin Location Product → ⛔ Alerta</li>' +
                     '<li>Planta productora no es origen en Location Source → ⛔ Alerta</li>' +
-                    '<li>Sin ruta a cliente → aplica detección de Ghost Nodes, Dead-ends y plantas aisladas</li>' +
                   '</ul>' +
                 '</div>' +
               '</div>' +
@@ -505,7 +510,6 @@
                   '<ul>' +
                     '<li>No requiere PSH, PSI ni PSR</li>' +
                     '<li>Debe tener Location Source definida → si falta = ⛔ Alerta</li>' +
-                    '<li>Arcos LS y CS deben compartir ubicaciones → si no = ⛔ Red desconectada</li>' +
                     '<li>PLEADTIME no se evalúa</li>' +
                   '</ul>' +
                 '</div>' +
@@ -603,7 +607,7 @@
             '<div class="glos-table-wrap"><table class="glos-col-table"><thead><tr><th>Categoría</th><th>Bonificaciones</th><th>Penalizaciones</th></tr></thead><tbody>' +
               '<tr><td>' + catBadge(['finished']) + ' Terminado / Sin cat.</td><td>+50 si hay rutas completas; +15 si múltiples clientes; +15 si múltiples rutas; +20 si múltiples plantas.</td><td>-20 por ghost nodes; -15 por dead-ends; -20 por clientes con ruta única; -15 por fuente única de producción.</td></tr>' +
               '<tr><td>' + catBadge(['semi']) + ' Semiterminado</td><td>+30 si tiene PSH; +40 si tiene consumo PSI; +20 si múltiples plantas; +10 si tiene Location Source.</td><td>Sin penalizaciones.</td></tr>' +
-              '<tr><td>' + catBadge(['rawmat']) + ' Mat. Prima</td><td>+60 si tiene Location Source; +20 si llega a plantas consumidoras; +20 si tiene Customer Source.</td><td>Sin penalizaciones.</td></tr>' +
+              '<tr><td>' + catBadge(['rawmat']) + ' Mat. Prima</td><td>+60 si tiene Location Source; +20 si tiene al menos un destino intermedio (DC) en Location Source; +20 si tiene Customer Source.</td><td>Sin penalizaciones.</td></tr>' +
               '<tr><td>' + catBadge(['trading']) + ' Mercadería</td><td>+40 si tiene Location Source; +40 si tiene Customer Source; +20 si múltiples clientes.</td><td>Sin penalizaciones.</td></tr>' +
             '</tbody></table></div>'
           ) +
