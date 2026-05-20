@@ -281,7 +281,12 @@
             ['N componente(s) Mat. Prima/Semiterminado recibidos en ubicación sin producción asociada', 'yellow', ['rawmat', 'semi'], 'Esta ubicación recibe insumos o semiterminados pero no tiene ninguna receta de producción — los insumos llegan sin uso productivo declarado.', 'Verificar si esta ubicación debería tener producción configurada o si los arcos de abastecimiento son incorrectos.'],
             ['Ubicación en maestro sin actividad en otros datos', 'info', ['all'], 'La ubicación existe en el maestro pero no aparece en ninguna entidad de red (PSH, Location Source, Customer Source, Location Product).', 'Verificar si la ubicación es obsoleta y puede depurarse del maestro, o si falta configurar su participación en la red.'],
             ['BOMs con PSI, PSR y lead time | Sin componentes sin cobertura | Sin recursos ociosos', 'ok', ['finished', 'semi'], 'Planta completamente configurada: todas las recetas tienen BOM, recursos y lead time; todos los insumos tienen cobertura; no hay recursos sin uso.', 'Sin acción requerida.'],
-            ['Abastecimiento con consumo PSI y cobertura LP en destino', 'ok', ['rawmat', 'semi'], 'Todos los productos que esta ubicación envía son consumidos como PSI en las plantas destino y están habilitados en Location Product.', 'Sin acción requerida.']
+            ['Abastecimiento con consumo PSI y cobertura LP en destino', 'ok', ['rawmat', 'semi'], 'Todos los productos que esta ubicación envía son consumidos como PSI en las plantas destino y están habilitados en Location Product.', 'Sin acción requerida.'],
+            ['Distribuye N producto(s) terminado(s)/mercadería sin hallazgos', 'ok', ['finished', 'trading'], 'Nodo de transferencia que redistribuye productos terminados o mercadería sin anomalías detectadas.', 'Sin acción requerida.'],
+            ['Nodo de transferencia sin hallazgos', 'ok', ['all'], 'La ubicación actúa como nodo de transferencia y no se detectaron problemas de configuración en los productos que redistribuye.', 'Sin acción requerida.'],
+            ['Recibe N producto(s) | Location Product OK | Sin componentes sin producción', 'ok', ['all'], 'Nodo receptor correctamente configurado: todos los productos recibidos están habilitados en Location Product y ningún insumo llega a una ubicación sin producción asociada.', 'Sin acción requerida.'],
+            ['Nodo receptor sin hallazgos', 'ok', ['all'], 'La ubicación solo recibe productos y no se detectaron problemas de configuración.', 'Sin acción requerida.'],
+            ['Ubicación activa sin hallazgos', 'ok', ['all'], 'La ubicación tiene actividad en la red y no se detectaron anomalías de configuración.', 'Sin acción requerida.']
           ]));
       }
     },
@@ -382,7 +387,7 @@
             ['PRDDESCR comp', 'Descripción del componente.'],
             ['MATTYPEID comp', 'Tipo de material del componente. Determina si se trata como semiterminado o insumo externo.'],
             ['COMPONENTCOEFFICIENT', 'Unidades del componente consumidas por unidad de producto terminado. Si es 0, IBP no planifica la compra de este insumo.'],
-            ['Tipo componente', 'Semielaborado = se fabrica en la misma planta (tiene PSH propio ahí) | Insumo = debe llegar desde fuera vía Location Source | No determinado = no se pudo clasificar con la información disponible.'],
+            ['Tipo componente', 'Semielaborado = se fabrica en la misma planta (tiene PSH propio ahí) | Semielaborado (ext.) = se fabrica en otra planta (PSH en planta distinta) | Semielaborado (sin receta) = categorizado como semi pero sin PSH activo en ninguna planta | Insumo = debe llegar desde fuera vía Location Source | No determinado = no se pudo clasificar con la información disponible.'],
             ['PRDID comp+LOCID en Location Product', 'Sí/No — ¿El componente está habilitado en Location Product para esta planta? Sin esto IBP no puede planificar su consumo aquí.'],
             ['En Location Source (insumo)', 'Sí/No — ¿Hay arco de Location Source que traiga este insumo a esta planta? Muestra N/A para semielaborados (se producen localmente).'],
             ['LOCFR origen', 'Código(s) de las ubicaciones de origen en Location Source para este componente en esta planta.'],
@@ -509,7 +514,7 @@
                   '<p>Producto comprado y revendido sin transformación interna.</p>' +
                   '<ul>' +
                     '<li>No requiere PSH, PSI ni PSR</li>' +
-                    '<li>Debe tener Location Source definida → si falta = ⛔ Alerta</li>' +
+                    '<li>Debe tener Location Source y Customer Source → sin ninguno = ⚠ Advertencia</li>' +
                     '<li>PLEADTIME no se evalúa</li>' +
                   '</ul>' +
                 '</div>' +
@@ -655,7 +660,7 @@
             ['Huérfano', 'red', ['all'], 'El producto solo existe en el maestro de materiales — no tiene ninguna actividad en la red. Aparece textualmente en Observacion.', 'Verificar si el producto es obsoleto o si falta configurar su participación en la red (PSH, Location Source, Customer Source o Location Product).'],
             ['Ghost node: X', 'red', ['finished', 'trading', 'uncategorized'], 'La ubicación X recibe el producto pero todas sus salidas terminan en un callejón sin salida — no llega a ningún cliente.', 'Revisar la configuración de arcos salientes de la ubicación X en Location Source. Puede faltar un arco hacia el siguiente nodo o hacia un Customer Source.'],
             ['Dead-end: X', 'red', ['finished', 'trading', 'uncategorized'], 'La ubicación X recibe el producto por Location Source pero no tiene ninguna salida configurada — el producto llega y no puede continuar.', 'Agregar el arco de salida faltante en Location Source o en Customer Source desde la ubicación X, o verificar si ese nodo es el destino final (y entonces falta un Customer Source).'],
-            ['Planta aislada: X', 'red', ['finished', 'uncategorized'], 'La planta X produce este producto pero no tiene ninguna ruta que llegue a algún cliente — producción sin mercado alcanzable.', 'Revisar arcos de distribución desde la planta X en Location Source. Puede faltar el arco inicial desde la planta hacia el primer nodo de distribución.'],
+            ['Planta aislada: X', 'red', ['finished', 'trading', 'uncategorized'], 'La planta X produce este producto pero no tiene ninguna ruta que llegue a algún cliente — producción sin mercado alcanzable.', 'Revisar arcos de distribución desde la planta X en Location Source. Puede faltar el arco inicial desde la planta hacia el primer nodo de distribución.'],
             ['Ciclo: X → Y → Z → X', 'red', ['all'], 'Se detectó un ciclo en la red: el producto puede circular indefinidamente entre estas ubicaciones sin llegar a ningún cliente.', 'Revisar los arcos de Location Source entre las ubicaciones del ciclo e identificar cuál está configurado en sentido incorrecto.'],
             ['PLEADTIME faltante: X', 'red', ['finished', 'semi', 'uncategorized'], 'La planta X produce este producto pero su PLEADTIME es 0 o está vacío. IBP planifica producción instantánea.', 'Ingresar el PLEADTIME real en días en el Production Source Header para la planta X y este producto.'],
             ['TLEADTIME faltante: X→Y', 'yellow', ['all'], 'El arco de transferencia X→Y tiene TLEADTIME = 0 o vacío. IBP planifica transferencias instantáneas en ese tramo.', 'Ingresar el TLEADTIME real en días en el arco de Location Source X→Y para este producto.'],
@@ -669,7 +674,7 @@
             ['Semiterminado consumido en destino de transferencia', 'ok', ['semi'], 'El semiterminado se transfiere a otra planta donde es consumido como PSI — flujo correcto.', 'Sin acción requerida.'],
             ['Semiterminado consumido en planta productora', 'ok', ['semi'], 'El semiterminado se consume localmente en la planta donde se fabrica.', 'Sin acción requerida.'],
             ['Habilitado en Location Product', 'ok', ['all'], 'El producto está habilitado en Location Product en todas las ubicaciones activas de su red.', 'Sin acción requerida.'],
-            ['Lead times definidos', 'ok', ['all'], 'Todos los arcos de transferencia y entrega del producto tienen lead time mayor que cero.', 'Sin acción requerida.'],
+            ['Lead times definidos', 'ok', ['semi', 'finished', 'uncategorized'], 'Todos los arcos de transferencia y entrega del producto tienen lead time mayor que cero.', 'Sin acción requerida.'],
             ['Mercadería con arcos de distribución y entrega', 'ok', ['trading'], 'La mercadería tiene Location Source y Customer Source correctamente configurados.', 'Sin acción requerida.'],
             ['Red completa sin anomalias', 'ok', ['finished', 'uncategorized'], 'El producto tiene rutas completas de planta a cliente y no se detectaron Ghost Nodes, Dead-ends ni ciclos.', 'Sin acción requerida.'],
             ['N ruta(s) a cliente', 'ok', ['finished', 'trading', 'uncategorized'], 'El producto tiene N rutas completas desde plantas productoras hasta clientes. A mayor número de rutas, mayor resiliencia.', 'Sin acción requerida.']
