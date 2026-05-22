@@ -1,0 +1,24 @@
+{
+  "app.title": "Applications Hub",
+  "app.mobile.openMenu": "Open menu",
+
+  "lang.switch.aria": "Change language",
+  "lang.es": "ES",
+  "lang.en": "EN",
+
+  "sidebar.conn.disconnected": "Disconnected",
+  "sidebar.conn.connected": "Connected",
+  "sidebar.conn.button": "🔗 Connect SAP IBP",
+  "sidebar.conn.buttonConnected": "🔗 Reconnect SAP IBP",
+
+  "nav.bom": "Production Visualizer",
+  "nav.pa": "Production Analyzer",
+  "nav.visualizer": "Network Visualizer",
+  "nav.network": "Network Analyzer",
+  "nav.glosario": "Analyzers Glossary",
+  "nav.docs": "Mapping Dataflow Generator",
+  "nav.explorer": "Integration Explorer",
+  "nav.suite": "GOSCM SUITE",
+  "nav.controlTower": "SAP IBP Control Tower",
+  "nav.techReq": "Technical Requirements"
+}

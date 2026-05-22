@@ -1044,7 +1044,16 @@
     function setConnected(on) {
       if (typeof IS_CONNECTED !== 'undefined') IS_CONNECTED = !!on;
       document.getElementById('statusDot').className = 'status-dot ' + (on ? 'on' : 'off');
-      document.getElementById('statusText').textContent = on ? 'Conectado' : 'Desconectado';
+      var statusEl = document.getElementById('statusText');
+      var statusKey = on ? 'sidebar.conn.connected' : 'sidebar.conn.disconnected';
+      statusEl.setAttribute('data-i18n', statusKey);
+      statusEl.textContent = (window.I18n ? I18n.t(statusKey) : (on ? 'Conectado' : 'Desconectado'));
+      var connBtn = document.getElementById('btnHeaderConnect');
+      if (connBtn) {
+        var btnKey = on ? 'sidebar.conn.buttonConnected' : 'sidebar.conn.button';
+        connBtn.setAttribute('data-i18n', btnKey);
+        connBtn.textContent = (window.I18n ? I18n.t(btnKey) : (on ? '🔗 Reconectar SAP IBP' : '🔗 Conectar SAP IBP'));
+      }
       
       document.querySelectorAll('.lock-icon').forEach(function(el) {
           el.style.display = on ? 'none' : 'inline';
