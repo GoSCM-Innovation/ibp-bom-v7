@@ -880,17 +880,20 @@
     /* ── Sidebar brand ── */
     .sidebar-brand {
       display: flex;
-      align-items: center;
-      gap: var(--sp-3);
+      flex-direction: column;
+      align-items: flex-start;
+      gap: var(--sp-1);
       padding: var(--sp-4) var(--sp-4);
       border-bottom: 1px solid var(--border);
       flex-shrink: 0;
     }
 
     .sidebar-brand .app-title {
-      font-size: var(--text-sm);
-      font-weight: 700;
-      line-height: 1.2;
+      font-size: 11px;
+      font-weight: 500;
+      color: var(--text3);
+      letter-spacing: 0.04em;
+      line-height: 1;
     }
 
     /* ── Sidebar connection status ── */
@@ -998,6 +1001,40 @@
       height: 1px;
       background: var(--border);
       margin: var(--sp-2) var(--sp-1);
+    }
+
+    /* ── Nav section label ── */
+    .nav-section-label {
+      display: block;
+      padding: var(--sp-1) var(--sp-3);
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      color: var(--text3);
+      text-transform: uppercase;
+    }
+
+    /* ── External app link ── */
+    .nav-item.nav-external {
+      color: var(--cyan);
+      text-decoration: none;
+      font-weight: 500;
+    }
+
+    .nav-item.nav-external:hover {
+      background: rgba(41,171,226,.08);
+      color: var(--cyan);
+    }
+
+    .nav-external-icon {
+      margin-left: auto;
+      flex-shrink: 0;
+      opacity: 0.5;
+      transition: opacity 0.15s;
+    }
+
+    .nav-item.nav-external:hover .nav-external-icon {
+      opacity: 1;
     }
 
     /* ── Sidebar footer ── */
