@@ -196,6 +196,8 @@
             ['PSH con SOURCETYPE=P presente', 'ok', ['finished', 'semi'], 'Al menos un registro con SOURCETYPE=P existe para este producto.', 'Sin acción requerida.'],
             ['Sin BOM de fabricación', 'ok', ['rawmat', 'trading'], 'El producto no tiene PSH, lo cual es correcto para Mat. Prima y Mercadería.', 'Sin acción requerida.'],
             ['Consumido como componente en BOM', 'ok', ['semi', 'rawmat'], 'El producto aparece como ingrediente en al menos una receta PSI.', 'Sin acción requerida.'],
+            ['Consume en planta productora', 'ok', ['semi'], 'El semiterminado se produce y se consume localmente en la misma planta — no requiere transferencia.', 'Sin acción requerida.'],
+            ['Consumo en destino de transferencia verificado', 'ok', ['semi'], 'El semiterminado se transfiere a otra planta y en el destino existe consumo PSI configurado.', 'Sin acción requerida.'],
             ['TLEADTIME definido en Location Source', 'ok', ['all'], 'Al menos un arco de Location Source tiene TLEADTIME mayor que cero.', 'Sin acción requerida.'],
             ['Sin categoría [MATTYPEID] — sin hallazgos en modo permisivo', 'ok', ['uncategorized'], 'El producto no tiene categoría asignada y no presentó hallazgos. Las validaciones se aplicaron en modo permisivo. El texto entre corchetes es el MATTYPEID real del producto.', 'Asignar la categoría correcta al tipo de material en el panel de categorización para activar las validaciones estrictas correspondientes.']
           ]));
@@ -677,7 +679,8 @@
             ['Lead times definidos', 'ok', ['semi', 'finished', 'uncategorized'], 'Todos los arcos de transferencia y entrega del producto tienen lead time mayor que cero.', 'Sin acción requerida.'],
             ['Mercadería con arcos de distribución y entrega', 'ok', ['trading'], 'La mercadería tiene Location Source y Customer Source correctamente configurados.', 'Sin acción requerida.'],
             ['Red completa sin anomalias', 'ok', ['finished', 'uncategorized'], 'El producto tiene rutas completas de planta a cliente y no se detectaron Ghost Nodes, Dead-ends ni ciclos.', 'Sin acción requerida.'],
-            ['N ruta(s) a cliente', 'ok', ['finished', 'trading', 'uncategorized'], 'El producto tiene N rutas completas desde plantas productoras hasta clientes. A mayor número de rutas, mayor resiliencia.', 'Sin acción requerida.']
+            ['N ruta(s) a cliente', 'ok', ['finished', 'trading', 'uncategorized'], 'El producto tiene N rutas completas desde plantas productoras hasta clientes. A mayor número de rutas, mayor resiliencia.', 'Sin acción requerida.'],
+            ['Habilitado en Customer Product', 'ok', ['finished', 'trading', 'uncategorized'], 'El producto está habilitado en Customer Product en todos los clientes con entrega configurada.', 'Sin acción requerida.']
           ]));
       }
     },
@@ -892,6 +895,9 @@
     var J = window.jspdf;
     if (!J || !J.jsPDF) { alert('Librería PDF no disponible. Recarga la página.'); return; }
 
+    var activeBtn = document.querySelector('.glosario-mod-btn.active');
+    if (activeBtn) { _currentModule = activeBtn.id.replace('glosModBtn-', ''); }
+
     var modName  = _currentModule === 'pa' ? 'Production Analyzer' : 'Network Analyzer';
     var today    = new Date();
     var dateStr  = today.toISOString().slice(0, 10);
@@ -979,7 +985,7 @@
 
     var dateLocale = today.toLocaleDateString('es-CL', { year: 'numeric', month: 'long', day: 'numeric' });
     doc.setFontSize(9.5); T([150, 165, 205]); doc.setFont('helvetica', 'normal');
-    doc.text('Guia de referencia para la lectura del analisis exportado', PW / 2, 149, { align: 'center' });
+    doc.text('Guía de referencia para la lectura del análisis exportado', PW / 2, 149, { align: 'center' });
     doc.text('Generado el ' + dateLocale, PW / 2, 159, { align: 'center' });
 
     /* ── CONTENT PAGES ── */
@@ -1014,7 +1020,7 @@
       doc.line(ML, PH - FTR + 2, PW - MR, PH - FTR + 2);
       doc.setFontSize(7); T(C.muted); doc.setFont('helvetica', 'normal');
       doc.text('GoSCM Applications Hub', ML, PH - 5.5);
-      doc.text('Pagina ' + (pg - 1) + ' de ' + contPg, PW - MR, PH - 5.5, { align: 'right' });
+      doc.text('Página ' + (pg - 1) + ' de ' + contPg, PW - MR, PH - 5.5, { align: 'right' });
     }
 
     doc.save(fileName);
