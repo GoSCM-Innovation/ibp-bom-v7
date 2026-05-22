@@ -261,7 +261,9 @@ function togglePALogs() {
   var logEl = document.getElementById('logPA');
   var btn   = document.getElementById('btnTogglePALogs');
   var hidden = logEl.classList.toggle('hidden');
-  btn.textContent = hidden ? 'Ver logs técnicos' : 'Ocultar logs';
+  var key = hidden ? 'common.viewLogs' : 'common.hideLogs';
+  btn.setAttribute('data-i18n', key);
+  btn.textContent = window.I18n ? I18n.t(key) : (hidden ? 'Ver logs técnicos' : 'Ocultar logs');
 }
 
 /* ── Fetch ligero de Product master para poblar tipos de material ── */

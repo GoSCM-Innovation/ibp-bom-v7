@@ -160,7 +160,7 @@ function efRenderEntityButtons(ns) {
       escH(m.label) + badge + '</button>';
   });
   if (!html) {
-    html = '<p style="font-size:12px;color:var(--text2);">Configura las entidades en el paso ① para habilitar la selección de campos.</p>';
+    html = '<p style="font-size:12px;color:var(--text2);">' + escH(I18n.t('ef.hint.configureEntities')) + '</p>';
   }
   container.innerHTML = html;
 }
@@ -231,7 +231,7 @@ function _efRenderList(mandVis, optional, filter, fieldMeta) {
 
   /* Mandatory visible fields (locked ON) */
   if (mandVis.length) {
-    html += '<div class="ef-section-label">Campos obligatorios</div>';
+    html += '<div class="ef-section-label">' + escH(I18n.t('ef.section.mandatory')) + '</div>';
     mandVis.forEach(function (f) {
       var label = meta[f] || '';
       if (!_efFieldMatches(f, label, q)) return;
@@ -239,7 +239,7 @@ function _efRenderList(mandVis, optional, filter, fieldMeta) {
         '<input type="checkbox" checked disabled>' +
         '<span class="ef-toggle-slider"></span>' +
         '</label>';
-      html += _efFieldRow(f, label, toggleHtml, '<span class="ef-mandatory-badge">Obligatorio</span>');
+      html += _efFieldRow(f, label, toggleHtml, '<span class="ef-mandatory-badge">' + escH(I18n.t('ef.badge.mandatory')) + '</span>');
     });
   }
 
@@ -248,7 +248,7 @@ function _efRenderList(mandVis, optional, filter, fieldMeta) {
     return _efFieldMatches(f, meta[f] || '', q);
   });
   if (visOptional.length) {
-    html += '<div class="ef-section-label">Campos adicionales disponibles</div>';
+    html += '<div class="ef-section-label">' + escH(I18n.t('ef.section.optional')) + '</div>';
     visOptional.forEach(function (f) {
       var label   = meta[f] || '';
       var checked = _efModalTmp.indexOf(f) >= 0;
@@ -260,7 +260,7 @@ function _efRenderList(mandVis, optional, filter, fieldMeta) {
       html += _efFieldRow(f, label, toggleHtml, '');
     });
   } else if (q) {
-    html += '<p style="font-size:12px;color:var(--text2);padding:8px 0;">Sin resultados para "' + escH(filter) + '".</p>';
+    html += '<p style="font-size:12px;color:var(--text2);padding:8px 0;">' + escH(I18n.t('ef.search.noResults', { filter: filter })) + '</p>';
   }
 
   list.innerHTML = html;
@@ -277,7 +277,7 @@ function _efUpdateCount() {
   var el = document.getElementById('efModalCount');
   if (!el) return;
   var n = _efModalTmp.length;
-  el.textContent = n > 0 ? n + ' campo' + (n > 1 ? 's' : '') + ' adicional' + (n > 1 ? 'es' : '') + ' seleccionado' + (n > 1 ? 's' : '') : '';
+  el.textContent = n > 0 ? I18n.t('ef.counter.selectedFields', { n: n }) : '';
 }
 
 function efModalFilter() {

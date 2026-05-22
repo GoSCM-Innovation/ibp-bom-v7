@@ -89,7 +89,7 @@ const Explorer = (function () {
     if (analyzing) return;
     analyzing = true;
     const btn = document.getElementById('ex-analyze-btn');
-    if (btn) { btn.disabled = true; btn.textContent = '⏳ Analizando...'; }
+    if (btn) { btn.disabled = true; btn.textContent = I18n.t('ex.btn.analyzing'); }
 
     integrations   = [];
     chainEdges     = [];
@@ -142,7 +142,7 @@ const Explorer = (function () {
     }
 
     analyzing = false;
-    if (btn) { btn.disabled = false; btn.textContent = '🔬 Explorar integraciones'; }
+    if (btn) { btn.disabled = false; btn.textContent = I18n.t('ex.analyzeBtn'); }
   }
 
   // ── Índices ──────────────────────────────────────────────
@@ -451,11 +451,11 @@ const Explorer = (function () {
     const btnEl        = document.getElementById('cids-modal-submit');
 
     if (!hciUrl || !orgName || !user || !password) {
-      if (errEl) errEl.textContent = 'Todos los campos son obligatorios.';
+      if (errEl) errEl.textContent = I18n.t('ex.cids.allRequired');
       return;
     }
     if (errEl) errEl.textContent = '';
-    if (btnEl) { btnEl.disabled = true; btnEl.textContent = 'Conectando...'; }
+    if (btnEl) { btnEl.disabled = true; btnEl.textContent = I18n.t('ex.cids.connecting'); }
     cidsLoading = true;
 
     try {
@@ -471,7 +471,7 @@ const Explorer = (function () {
       closeCidsModal();
       renderCidsBar();
 
-      if (btnEl) btnEl.textContent = 'Cargando tareas...';
+      if (btnEl) btnEl.textContent = I18n.t('ex.cids.loadingTasks');
       cidsProdTasks = await fetchProductionTasks();
       renderCidsBar();
       const q = (document.getElementById('ex-search') || {}).value || '';
@@ -479,13 +479,13 @@ const Explorer = (function () {
     } catch (e) {
       if (e.isSessionExpired) {
         cidsDisconnect();
-        if (errEl) errEl.textContent = 'Sesión expirada. Vuelve a conectar.';
+        if (errEl) errEl.textContent = I18n.t('ex.cids.sessionExpired');
       } else {
         if (errEl) errEl.textContent = e.message;
       }
     } finally {
       cidsLoading = false;
-      if (btnEl) { btnEl.disabled = false; btnEl.textContent = 'Conectar'; }
+      if (btnEl) { btnEl.disabled = false; btnEl.textContent = I18n.t('cids.btnConnect'); }
     }
   }
 
@@ -680,7 +680,7 @@ const Explorer = (function () {
         </div>
         <div class="ex-section-body collapsed" id="${dfSecId}">
           <div class="ex-df-diagram-wrap">
-            <button class="ex-df-fs-btn" onclick="event.stopPropagation();Explorer.openDataflowFullscreen(${idx})" title="Pantalla completa">⛶</button>
+            <button class="ex-df-fs-btn" onclick="event.stopPropagation();Explorer.openDataflowFullscreen(${idx})" title="${I18n.t('ex.btn.fullscreen')}">⛶</button>
             <div id="ex-df-diagram-${idx}" class="ex-df-diagram"></div>
           </div>
           <div id="ex-df-node-detail-${idx}" class="ex-df-node-detail"></div>
@@ -1309,7 +1309,7 @@ const Explorer = (function () {
               </span>
               <span style="display:flex;gap:6px;align-items:center">
                 <span style="color:var(--text2);font-size:11px;">${uniqueFIdx.length} filtro${uniqueFIdx.length !== 1 ? 's' : ''}</span>
-                <span class="ex-chain-pill" onclick="event.stopPropagation();Explorer.goToIntegration(${intIdx})" title="Ver integracion completa">Ver</span>
+                <span class="ex-chain-pill" onclick="event.stopPropagation();Explorer.goToIntegration(${intIdx})" title="${I18n.t('ex.btn.viewFull')}">${I18n.t('ex.btn.viewFull').split(' ')[0]}</span>
                 <span class="ex-arr">▼</span>
               </span>
             </div>
@@ -1348,7 +1348,7 @@ const Explorer = (function () {
               </span>
               <span style="display:flex;gap:6px;align-items:center">
                 <span style="color:var(--text2);font-size:11px;">${mIdxList.length} campo${mIdxList.length !== 1 ? 's' : ''}</span>
-                <span class="ex-chain-pill" onclick="event.stopPropagation();Explorer.goToIntegration(${intIdx})" title="Ver integracion completa">Ver</span>
+                <span class="ex-chain-pill" onclick="event.stopPropagation();Explorer.goToIntegration(${intIdx})" title="${I18n.t('ex.btn.viewFull')}">${I18n.t('ex.btn.viewFull').split(' ')[0]}</span>
                 <span class="ex-arr">▼</span>
               </span>
             </div>

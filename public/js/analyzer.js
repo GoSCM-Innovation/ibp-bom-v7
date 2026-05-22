@@ -459,25 +459,28 @@
       el.textContent = msg;
     }
 
+    function _setLogToggleBtn(btn, hidden) {
+      var key = hidden ? 'common.viewLogs' : 'common.hideLogs';
+      btn.setAttribute('data-i18n', key);
+      btn.textContent = window.I18n ? I18n.t(key) : (hidden ? 'Ver logs técnicos' : 'Ocultar logs');
+    }
+
     function toggleSNLogs() {
       var logEl = document.getElementById('logSN');
       var btn = document.getElementById('btnToggleSNLogs');
-      var hidden = logEl.classList.toggle('hidden');
-      btn.textContent = hidden ? 'Ver logs técnicos' : 'Ocultar logs';
+      _setLogToggleBtn(btn, logEl.classList.toggle('hidden'));
     }
 
     function toggleVizLogs() {
       var logEl = document.getElementById('logViz');
       var btn = document.getElementById('btnToggleVizLogs');
-      var hidden = logEl.classList.toggle('hidden');
-      btn.textContent = hidden ? 'Ver logs técnicos' : 'Ocultar logs';
+      _setLogToggleBtn(btn, logEl.classList.toggle('hidden'));
     }
 
     function toggleNetLogs() {
       var logEl = document.getElementById('logNet');
       var btn = document.getElementById('btnToggleNetLogs');
-      var hidden = logEl.classList.toggle('hidden');
-      btn.textContent = hidden ? 'Ver logs técnicos' : 'Ocultar logs';
+      _setLogToggleBtn(btn, logEl.classList.toggle('hidden'));
     }
 
 

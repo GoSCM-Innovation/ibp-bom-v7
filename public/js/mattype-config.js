@@ -148,12 +148,12 @@ function mattyeRenderExclude(pfx) {
 
   var types = Object.keys(MATTYPE_CFG).sort();
   if (!types.length) {
-    wrap.innerHTML = '<p class="mattype-empty">Carga datos primero para detectar los tipos de material.</p>';
+    wrap.innerHTML = '<p class="mattype-empty">' + escH(I18n.t('mattype.empty.loadFirst')) + '</p>';
     return;
   }
 
   var html = '<table class="mattype-toggle-table"><thead><tr>' +
-    '<th>Tipo</th><th>Productos</th><th>Incluir en análisis</th>' +
+    '<th>' + escH(I18n.t('mattype.tbl.type')) + '</th><th>' + escH(I18n.t('mattype.tbl.products')) + '</th><th>' + escH(I18n.t('mattype.tbl.include')) + '</th>' +
     '</tr></thead><tbody>';
 
   types.forEach(function(mt) {
@@ -169,15 +169,23 @@ function mattyeRenderExclude(pfx) {
             ' onchange="mattypeToggleExclude(\'' + mtSafe + '\',this.checked)">' +
           '<span class="mattype-toggle-slider"></span>' +
         '</label>' +
-        '<span class="mattype-toggle-label">' + (included ? 'Incluido' : 'Excluido') + '</span>' +
+        '<span class="mattype-toggle-label">' + escH(I18n.t(included ? 'mattype.tbl.included' : 'mattype.tbl.excluded')) + '</span>' +
       '</td></tr>';
   });
 
   html += '</tbody></table>';
-  html += '<p class="mattype-note">ℹ️ Los tipos excluidos que actúen como componentes PSI de productos incluidos se validan igualmente en contexto.</p>';
+  html += '<p class="mattype-note">' + escH(I18n.t('mattype.note.psi')) + '</p>';
   wrap.innerHTML = html;
   _mattyeUpdateExcludeSummary();
 }
+
+// Re-render mattype panels on language change
+document.addEventListener('i18n:change', function () {
+  try {
+    if (document.getElementById(_mattypePfx + 'mattypeExcludeWrap')) mattyeRenderExclude();
+    if (document.getElementById(_mattypePfx + 'mattypeCatWrap')) mattyeRenderCategorize();
+  } catch (e) { console.warn('[mattype i18n re-render]', e); }
+});
 
 function mattypeToggleExclude(mt, included) {
   if (!MATTYPE_CFG[mt]) return;
@@ -193,9 +201,9 @@ function _mattyeUpdateExcludeSummary() {
   var sumEl  = document.getElementById(_mattypePfx + 'mattypeExcludeSummary');
   if (!sumEl) return;
   if (!excl.length) {
-    sumEl.textContent = 'Todos los tipos incluidos — sin configurar';
+    sumEl.textContent = I18n.t('mattype.status.allIncluded');
   } else {
-    sumEl.textContent = excl.length + ' tipo(s) excluido(s) · ' + nProds + ' producto(s) omitidos del análisis principal';
+    sumEl.textContent = I18n.t('mattype.summary.excluded', { n: excl.length, prods: nProds });
   }
 }
 
@@ -211,13 +219,13 @@ function mattyeRenderCategorize(pfx) {
 
   var types = Object.keys(MATTYPE_CFG).filter(function(k) { return !MATTYPE_CFG[k].excluded; }).sort();
   if (!types.length) {
-    wrap.innerHTML = '<p class="mattype-empty">No hay tipos incluidos para categorizar.</p>';
+    wrap.innerHTML = '<p class="mattype-empty">' + escH(I18n.t('mattype.empty.noTypes')) + '</p>';
     return;
   }
 
   var html = '<div class="mattype-matrix-scroll"><table class="mattype-matrix-table"><thead><tr>' +
-    '<th class="mattype-matrix-th-type">Tipo</th>' +
-    '<th class="mattype-matrix-th-count">Productos</th>';
+    '<th class="mattype-matrix-th-type">' + escH(I18n.t('mattype.tbl.type')) + '</th>' +
+    '<th class="mattype-matrix-th-count">' + escH(I18n.t('mattype.tbl.products')) + '</th>';
   MATTYPE_CATS.forEach(function(cat) {
     var tip = cat.tooltip;
     var rulesHtml = tip.rules.map(function(r) {
@@ -229,7 +237,7 @@ function mattyeRenderCategorize(pfx) {
           '<div class="mattype-cat-tooltip-title">' + escH(cat.label) + '</div>' +
           '<div>' + escH(tip.desc) + '</div>' +
           '<ul class="mattype-cat-tooltip-rules">' + rulesHtml + '</ul>' +
-          '<div class="mattype-cat-tooltip-ex">Ej: ' + escH(tip.example) + '</div>' +
+          '<div class="mattype-cat-tooltip-ex">' + escH(I18n.t('mattype.tip.example', { ex: tip.example })) + '</div>' +
         '</span>' +
       '</span>';
     html += '<th class="mattype-matrix-th-cat" style="color:' + cat.color + '">' +
@@ -257,7 +265,7 @@ function mattyeRenderCategorize(pfx) {
   });
 
   html += '</tbody></table></div>';
-  html += '<p class="mattype-note">ℹ️ Un tipo puede estar en más de una categoría. Sin categoría = todas las métricas con reglas en modo 🟡.</p>';
+  html += '<p class="mattype-note">' + escH(I18n.t('mattype.note.cat')) + '</p>';
   wrap.innerHTML = html;
   _mattyeUpdateCatSummary();
   _mattypeCatBindTooltips(wrap);
@@ -306,10 +314,10 @@ function _mattyeUpdateCatSummary() {
   var sumEl   = document.getElementById(_mattypePfx + 'mattypeCatSummary');
   if (!sumEl) return;
   if (!catted.length) {
-    sumEl.textContent = 'Sin categorización — análisis estándar para todos los tipos';
+    sumEl.textContent = I18n.t('mattype.status.noCat');
   } else {
-    sumEl.textContent = catted.length + ' tipo(s) categorizado(s)' +
-      (uncatted > 0 ? ' · ' + uncatted + ' sin categoría (reglas 🟡)' : '');
+    sumEl.textContent = I18n.t('mattype.summary.categorized', { n: catted.length }) +
+      (uncatted > 0 ? I18n.t('mattype.summary.uncategorized', { n: uncatted }) : '');
   }
 }
 

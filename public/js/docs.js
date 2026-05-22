@@ -1321,9 +1321,9 @@ function updateCounter() {
   const counterEl = document.getElementById('sel-counter');
   if (q) {
     const visChecked = [...visible].filter(el => el.querySelector('input').checked).length;
-    counterEl.textContent = `${visChecked} / ${visible.length} filtradas · ${checked.length} / ${all.length} total`;
+    counterEl.textContent = I18n.t('docs.counter.filtered', { visChecked: visChecked, visible: visible.length, checked: checked.length, all: all.length });
   } else {
-    counterEl.textContent = `${checked.length} / ${all.length} seleccionadas`;
+    counterEl.textContent = I18n.t('docs.counter.selected', { checked: checked.length, all: all.length });
   }
 }
 

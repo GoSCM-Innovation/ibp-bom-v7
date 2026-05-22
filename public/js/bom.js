@@ -438,44 +438,44 @@
       pane.innerHTML =
         '<div class="controls-bar" style="display:flex">' +
           '<div class="prod-search-group">' +
-            '<label>Buscar producto</label>' +
+            '<label>' + I18n.t('bom.search.label') + '</label>' +
             '<div class="ss-wrap prod-ss-wrap">' +
-              '<input type="text" class="ss-input-vis bom-search-inp" data-tab="' + tab.id + '" placeholder="Código o descripción..." autocomplete="off">' +
+              '<input type="text" class="ss-input-vis bom-search-inp" data-tab="' + tab.id + '" placeholder="' + escH(I18n.t('bom.search.placeholder')) + '" autocomplete="off">' +
               '<div class="ss-list bom-sugg-list"></div>' +
             '</div>' +
           '</div>' +
-          '<button class="btn btn-secondary btn-small" onclick="bomCollapseAll(\'' + tab.id + '\')">⊟ Colapsar</button>' +
-          '<button class="btn btn-danger btn-small" onclick="bomClearSearch(\'' + tab.id + '\')">✕ Limpiar</button>' +
+          '<button class="btn btn-secondary btn-small" onclick="bomCollapseAll(\'' + tab.id + '\')">' + I18n.t('bom.btn.collapseAll') + '</button>' +
+          '<button class="btn btn-danger btn-small" onclick="bomClearSearch(\'' + tab.id + '\')">' + I18n.t('bom.btn.clear') + '</button>' +
           '<div class="stats-row">' +
-            '<span>Raíces: <strong class="bom-stat-roots">-</strong></span>' +
-            '<span>Visibles: <strong class="bom-stat-visible">-</strong></span>' +
-            '<span>Prof.máx: <strong class="bom-stat-depth">-</strong></span>' +
+            '<span>' + I18n.t('bom.stats.roots') + '<strong class="bom-stat-roots">-</strong></span>' +
+            '<span>' + I18n.t('bom.stats.visible') + '<strong class="bom-stat-visible">-</strong></span>' +
+            '<span>' + I18n.t('bom.stats.maxDepth') + '<strong class="bom-stat-depth">-</strong></span>' +
           '</div>' +
         '</div>' +
         '<div class="empty-state bom-prompt" style="display:block">' +
           '<div class="icon">🔍</div>' +
-          'Busca un producto en el campo superior para visualizar su jerarquía BOM.<br>' +
-          '<span style="font-size:11px;color:var(--text3)">Se mostrarán todos los SourceID del producto en cada planta y opción de producción.</span>' +
+          escH(I18n.t('bom.empty.prompt')) + '<br>' +
+          '<span style="font-size:11px;color:var(--text3)">' + (I18n.getLang() === 'en' ? 'All SourceIDs of the product at each plant and production option will be shown.' : 'Se mostrarán todos los SourceID del producto en cada planta y opción de producción.') + '</span>' +
         '</div>' +
         '<div class="bom-loading hidden">' +
           '<div class="bom-loading-spinner"></div>' +
           '<div class="bom-loading-prd"></div>' +
-          '<div class="bom-loading-msg">Iniciando...</div>' +
+          '<div class="bom-loading-msg">' + I18n.t('common.starting') + '</div>' +
         '</div>' +
         '<div class="table-wrap hidden bom-table-wrap">' +
           '<table><thead><tr>' +
             '<th class="col-exp"></th>' +
-            '<th class="col-lvl">Nivel</th>' +
-            '<th class="col-loc">Planta</th>' +
-            '<th class="col-src">ID de producción</th>' +
-            '<th class="col-prd">Material</th>' +
-            '<th class="col-alt">Reemplazante</th>' +
-            '<th class="col-coef">Coeficiente</th>' +
-            '<th class="col-mat">Tipo de Material</th>' +
-            '<th class="col-type">Tipo</th>' +
-            '<th class="col-res">Puestos de trabajo</th>' +
+            '<th class="col-lvl">' + I18n.t('bom.tbl.level') + '</th>' +
+            '<th class="col-loc">' + I18n.t('bom.tbl.plant') + '</th>' +
+            '<th class="col-src">' + I18n.t('bom.tbl.sourceId') + '</th>' +
+            '<th class="col-prd">' + I18n.t('bom.tbl.material') + '</th>' +
+            '<th class="col-alt">' + I18n.t('bom.tbl.substitute') + '</th>' +
+            '<th class="col-coef">' + I18n.t('bom.tbl.coefficient') + '</th>' +
+            '<th class="col-mat">' + I18n.t('bom.tbl.materialType') + '</th>' +
+            '<th class="col-type">' + I18n.t('bom.tbl.type') + '</th>' +
+            '<th class="col-res">' + I18n.t('bom.tbl.workstations') + '</th>' +
           '</tr></thead><tbody class="bom-tbody"></tbody></table>' +
-          '<div class="empty-state hidden bom-empty"><div class="icon">🔍</div>Producto no encontrado como raíz en la jerarquía BOM.</div>' +
+          '<div class="empty-state hidden bom-empty"><div class="icon">🔍</div>' + escH(I18n.t('bom.empty.notFound')) + '</div>' +
         '</div>';
       document.getElementById('bomTabsContent').appendChild(pane);
 
@@ -524,7 +524,7 @@
       pane.querySelector('.bom-table-wrap').classList.add('hidden');
       var el = pane.querySelector('.bom-loading');
       el.querySelector('.bom-loading-prd').textContent = prdid;
-      el.querySelector('.bom-loading-msg').textContent = 'Iniciando...';
+      el.querySelector('.bom-loading-msg').textContent = I18n.t('common.starting');
       el.classList.remove('hidden');
     }
 
@@ -534,9 +534,9 @@
       var msg = pane.querySelector('.bom-loading-msg');
       if (!msg) return;
       if (phase === 'prd') {
-        msg.textContent = 'Cargando maestro de materiales (' + count + ')...';
+        msg.textContent = I18n.t('bom.loading.materials', { count: count });
       } else {
-        msg.textContent = 'Escaneando nivel ' + phase + ' — ' + count + ' materiales encontrados...';
+        msg.textContent = I18n.t('bom.loading.scanLevel', { phase: phase, count: count });
       }
     }
 
@@ -554,13 +554,30 @@
       return document.getElementById('pane_' + tabId);
     }
 
+    // Re-render BOM tabs when language changes (rebuilds table headers, buttons, labels)
+    document.addEventListener('i18n:change', function () {
+      try {
+        BOM_TABS.forEach(function (t) {
+          var pane = bomGetPane(t.id);
+          if (pane) pane.remove();
+        });
+        BOM_TABS.forEach(function (t) { bomMakeTabPane(t); });
+        if (BOM_ACTIVE_TAB) bomSwitchTab(BOM_ACTIVE_TAB);
+        bomRenderTabBar();
+        if (BOM_ACTIVE_TAB) {
+          var t = bomGetTab(BOM_ACTIVE_TAB);
+          if (t && t.prdid) bomRenderTable(BOM_ACTIVE_TAB);
+        }
+      } catch (e) { console.warn('[bom i18n re-render]', e); }
+    });
+
     function bomRenderTabBar() {
       var scroll = document.getElementById('bomTabsScroll');
       scroll.innerHTML = '';
       BOM_TABS.forEach(function (tab) {
         var btn = document.createElement('button');
         btn.className = 'bom-tab-btn' + (BOM_ACTIVE_TAB === tab.id ? ' active' : '');
-        var label = tab.prdid || 'Nueva búsqueda';
+        var label = tab.prdid || (I18n.getLang() === 'en' ? 'New search' : 'Nueva búsqueda');
         btn.innerHTML = '<span style="overflow:hidden;text-overflow:ellipsis;">' + escH(label) + '</span>';
         if (BOM_TABS.length > 1) {
           var closeBtn = document.createElement('span');
@@ -575,7 +592,7 @@
       if (BOM_TABS.length < BOM_MAX_TABS) {
         var addBtn = document.createElement('button');
         addBtn.className = 'bom-tab-add';
-        addBtn.title = 'Nueva pestaña (máx 15)';
+        addBtn.title = I18n.t('bom.btn.newTab');
         addBtn.textContent = '+';
         addBtn.addEventListener('click', function () { bomAddTab(); });
         scroll.appendChild(addBtn);
@@ -627,7 +644,7 @@
       }).slice(0, 30);
       list.innerHTML = '';
       if (!matches.length) {
-        list.innerHTML = '<div class="ss-none">Sin coincidencias</div>';
+        list.innerHTML = '<div class="ss-none">' + escH(I18n.t('common.noMatches')) + '</div>';
       } else {
         matches.forEach(function (p) {
           var div = document.createElement('div');
@@ -649,7 +666,7 @@
       // Cerrar sugerencias y mostrar spinner antes de arrancar el BFS
       pane.querySelector('.bom-sugg-list').classList.remove('open');
       bomShowLoading(tabId, prdid);
-      setStatus('info', 'Cargando BOM para ' + prdid + '...');
+      setStatus('info', I18n.t('bom.loading.bom', { prdid: prdid }));
 
       // Ceder al browser para que repinte el spinner antes del trabajo pesado
       await new Promise(function (r) { setTimeout(r, 0); });
@@ -660,7 +677,7 @@
         });
       } catch (e) {
         bomHideLoading(tabId);
-        setStatus('err', 'Error cargando BOM: ' + e.message);
+        setStatus('err', I18n.t('bom.error.loading', { error: e.message }));
         return;
       }
       bomHideLoading(tabId);
@@ -681,7 +698,7 @@
       tab.prdid = prdid;
       tab.expandedIds = {};
       tab.inverted = false;
-      setStatus('ok', '¡Listo! ' + TREE.locids.length + ' plantas · profundidad máx: ' + maxDepthGlobal());
+      setStatus('ok', I18n.t('bom.loading.complete', { count: TREE.locids.length, depth: maxDepthGlobal() }));
 
       var p = prodSuggestions.find(function (x) { return x.prdid === prdid; });
       pane.querySelector('.bom-search-inp').value = prdid + (p && p.prddescr ? '  ·  ' + p.prddescr : '');
@@ -927,7 +944,7 @@
           psubEntries.forEach(function (sub) {
             if (str(sub.SPRDFR) === n.prdid) altSubs.push(str(sub.PRDFR));
           });
-          var altTitle = altSubs.length > 0 ? 'Reemplaza a: ' + altSubs.join(', ') : 'Material de reemplazo';
+          var altTitle = altSubs.length > 0 ? I18n.t('bom.tbl.altItemReplaces') + altSubs.join(', ') : I18n.t('bom.tbl.altItemTitle');
           altHtml = '<span class="badge badge-alt" title="' + escH(altTitle) + '">X</span>';
         }
         html += '<td style="text-align:center">' + altHtml + '</td>';
@@ -953,7 +970,7 @@
         if (hasKids && isExp) {
           var childCount = (n.children && n.children.length) || '…';
           html += '<tr class="tr-comp-divider"><td style="padding-left:' + (indent + 28) + 'px"></td>';
-          html += '<td colspan="9"><span class="divider-lbl">↓ Componentes PSI (' + childCount + ')</span></td></tr>';
+          html += '<td colspan="9"><span class="divider-lbl">' + escH(I18n.t('bom.tbl.psiComponents', { count: childCount })) + '</span></td></tr>';
         }
       });
 
@@ -1067,9 +1084,9 @@
       var btn = document.getElementById('btnBomFullscreen');
       if (!btn) return;
       if (document.fullscreenElement && document.fullscreenElement.id === 'bomTreeWrapper') {
-        btn.innerHTML = '&#x2715; Salir';
+        btn.innerHTML = '&#x2715; ' + escH(I18n.t('bom.btn.exitFs').replace(/^✕ /, ''));
       } else {
-        btn.innerHTML = '&#x26F6; Pantalla completa';
+        btn.innerHTML = '&#x26F6; ' + escH(I18n.t('bom.fullscreenBtn').replace(/^⛶ /, ''));
       }
     });
 

@@ -14,7 +14,7 @@
     async function vizConfirmMapping() {
       var productEntity = document.getElementById('selVizProduct').value;
       if (!productEntity) {
-        alert('Selecciona la entidad Product antes de confirmar.');
+        alert(I18n.t('viz.val.selectProduct'));
         return;
       }
       if (typeof validateEntityFields === 'function') {
@@ -48,15 +48,15 @@
             ? "PlanningAreaID eq '" + CFG.pa + "' and VersionID eq '" + CFG.pver + "'"
             : "PlanningAreaID eq '" + CFG.pa + "'")
           : '';
-        setVizStatus('Descargando catálogo de productos…', 5);
+        setVizStatus(I18n.t('viz.loading.catalog'), 5);
         log(logEl, 'info', '[GET] ' + baseOData + productEntity + (paFilter ? ' | $filter=' + paFilter : '') + ' | $select=' + buildSelect(productEntity, ['PRDID','PRDDESCR','MATTYPEID']));
         var prods = await fetchAllPages(baseOData + productEntity, logEl, paFilter, 'PRDID,PRDDESCR,MATTYPEID');
         vizSuggestions = prods
           .filter(function (r) { return r.PRDID; })
           .map(function (r) { return { prdid: str(r.PRDID), prddescr: str(r.PRDDESCR || '') }; })
           .sort(function (a, b) { return a.prdid.localeCompare(b.prdid); });
-        log(logEl, 'ok', '✓ ' + vizSuggestions.length + ' productos cargados');
-        setVizStatus('✓ ' + vizSuggestions.length + ' materiales listos — selecciona uno y haz click en "Cargar red logística"', 100);
+        log(logEl, 'ok', I18n.t('viz.loading.productsLoaded', { count: vizSuggestions.length }));
+        setVizStatus(I18n.t('viz.loading.materialsReady', { count: vizSuggestions.length }), 100);
         vizInitAutocomplete();
         document.getElementById('vizControlsBar').style.display = 'flex';
         document.getElementById('vizLegend').style.display = 'block';
@@ -114,7 +114,7 @@
           var btnLoad = document.getElementById('btnVizLoadNet');
           btnLoad.disabled = false;
           btnLoad.style.opacity = '1';
-          document.getElementById('vizStatus').textContent = 'Material: ' + prdid + ' — haz click en "Cargar red logística"';
+          document.getElementById('vizStatus').textContent = I18n.t('viz.status.selectAndLoad', { prdid: prdid });
         });
       });
       list.classList.add('open');
@@ -146,7 +146,7 @@
       var btnLoad = document.getElementById('btnVizLoadNet');
       logEl.innerHTML = '';
       logEl.classList.add('hidden');
-      document.getElementById('btnToggleNetLogs').textContent = 'Ver logs técnicos';
+      (function(b){ if(!b) return; b.setAttribute('data-i18n','common.viewLogs'); b.textContent = window.I18n ? I18n.t('common.viewLogs') : 'Ver logs técnicos'; })(document.getElementById('btnToggleNetLogs'));
       // Resetear visibilidad, checkboxes y filtros al cargar nuevo producto
       VIZ_VISIBLE = { plant: true, location: true, customer: true, supplier: true };
       VIZ_HIDDEN_LOC = new Set();
@@ -157,13 +157,13 @@
         if (el) el.checked = true;
       });
       statusBar.style.display = 'flex';
-      statusText.textContent = 'Procesando red de ' + prdid + '…';
+      statusText.textContent = I18n.t('viz.loading.processing', { prdid: prdid });
       btnLoad.disabled = true;
-      btnLoad.textContent = '⏳ Cargando...';
+      btnLoad.textContent = I18n.t('viz.btn.loading');
       btnLoad.style.opacity = '0.7';
       document.getElementById('vizDetail').style.display = 'none';
       document.getElementById('vizEmpty').style.display = 'none';
-      document.getElementById('vizStatus').textContent = '⏳ Cargando ' + prdid + '…';
+      document.getElementById('vizStatus').textContent = I18n.t('viz.status.loading', { prdid: prdid });
       document.getElementById('btnVizFullscreen').style.display = 'none';
 
       var paBase = CFG.pa
@@ -193,14 +193,14 @@
           btnLoad.disabled = false;
           btnLoad.textContent = '▶ Cargar red';
           btnLoad.style.opacity = '';
-          log(logEl, 'error', 'Hay correcciones pendientes. Resuélvelas en el paso de mapeo de entidades antes de cargar.');
+          log(logEl, 'error', I18n.t('viz.val.pendingFmt'));
           if (typeof toggleMappingBody === 'function') toggleMappingBody('bodyVizMDT', 'arrVizMDT', true);
           return;
         }
       }
 
       try {
-        log(logEl, 'info', '▶ Cargando red para: ' + prdid);
+        log(logEl, 'info', I18n.t('viz.log.loadingNetwork', { prdid: prdid }));
         var locRows = [], custRows = [], plantRows = [], locMasters = [], custMasters = [];
         var psiRows = [], supplierLocRows = [], locProdRows = [], custProdRows = [];
 
@@ -334,10 +334,10 @@
 
         var graph = vizBuildGraph(prdid, VIZ_DATA);
         vizRender(graph.nodes, graph.edges);
-        var summary = graph.nodes.length + ' nodos · ' + graph.edges.length + ' conexiones';
+        var summary = I18n.t('viz.summary.graphStats', { count: graph.nodes.length, edges: graph.edges.length });
         statusText.textContent = '✓ ' + summary;
         var statusMsg = summary;
-        if (_autoHidden > 0) statusMsg += ' — ' + _autoHidden + ' clientes ocultos automáticamente. Usa ▼ Filtros para ajustar.';
+        if (_autoHidden > 0) statusMsg += ' — ' + I18n.t('viz.info.autoHidden', { count: _autoHidden });
         document.getElementById('vizStatus').textContent = statusMsg;
         document.getElementById('btnVizFullscreen').style.display = '';
         document.getElementById('btnVizFilter').style.display = '';
@@ -351,7 +351,7 @@
         log(logEl, 'err', '✕ Error: ' + e.message);
       } finally {
         var b = document.getElementById('btnVizLoadNet');
-        if (b) { b.disabled = false; b.style.opacity = '1'; b.textContent = 'Cargar red logística'; }
+        if (b) { b.disabled = false; b.style.opacity = '1'; b.textContent = I18n.t('viz.loadBtn'); }
       }
     }
 
@@ -437,7 +437,7 @@
         var lm = locMap[locid] || {};
         var d = str(lm.LOCDESCR || lm.LOCNAME || '');
         var plt = str(r.PLEADTIME || '');
-        var title = 'Planta: ' + locid + (d ? '\n' + d : '') + (plt ? '\nLead time producción: ' + plt : '');
+        var title = I18n.t('viz.node.plantTitle') + ': ' + locid + (d ? '\n' + d : '') + (plt ? '\n' + I18n.t('viz.node.lt.production') + ': ' + plt : '');
         addNode(locid, 'plant', locid + (d ? '\n' + d : ''), title);
       });
 
@@ -452,19 +452,19 @@
         var tlt = str(r.TLEADTIME || '');
         var typeFrom = _vizResolveType(from, locMap, 'location');
         var typeTo   = _vizResolveType(to,   locMap, 'location');
-        var lblFrom  = { supplier: 'Proveedor', plant: 'Planta', location: 'Ubicación' };
-        var lblTo    = { supplier: 'Proveedor', plant: 'Planta', location: 'Ubicación' };
+        var _lblMap = { supplier: I18n.t('viz.node.supplierTitle'), plant: I18n.t('viz.node.plantTitle'), location: I18n.t('viz.node.locationTitle') };
         if (typeFrom === 'supplier' && VIZ_VISIBLE.supplier === false) return;
         addNode(from, typeFrom, from + (df ? '\n' + df : ''),
-          (lblFrom[typeFrom] || 'Ubicación') + ': ' + from + (df ? '\n' + df : ''));
+          (_lblMap[typeFrom] || I18n.t('viz.node.locationTitle')) + ': ' + from + (df ? '\n' + df : ''));
         addNode(to,   typeTo,   to   + (dt ? '\n' + dt : ''),
-          (lblTo[typeTo]   || 'Ubicación') + ': ' + to   + (dt ? '\n' + dt : ''));
+          (_lblMap[typeTo] || I18n.t('viz.node.locationTitle')) + ': ' + to   + (dt ? '\n' + dt : ''));
         if (typeFrom === 'supplier') {
           var prd = str(r.PRDID || '');
+          var _inputLbl = I18n.getLang() === 'en' ? 'Input' : 'Insumo';
           _vizAddSupplierEdge(edgesArr, from, to,
-            (prd ? 'Insumo: ' + prd : '') + (tlt ? (prd ? ' ' : '') + '[LT:' + tlt + ']' : ''));
+            (prd ? _inputLbl + ': ' + prd : '') + (tlt ? (prd ? ' ' : '') + '[LT:' + tlt + ']' : ''));
         } else {
-          addEdge(from, to, false, '', tlt ? 'Lead time transporte: ' + tlt : '');
+          addEdge(from, to, false, '', tlt ? I18n.t('viz.node.lt.transport') + ': ' + tlt : '');
         }
       });
 
@@ -480,11 +480,11 @@
         var dc = str(cm.CUSTDESCR || '');
         var clt = str(r.CLEADTIME || '');
         var typeL = _vizResolveType(locid, locMap, 'location');
-        var lblL  = { supplier: 'Proveedor', plant: 'Planta', location: 'Ubicación' };
+        var lblL = { supplier: I18n.t('viz.node.supplierTitle'), plant: I18n.t('viz.node.plantTitle'), location: I18n.t('viz.node.locationTitle') };
         addNode(locid, typeL, locid + (dl ? '\n' + dl : ''),
-          (lblL[typeL] || 'Ubicación') + ': ' + locid + (dl ? '\n' + dl : ''));
-        addNode(custid, 'customer', custid + (dc ? '\n' + dc : ''), 'Cliente: ' + custid + (dc ? '\n' + dc : ''));
-        addEdge(locid, custid, true, '', clt ? 'Lead time cliente: ' + clt : '');
+          (lblL[typeL] || I18n.t('viz.node.locationTitle')) + ': ' + locid + (dl ? '\n' + dl : ''));
+        addNode(custid, 'customer', custid + (dc ? '\n' + dc : ''), I18n.t('viz.node.customerTitle') + ': ' + custid + (dc ? '\n' + dc : ''));
+        addEdge(locid, custid, true, '', clt ? I18n.t('viz.node.lt.customer') + ': ' + clt : '');
       });
 
       // Supplier arcs (LOCFR=LOCTYPE:V → plant LOCID) — group by supp+dest for clean edges
@@ -697,7 +697,7 @@
 
     /* Genera el HTML del panel de detalle para un nodo clickeado */
     function _vizNodeDetailHtml(nid, node) {
-      var typeLabels = { plant: 'Planta', location: 'Ubicación', customer: 'Cliente', supplier: 'Proveedor' };
+      var typeLabels = { plant: I18n.t('viz.node.plantTitle'), location: I18n.t('viz.node.locationTitle'), customer: I18n.t('viz.node.customerTitle'), supplier: I18n.t('viz.node.supplierTitle') };
       var badgeMap   = { plant: 'badge-main', location: 'badge-comp', customer: 'badge-leaf', supplier: 'badge-coprod' };
       var html =
         '<span class="badge ' + (badgeMap[node._type] || 'badge-comp') + '">' +
@@ -912,10 +912,10 @@
       if (!btn) return;
       var total = VIZ_HIDDEN_LOC.size + VIZ_HIDDEN_CUST.size;
       if (total > 0) {
-        btn.textContent = '▼ Filtros (' + total + ')';
+        btn.textContent = I18n.t('viz.btn.filtersWithCount', { count: total });
         btn.style.cssText = 'background:#F59E0B;color:#000;border-color:#F59E0B;';
       } else {
-        btn.textContent = '▼ Filtros';
+        btn.textContent = I18n.t('viz.filters');
         btn.style.cssText = '';
       }
     }
@@ -1069,7 +1069,7 @@
 
       if (on) {
           var toast = document.createElement('div');
-          toast.textContent = '✅ Conectado a SAP IBP con éxito';
+          toast.textContent = I18n.t('toast.connected');
           toast.style.cssText = 'position:fixed;bottom:20px;right:20px;background:var(--green);color:#fff;padding:12px 24px;border-radius:8px;font-size:14px;font-weight:600;box-shadow:0 4px 12px rgba(0,0,0,0.3);z-index:9999;transition:opacity 0.3s;';
           document.body.appendChild(toast);
           setTimeout(function() {
@@ -1306,7 +1306,7 @@
 
       if (!filtered.length) {
         tbl.innerHTML = '<p style="color:var(--text2);font-size:12px;margin:0;">'
-          + (_vizRutas.length ? 'Sin rutas que coincidan con el filtro.' : 'No hay rutas configuradas para este producto.')
+          + I18n.t(_vizRutas.length ? 'viz.empty.noRoutesFilter' : 'viz.empty.noRoutesProduct')
           + '</p>';
         return;
       }
@@ -1418,7 +1418,7 @@
       var prd   = vizCurrentPrd || 'producto';
       var lines = ['"#","Tipo","Causa","Planta","Ruta","Termina en","Cliente","# Saltos"'];
       _vizRutas.forEach(function(r, i) {
-        var tipo  = r.hasCustomer ? 'Con llegada a cliente' : 'Sin llegada a cliente';
+        var tipo  = I18n.t(r.hasCustomer ? 'viz.rutas.label.withCust' : 'viz.rutas.label.noCust');
         var causa = r.hasCustomer ? '' : (r.endType === 'cycle' ? 'Ciclo' : 'Dead-end');
         var ruta  = r.nodes.join(' -> ') + (r.customer ? ' -> ' + r.customer : '');
         var endTxt = r.hasCustomer ? (r.customer || '') : (r.endNode || '');
