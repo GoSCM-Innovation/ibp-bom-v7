@@ -39,7 +39,7 @@ async function doProductionAnalysis() {
   };
 
   if (!ent.psh) {
-    log(logEl, 'err', timer.fmt() + ' Configura al menos la entidad Production Source Header antes de analizar');
+    log(logEl, 'err', timer.fmt() + ' ' + I18n.t('xls.log.configureHeader'));
     document.getElementById('btnFetchPA').disabled = false;
     return;
   }
@@ -70,7 +70,7 @@ async function doProductionAnalysis() {
     var _paResult = validateEntityFields(_paChecks);
     if (_paResult.issues.length) {
       document.getElementById('btnFetchPA').disabled = false;
-      log(logEl, 'error', 'Hay correcciones pendientes. Resuélvelas en el paso de mapeo de entidades antes de ejecutar.');
+      log(logEl, 'error', I18n.t('xls.log.pendingCorrections'));
       if (typeof toggleMappingBody === 'function') toggleMappingBody('bodyPAMDT', 'arrPAMDT', true);
       return;
     }
@@ -83,7 +83,7 @@ async function doProductionAnalysis() {
 
     /* ── PHASE 1: Download entities (0 → 75%) ── */
 
-    setStatusPA('Descargando Production Source Header → IDB...', 2);
+    setStatusPA(I18n.t('xls.log.downloading', { entity: 'Production Source Header' }), 2);
     log(logEl, 'info', timer.fmt() + ' [GET] ' + baseOData + ent.psh);
     var nPsh = await fetchAndIndex(baseOData + ent.psh, logEl, fPsh,
       efGetSelect('pa', 'psh'),
@@ -111,7 +111,7 @@ async function doProductionAnalysis() {
     progEl.style.width = '12%';
 
     if (ent.psi) {
-      setStatusPA('Descargando Production Source Item → IDB...', 12);
+      setStatusPA(I18n.t('xls.log.downloading', { entity: 'Production Source Item' }), 12);
       var nPsi = await fetchAndIndex(baseOData + ent.psi, logEl, paFilter,
         efGetSelect('pa', 'psi'),
         function(rows) {
@@ -124,7 +124,7 @@ async function doProductionAnalysis() {
     progEl.style.width = '18%';
 
     if (ent.psiSub) {
-      setStatusPA('Descargando Production Source Item Sub → IDB...', 18);
+      setStatusPA(I18n.t('xls.log.downloading', { entity: 'Production Source Item Sub' }), 18);
       var nPsiSub = await fetchAndIndex(baseOData + ent.psiSub, logEl, paFilter,
         'SOURCEID,PRDFR,SPRDFR',
         function(rows) {
@@ -137,7 +137,7 @@ async function doProductionAnalysis() {
     progEl.style.width = '22%';
 
     if (ent.psr) {
-      setStatusPA('Descargando Production Source Resource → IDB...', 22);
+      setStatusPA(I18n.t('xls.log.downloading', { entity: 'Production Source Resource' }), 22);
       var nPsr = await fetchAndIndex(baseOData + ent.psr, logEl, paFilter,
         efGetSelect('pa', 'psr'),
         function(rows) {
@@ -150,7 +150,7 @@ async function doProductionAnalysis() {
     progEl.style.width = '32%';
 
     if (ent.prd) {
-      setStatusPA('Indexando Product...', 32);
+      setStatusPA(I18n.t('xls.log.indexing', { entity: 'Product' }), 32);
       var nPrd = await fetchAndIndex(baseOData + ent.prd, logEl, paFilter,
         efGetSelect('pa', 'product'),
         function(rows) {
@@ -163,7 +163,7 @@ async function doProductionAnalysis() {
     progEl.style.width = '44%';
 
     if (ent.loc) {
-      setStatusPA('Indexando Location...', 44);
+      setStatusPA(I18n.t('xls.log.indexing', { entity: 'Location' }), 44);
       var nLoc = await fetchAndIndex(baseOData + ent.loc, logEl, fLoc,
         efGetSelect('pa', 'location'),
         function(rows) {
@@ -177,7 +177,7 @@ async function doProductionAnalysis() {
     progEl.style.width = '54%';
 
     if (ent.res) {
-      setStatusPA('Indexando Resource...', 54);
+      setStatusPA(I18n.t('xls.log.indexing', { entity: 'Resource' }), 54);
       var nRes = await fetchAndIndex(baseOData + ent.res, logEl, paFilter,
         efGetSelect('pa', 'resource'),
         function(rows) {
@@ -190,7 +190,7 @@ async function doProductionAnalysis() {
     progEl.style.width = '60%';
 
     if (ent.resLoc) {
-      setStatusPA('Indexando Resource Location...', 60);
+      setStatusPA(I18n.t('xls.log.indexing', { entity: 'Resource Location' }), 60);
       var nResLoc = await fetchAndIndex(baseOData + ent.resLoc, logEl, paFilter,
         efGetSelect('pa', 'resourceLocation'),
         function(rows) {
@@ -210,7 +210,7 @@ async function doProductionAnalysis() {
     progEl.style.width = '64%';
 
     if (ent.locPrd) {
-      setStatusPA('Descargando Location Product → IDB...', 64);
+      setStatusPA(I18n.t('xls.log.downloading', { entity: 'Location Product' }), 64);
       var nLp = await fetchAndIndex(baseOData + ent.locPrd, logEl, paFilter,
         'LOCID,PRDID',
         function(rows) { return idbBulkPut('pa_loc_prod', rows); });
@@ -220,7 +220,7 @@ async function doProductionAnalysis() {
     progEl.style.width = '68%';
 
     if (ent.locSrc) {
-      setStatusPA('Descargando Location Source → IDB...', 68);
+      setStatusPA(I18n.t('xls.log.downloading', { entity: 'Location Source' }), 68);
       var nLs = await fetchAndIndex(baseOData + ent.locSrc, logEl, fLocSrc,
         'PRDID,LOCFR,LOCID,TLEADTIME,TINVALID',
         function(rows) {
@@ -236,7 +236,7 @@ async function doProductionAnalysis() {
     if (Object.keys(PA_PRD).length) mattyeInit(PA_PRD);
 
     log(logEl, 'ok', timer.fmt() + ' Descarga completa. Iniciando análisis...');
-    setStatusPA('Analizando...', 75);
+    setStatusPA(I18n.t('xls.log.analyzing'), 75);
 
     await paAnalyzeAndExport(
       ent, PA_PRD, PA_LOC, PA_RES, PA_RES_LOC,
@@ -246,7 +246,7 @@ async function doProductionAnalysis() {
 
     progEl.style.width = '100%';
     log(logEl, 'ok', timer.fmt() + ' ¡Excel descargado! Análisis completado en ' + timer.ms() + 'ms.');
-    setStatusPA('✓ Completado · ' + timer.ms() + 'ms', 100);
+    setStatusPA(I18n.t('xls.log.completedShort', { ms: timer.ms() }), 100);
     document.getElementById('paSuccessBanner').classList.remove('hidden');
 
   } catch(e) {
@@ -449,7 +449,7 @@ async function paAnalyzeAndExport(
   function ld(id)  { var l = PA_LOC[id]  || {}; return str(l.LOCDESCR  || ''); }
   function lct(id) { var l = PA_LOC[id]  || {}; return str(l.LOCTYPE   || ''); }
   function rd(id)  { var r = PA_RES[id]  || {}; return str(r.RESDESCR  || ''); }
-  function yn(b)   { return b ? 'Si' : 'No'; }
+  function yn(b)   { return b ? I18n.t('xls.yes') : I18n.t('xls.no'); }
 
   /* ── PHASE A: cargar IDB a memoria ── */
   setStatusPA('Cargando datos desde IndexedDB...', 75);
@@ -735,7 +735,7 @@ async function paAnalyzeAndExport(
   }
 
   function statusLabel(fill) {
-    return fill === C_RED ? '⛔ Alerta' : fill === C_YEL ? '⚠ Advertencia' : '✅ OK';
+    return fill === C_RED ? I18n.t('xls.severity.alert') : fill === C_YEL ? I18n.t('xls.severity.warning') : I18n.t('xls.severity.ok');
   }
 
   var STATS = {};
@@ -770,8 +770,8 @@ async function paAnalyzeAndExport(
   function codes(arr) { return Array.from(arr || []).sort().join(', '); }
 
   /* ── Resumen (se llena al final) ── */
-  var S0 = makeSheet('Resumen', 'FF34D399',
-    ['#','Hoja','Total registros','Alertas 🔴','Advertencias 🟡','OK ✅','% Consistencia'],
+  var S0 = makeSheet(I18n.t('xls.sheet.summary'), 'FF34D399',
+    ['#', I18n.t('xls.col.sheet'), I18n.t('xls.col.totalRecords'), I18n.t('xls.col.alerts'), I18n.t('xls.col.warnings'), I18n.t('xls.col.ok'), I18n.t('xls.col.consistencyPct')],
     [
       'Número de hoja en el libro.',
       'Nombre de la hoja analizada.',
@@ -789,19 +789,19 @@ async function paAnalyzeAndExport(
   if (ent.prd) {
     initStat('Product');
     var _s1Hdrs = [
-      'Estado','Observacion',
+      I18n.t('xls.col.status'), I18n.t('xls.col.obs'),
       'PRDID','PRDDESCR','MATTYPEID',
-      'En Location Product','En PSH (output)','En PSI (componente)','En Location Source',
-      '# Opciones prod.','Opciones prod. (SOURCEIDs)',
-      '# Plantas prod.','Plantas prod. (códigos)',
-      '# Componentes BOM',
-      '# Recursos prod.','Recursos prod. (códigos)',
-      '# Proveedores','Proveedores (códigos)',
-      '# Plantas cubiertas','Plantas cubiertas (códigos)',
-      '# Plantas sin cobertura','Plantas sin cobertura (códigos)',
-      '# Productos que lo usan',
-      '# Orígenes en red','Orígenes en red (códigos)',
-      '# Plantas consumidoras','Plantas consumidoras (códigos)'
+      I18n.t('xls.col.inLocProduct'), I18n.t('xls.col.inPSHOutput'), I18n.t('xls.col.inPSIComp'), I18n.t('xls.col.inLocSource'),
+      I18n.t('xls.col.numProdOptions'), I18n.t('xls.col.prodOptions'),
+      I18n.t('xls.col.numProdPlants'), I18n.t('xls.col.prodPlants'),
+      I18n.t('xls.col.numBomComps'),
+      I18n.t('xls.col.numProdResources'), I18n.t('xls.col.prodResources'),
+      I18n.t('xls.col.numSuppliers'), I18n.t('xls.col.suppliers'),
+      I18n.t('xls.col.numPlantsCovered'), I18n.t('xls.col.plantsCovered'),
+      I18n.t('xls.col.numPlantsUncovered'), I18n.t('xls.col.plantsUncovered'),
+      I18n.t('xls.col.numProdUsing'),
+      I18n.t('xls.col.numNetOrigins'), I18n.t('xls.col.netOrigins'),
+      I18n.t('xls.col.numConsumerPlants'), I18n.t('xls.col.consumerPlants')
     ];
     var _s1Notes = [
       'Color de alerta: 🔴 Alerta = problema crítico que bloquea la planificación | 🟡 Advertencia = dato incompleto o sospechoso | ✅ OK = sin hallazgos.',
@@ -848,7 +848,7 @@ async function paAnalyzeAndExport(
       'metric','detail'
     ];
     efInjectHeaders(_s1Hdrs, _s1Notes, _s1Groups, 'pa', 'product', 4);
-    var S1 = makeSheet('Product', 'FF29ABE2', _s1Hdrs, _s1Notes, _s1Groups);
+    var S1 = makeSheet(I18n.t('xls.sheet.product'), 'FF29ABE2', _s1Hdrs, _s1Notes, _s1Groups);
 
     Object.keys(PA_PRD).sort().forEach(function(prdid) {
       var mattypeid = pm(prdid);
@@ -1099,7 +1099,7 @@ async function paAnalyzeAndExport(
   if (ent.loc) {
     initStat('Location');
     var _s9Hdrs = [
-      'Estado','Observacion',
+      I18n.t('xls.col.status'), I18n.t('xls.col.obs'),
       'LOCID','LOCDESCR','LOCTYPE',
       'Rol(es) inferido(s)',
       /* Planta */
@@ -1188,7 +1188,7 @@ async function paAnalyzeAndExport(
       'metric','detail','metric','detail'
     ];
     efInjectHeaders(_s9Hdrs, _s9Notes, _s9Groups, 'pa', 'location', 4);
-    var S9 = makeSheet('Location', 'FF10B981', _s9Hdrs, _s9Notes, _s9Groups);
+    var S9 = makeSheet(I18n.t('xls.sheet.location'), 'FF10B981', _s9Hdrs, _s9Notes, _s9Groups);
 
     // Unión de todos los locids conocidos
     var allLocIds = new Set();
@@ -1456,7 +1456,7 @@ async function paAnalyzeAndExport(
   if (ent.res) {
     initStat('Resource');
     var _s2Hdrs = [
-      'Estado','Observacion',
+      I18n.t('xls.col.status'), I18n.t('xls.col.obs'),
       'RESID','RESDESCR',
       'En PSR','En Resource Location',
       '# Plantas asignadas','Plantas asignadas (códigos)',
@@ -1486,7 +1486,7 @@ async function paAnalyzeAndExport(
       'metric','detail'
     ];
     efInjectHeaders(_s2Hdrs, _s2Notes, _s2Groups, 'pa', 'resource', 3);
-    var S2 = makeSheet('Resource', 'FFa78bfa', _s2Hdrs, _s2Notes, _s2Groups);
+    var S2 = makeSheet(I18n.t('xls.sheet.resource'), 'FFa78bfa', _s2Hdrs, _s2Notes, _s2Groups);
 
     // Índice: RESID → Set<LOCID> (desde Resource Location)
     var resLocsByResid = {};
@@ -1550,7 +1550,7 @@ async function paAnalyzeAndExport(
   if (ent.resLoc) {
     initStat('Resource Location');
     var _s3Hdrs = [
-      'Estado','Observacion',
+      I18n.t('xls.col.status'), I18n.t('xls.col.obs'),
       'RESID','RESDESCR','LOCID','LOCDESCR',
       'RESID+LOCID usado en PSR'
     ];
@@ -1569,7 +1569,7 @@ async function paAnalyzeAndExport(
       'flag'
     ];
     efInjectHeaders(_s3Hdrs, _s3Notes, _s3Groups, 'pa', 'resourceLocation', 5);
-    var S3 = makeSheet('Resource Location', 'FFFF9F43', _s3Hdrs, _s3Notes, _s3Groups);
+    var S3 = makeSheet(I18n.t('xls.sheet.resourceLocation'), 'FFFF9F43', _s3Hdrs, _s3Notes, _s3Groups);
     Object.keys(PA_RES_LOC).sort().forEach(function(resid) {
       PA_RES_LOC[resid].forEach(function(e) {
         var locid = e.LOCID;
@@ -1593,7 +1593,7 @@ async function paAnalyzeAndExport(
   if (ent.psh) {
     initStat('Prod Source Header');
     var _s6Hdrs = [
-      'Estado','Observacion',
+      I18n.t('xls.col.status'), I18n.t('xls.col.obs'),
       'SOURCEID',
       'PRDID output','PRDDESCR output','MATTYPEID output',
       'LOCID planta','LOCDESCR planta',
@@ -1635,7 +1635,7 @@ async function paAnalyzeAndExport(
       'flag'
     ];
     efInjectHeaders(_s6Hdrs, _s6Notes, _s6Groups, 'pa', 'psh', 11);
-    var S6 = makeSheet('Prod Source Header', 'FFF7A800', _s6Hdrs, _s6Notes, _s6Groups);
+    var S6 = makeSheet(I18n.t('xls.sheet.prodSrcHeader'), 'FFF7A800', _s6Hdrs, _s6Notes, _s6Groups);
     Object.keys(pshBySid).sort().forEach(function(sid) {
       var recs    = pshBySid[sid];
       var primary = recs.find(function(r){ return r.SOURCETYPE === 'P'; }) || recs[0];
@@ -1692,7 +1692,7 @@ async function paAnalyzeAndExport(
   if (ent.psi) {
     initStat('Prod Source Item');
     var _s7Hdrs = [
-      'Estado','Observacion',
+      I18n.t('xls.col.status'), I18n.t('xls.col.obs'),
       'SOURCEID',
       'PRDID output','PRDDESCR output','MATTYPEID output',
       'LOCID planta','LOCDESCR planta',
@@ -1741,7 +1741,7 @@ async function paAnalyzeAndExport(
       'ibp','detail'
     ];
     efInjectHeaders(_s7Hdrs, _s7Notes, _s7Groups, 'pa', 'psi', 11);
-    var S7 = makeSheet('Prod Source Item', 'FF06B6D4', _s7Hdrs, _s7Notes, _s7Groups);
+    var S7 = makeSheet(I18n.t('xls.sheet.prodSrcItem'), 'FF06B6D4', _s7Hdrs, _s7Notes, _s7Groups);
 
     // ¿Es excluido el componente?
     function _compExclNote(compMt) {
@@ -1861,7 +1861,7 @@ async function paAnalyzeAndExport(
   if (ent.psr) {
     initStat('Prod Source Resource');
     var _s8Hdrs = [
-      'Estado','Observacion',
+      I18n.t('xls.col.status'), I18n.t('xls.col.obs'),
       'SOURCEID',
       'PRDID output','PRDDESCR output','MATTYPEID output',
       'LOCID planta','LOCDESCR planta',
@@ -1894,7 +1894,7 @@ async function paAnalyzeAndExport(
       'metric','detail'
     ];
     efInjectHeaders(_s8Hdrs, _s8Notes, _s8Groups, 'pa', 'psr', 9);
-    var S8 = makeSheet('Prod Source Resource', 'FF6C63FF', _s8Hdrs, _s8Notes, _s8Groups);
+    var S8 = makeSheet(I18n.t('xls.sheet.prodSrcResource'), 'FF6C63FF', _s8Hdrs, _s8Notes, _s8Groups);
 
     // RESID → plantas asignadas (Resource Location)
     var resLocMapByResid = {};
@@ -1940,7 +1940,7 @@ async function paAnalyzeAndExport(
   var excluidos = Object.keys(MATTYPE_CFG).filter(function(k){ return MATTYPE_CFG[k].excluded; });
   if (excluidos.length) {
     initStat('Tipos Excluidos');
-    var SX = makeSheet('Tipos Excluidos', 'FFFF6B6B', [
+    var SX = makeSheet(I18n.t('xls.sheet.excludedTypes'), 'FFFF6B6B', [
       'MATTYPEID','# Productos','Aparece como componente PSI en # SOURCEIDs',
       'SOURCEIDs donde es componente (códigos)',
       'Componentes con cobertura LocSrc','Componentes sin cobertura LocSrc',

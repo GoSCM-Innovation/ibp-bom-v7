@@ -881,8 +881,8 @@
       function ld(id)      { var l = SN_IDX.locLookup[id]  || {}; return str(l.LOCDESCR  || ''); }
       function locType(id) { var l = SN_IDX.locLookup[id]  || {}; return str(l.LOCTYPE   || ''); }
       function cd(id)      { var c = SN_IDX.custLookup[id] || {}; return str(c.CUSTDESCR || ''); }
-      function yn(b)       { return b ? 'Sí' : 'No'; }
-      function stLabel(f)  { return f === C_RED ? '\u26d4 Alerta' : f === C_YEL ? '\u26a0 Advertencia' : '\u2705 OK'; }
+      function yn(b)       { return b ? I18n.t('xls.yes') : I18n.t('xls.no'); }
+      function stLabel(f)  { return f === C_RED ? I18n.t('xls.severity.alert') : f === C_YEL ? I18n.t('xls.severity.warning') : I18n.t('xls.severity.ok'); }
 
       /* ── Workbook ── */
       var wb    = new StreamingXlsx();
@@ -969,8 +969,8 @@
       }
 
       /* ── Hoja Resumen (se llena al final) ── */
-      var s0hdr = ['#', 'Hoja', 'Total registros', 'Alertas 🔴', 'Advertencias 🟡', 'OK ✅', '% Consistencia'];
-      var s0ws = wb.addWorksheet('Resumen', { views: [{ state: 'frozen', ySplit: 1 }], properties: { tabColor: { argb: 'FF34D399' } } });
+      var s0hdr = ['#', I18n.t('xls.col.sheet'), I18n.t('xls.col.totalRecords'), I18n.t('xls.col.alerts'), I18n.t('xls.col.warnings'), I18n.t('xls.col.ok'), I18n.t('xls.col.consistencyPct')];
+      var s0ws = wb.addWorksheet(I18n.t('xls.sheet.summary'), { views: [{ state: 'frozen', ySplit: 1 }], properties: { tabColor: { argb: 'FF34D399' } } });
       s0ws.addRow(s0hdr);
       s0ws.getRow(1).eachCell(function (cell) {
         cell.fill  = { type: 'pattern', pattern: 'solid', fgColor: { argb: GOLD } };
@@ -983,14 +983,32 @@
 
       /* ── Crear grupos de hojas ── */
       var _prdHdrs = [
-        'Estado','Observacion',
+        I18n.t('xls.col.status'), I18n.t('xls.col.obs'),
         'PRDID','PRDDESCR','MATTYPEID',
-        'En PSH?','En PSI?','En Location Source?','En Customer Source?','En Location Product?','En Customer Product?','Solo en maestro?',
-        'Estado de la Red','# Plantas','# DCs','# Clientes','# Rutas completas','Ruta mas larga','# Ghost Nodes','# Dead Ends',
-        'Health Score','Categoria de salud','Detalle Calculo Health Score',
-        '# Origenes (LOCFR)','Origenes (codigos)','# Destinos (LOCID)','Destinos (codigos)',
-        '# Clientes en CustSrc','Clientes (codigos)','Multi-sourced?','TLT promedio (dias)','CLT promedio (dias)',
-        '# Plantas aisladas'
+        I18n.t('xls.col.inPSHQ'), (I18n.getLang()==='en'?'In PSI?':'En PSI?'),
+        I18n.t('xls.col.inLocSourceQ'), I18n.t('xls.col.inCustSourceQ'),
+        I18n.t('xls.col.inLocProductQ'), I18n.t('xls.col.inCustProdQ'),
+        I18n.t('xls.col.onlyMasterQ'),
+        (I18n.getLang()==='en'?'Network Status':'Estado de la Red'),
+        (I18n.getLang()==='en'?'# Plants':'# Plantas'),
+        '# DCs',
+        (I18n.getLang()==='en'?'# Customers':'# Clientes'),
+        (I18n.getLang()==='en'?'# Full routes':'# Rutas completas'),
+        (I18n.getLang()==='en'?'Longest route':'Ruta más larga'),
+        '# Ghost Nodes','# Dead Ends',
+        'Health Score',
+        (I18n.getLang()==='en'?'Health category':'Categoría de salud'),
+        (I18n.getLang()==='en'?'Health Score breakdown':'Detalle cálculo Health Score'),
+        (I18n.getLang()==='en'?'# Origins (LOCFR)':'# Orígenes (LOCFR)'),
+        (I18n.getLang()==='en'?'Origins (codes)':'Orígenes (códigos)'),
+        (I18n.getLang()==='en'?'# Destinations (LOCID)':'# Destinos (LOCID)'),
+        (I18n.getLang()==='en'?'Destinations (codes)':'Destinos (códigos)'),
+        (I18n.getLang()==='en'?'# Customers in CustSrc':'# Clientes en CustSrc'),
+        (I18n.getLang()==='en'?'Customers (codes)':'Clientes (códigos)'),
+        'Multi-sourced?',
+        (I18n.getLang()==='en'?'Avg TLT (days)':'TLT promedio (días)'),
+        (I18n.getLang()==='en'?'Avg CLT (days)':'CLT promedio (días)'),
+        (I18n.getLang()==='en'?'# Isolated plants':'# Plantas aisladas')
       ];
       var _prdNotes = [
         'Color: \u26d4 Alerta = problema critico | \u26a0 Advertencia = dato incompleto | \u2705 OK = sin hallazgos.',
@@ -1038,14 +1056,14 @@
         'detail'
       ];
       efInjectHeaders(_prdHdrs, _prdNotes, _prdGroups, 'sn', 'product', 4);
-      var gPrd = makeGroup('Product', 'FF29ABE2', _prdHdrs, _prdNotes, _prdGroups);
+      var gPrd = makeGroup(I18n.t('xls.sheet.product'), 'FF29ABE2', _prdHdrs, _prdNotes, _prdGroups);
 
       var _locHdrs = [
-        'Estado','Observacion',
-        'LOCID','LOCDESCR','LOCTYPE','Rol inferido',
-        'En PSH?','En Location Source?','En Customer Source?','En Location Product?','Solo en maestro?',
-        '# Productos manejados','# Como origen (LOCFR)','# Como destino (LOCID)','# Clientes servidos',
-        'Es nodo critico?','# Productos impactados','# Clientes impactados','Nivel de riesgo'
+        I18n.t('xls.col.status'), I18n.t('xls.col.obs'),
+        'LOCID','LOCDESCR','LOCTYPE', I18n.t('xls.col.inferredRole'),
+        I18n.t('xls.col.inPSHQ'), I18n.t('xls.col.inLocSourceQ'), I18n.t('xls.col.inCustSourceQ'), I18n.t('xls.col.inLocProductQ'), I18n.t('xls.col.onlyMasterQ'),
+        I18n.t('xls.col.numProductsHandled'), I18n.t('xls.col.numAsOrigin'), I18n.t('xls.col.numAsDest'), I18n.t('xls.col.numCustServed'),
+        I18n.t('xls.col.isCriticalNodeQ'), I18n.t('xls.col.numImpactedProducts'), I18n.t('xls.col.numImpactedCustomers'), I18n.t('xls.col.riskLevel')
       ];
       var _locNotes = [
         'Color: \u26d4 Alerta | \u26a0 Advertencia | \u2705 OK.',
@@ -1076,13 +1094,13 @@
         'metric','metric','metric','metric'
       ];
       efInjectHeaders(_locHdrs, _locNotes, _locGroups, 'sn', 'location', 4);
-      var gLoc = makeGroup('Location', 'FF06B6D4', _locHdrs, _locNotes, _locGroups);
+      var gLoc = makeGroup(I18n.t('xls.sheet.location'), 'FF06B6D4', _locHdrs, _locNotes, _locGroups);
 
       var _custHdrs = [
-        'Estado','Observacion',
+        I18n.t('xls.col.status'), I18n.t('xls.col.obs'),
         'CUSTID','CUSTDESCR',
-        'En Customer Source?','En Customer Product?','Solo en maestro?',
-        '# Productos recibidos','# Ubicaciones proveedoras','# Paths que llegan','Resiliencia predominante'
+        I18n.t('xls.col.inCustSourceQ'), I18n.t('xls.col.inCustProdQ'), I18n.t('xls.col.onlyMasterQ'),
+        I18n.t('xls.col.numProductsReceived'), I18n.t('xls.col.numSupplyingLocs'), I18n.t('xls.col.numPathsReaching'), I18n.t('xls.col.predominantResilience')
       ];
       var _custNotes = [
         'Color: \u26d4 Alerta | \u26a0 Advertencia | \u2705 OK.',
@@ -1104,13 +1122,13 @@
         'metric','metric','metric','metric'
       ];
       efInjectHeaders(_custHdrs, _custNotes, _custGroups, 'sn', 'customer', 3);
-      var gCust = makeGroup('Customer', 'FF10B981', _custHdrs, _custNotes, _custGroups);
+      var gCust = makeGroup(I18n.t('xls.sheet.customer'), 'FF10B981', _custHdrs, _custNotes, _custGroups);
 
       var _lsHdrs = [
-        'Estado','Observacion',
-        'PRDID','PRDDESCR','MATTYPEID','LOCFR','LOCFR Descripcion','LOCID','LOCID Descripcion','TLEADTIME',
-        'LOCFR+PRDID en Location Product?','LOCID+PRDID en Location Product?','PRDID en PSH?',
-        'Arco en ruta completa?','Arco inverso?','Lead Time Status','SPOF arco?'
+        I18n.t('xls.col.status'), I18n.t('xls.col.obs'),
+        'PRDID','PRDDESCR','MATTYPEID','LOCFR', I18n.t('xls.col.locFrDescr'), 'LOCID', I18n.t('xls.col.locIdDescr'), 'TLEADTIME',
+        I18n.t('xls.col.locFrPrdInLP'), I18n.t('xls.col.locIdPrdInLP'), I18n.t('xls.col.prdInPSHQ'),
+        I18n.t('xls.col.arcInFullRoute'), I18n.t('xls.col.arcInverse'), I18n.t('xls.col.leadTimeStatus'), I18n.t('xls.col.spofArc')
       ];
       var _lsNotes = [
         'Color: \u26d4 Alerta | \u26a0 Advertencia | \u2705 OK.',
@@ -1138,13 +1156,13 @@
         'metric','metric','metric','metric'
       ];
       efInjectHeaders(_lsHdrs, _lsNotes, _lsGroups, 'sn', 'locationSource', 9);
-      var gLS = makeGroup('Location Source', 'FFF7A800', _lsHdrs, _lsNotes, _lsGroups);
+      var gLS = makeGroup(I18n.t('xls.sheet.locationSource'), 'FFF7A800', _lsHdrs, _lsNotes, _lsGroups);
 
       var _csHdrs = [
-        'Estado','Observacion',
-        'PRDID','PRDDESCR','MATTYPEID','LOCID','LOCID Descripcion','CUSTID','CUSTID Descripcion','CLEADTIME',
-        'LOCID+PRDID en Location Product?','CUSTID+PRDID en Customer Product?','PRDID en PSH?',
-        'Entrega alcanzable desde produccion?','Lead Time Status'
+        I18n.t('xls.col.status'), I18n.t('xls.col.obs'),
+        'PRDID','PRDDESCR','MATTYPEID','LOCID', I18n.t('xls.col.locIdDescr'), 'CUSTID', I18n.t('xls.col.custIdDescr'), 'CLEADTIME',
+        I18n.t('xls.col.locIdPrdInLP'), I18n.t('xls.col.custIdPrdInCP'), I18n.t('xls.col.prdInPSHQ'),
+        I18n.t('xls.col.deliveryReachableFromProd'), I18n.t('xls.col.leadTimeStatus')
       ];
       var _csNotes = [
         'Color: \u26d4 Alerta | \u26a0 Advertencia | \u2705 OK.',
@@ -1170,13 +1188,13 @@
         'metric','metric'
       ];
       efInjectHeaders(_csHdrs, _csNotes, _csGroups, 'sn', 'customerSource', 9);
-      var gCS = makeGroup('Customer Source', 'FFE8622A', _csHdrs, _csNotes, _csGroups);
+      var gCS = makeGroup(I18n.t('xls.sheet.customerSource'), 'FFE8622A', _csHdrs, _csNotes, _csGroups);
 
 
       /* ════════════════════════════════════════════════════════════════
          FASE 2 — Pre-índices globales (cursor IDB, sin acumular arrays)
          ════════════════════════════════════════════════════════════════ */
-      if (onStatus) onStatus('Construyendo índices globales...');
+      if (onStatus) onStatus(I18n.t('xls.log.buildGlobalIndices'));
       if (logEl) log(logEl, 'info', timer.fmt() + ' Fase 2: pre-índices...');
 
       var locProdSet  = new Set();   // "LOCID|PRDID"
@@ -1574,7 +1592,7 @@
         await new Promise(function (r) { setTimeout(r, 0); });
         var done = Math.min(i + CHUNK, n);
         if (onProgress) onProgress(57 + Math.round((done / n) * 28));
-        if (onStatus)   onStatus('Analizando ' + done + '/' + n + ' productos...');
+        if (onStatus)   onStatus((I18n.getLang()==='en'?'Analyzing ':'Analizando ') + done + '/' + n + (I18n.getLang()==='en'?' products...':' productos...'));
         if (logEl && i > 0 && i % 500 === 0)
           log(logEl, 'info', timer.fmt() + ' Analizados ' + done + '/' + n + '...');
       }
@@ -1585,7 +1603,7 @@
       /* ════════════════════════════════════════════════════════════════
          FASE 4 — Hoja Location
          ════════════════════════════════════════════════════════════════ */
-      if (onStatus) onStatus('Escribiendo hoja Location...');
+      if (onStatus) onStatus(I18n.t('xls.log.sheetReady', { sheet: I18n.t('xls.sheet.location') }));
 
       /* Integrar critNodeMap en locStats */
       Object.keys(critNodeMap).forEach(function (loc) {
@@ -1659,7 +1677,7 @@
       /* ════════════════════════════════════════════════════════════════
          FASE 5 — Hoja Customer
          ════════════════════════════════════════════════════════════════ */
-      if (onStatus) onStatus('Escribiendo hoja Customer...');
+      if (onStatus) onStatus(I18n.t('xls.log.sheetReady', { sheet: I18n.t('xls.sheet.customer') }));
 
       var allCustObj = Object.assign({}, SN_IDX.custLookup, custInCustSrc, custInCustProd);
       Object.keys(allCustObj).sort().forEach(function (custid) {
@@ -1717,7 +1735,7 @@
       /* ════════════════════════════════════════════════════════════════
          FASE 6 — Hoja Location Source (cursor IDB, sin acumular array)
          ════════════════════════════════════════════════════════════════ */
-      if (onStatus) onStatus('Escribiendo hoja Location Source...');
+      if (onStatus) onStatus(I18n.t('xls.log.sheetReady', { sheet: I18n.t('xls.sheet.locationSource') }));
       var lsSeenArcs = new Set();  // para detectar duplicados en esta pasada
 
       await idbCursorEach('sn_loc', function (r) {
@@ -1767,7 +1785,7 @@
       /* ════════════════════════════════════════════════════════════════
          FASE 7 — Hoja Customer Source (cursor IDB)
          ════════════════════════════════════════════════════════════════ */
-      if (onStatus) onStatus('Escribiendo hoja Customer Source...');
+      if (onStatus) onStatus(I18n.t('xls.log.sheetReady', { sheet: I18n.t('xls.sheet.customerSource') }));
 
       await idbCursorEach('sn_cust', function (r) {
         var p   = str(r.PRDID), loc = str(r.LOCID), c = str(r.CUSTID), clt = str(r.CLEADTIME || '');
@@ -1810,7 +1828,7 @@
       /* ════════════════════════════════════════════════════════════════
          FASE 8 — Hoja Resumen + column widths + export
          ════════════════════════════════════════════════════════════════ */
-      if (onStatus) onStatus('Generando Resumen...');
+      if (onStatus) onStatus(I18n.t('xls.log.genSummary'));
 
       [{ key: 'Product', num: 1 }, { key: 'Location', num: 2 }, { key: 'Customer', num: 3 },
        { key: 'Location Source', num: 4 }, { key: 'Customer Source', num: 5 }
@@ -1848,7 +1866,7 @@
       }
 
       if (onProgress) onProgress(97);
-      if (onStatus)   onStatus('Generando archivo Excel...');
+      if (onStatus)   onStatus(I18n.t('xls.log.genFile'));
       var buf  = await wb.xlsx.writeBuffer();
       var blob = new Blob([buf], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
       var dlUrl = URL.createObjectURL(blob);

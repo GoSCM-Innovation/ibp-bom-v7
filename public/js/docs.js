@@ -912,24 +912,24 @@ function buildParamSheet(rows, jobsMode) {
 
   // Header row (row 1)
   const headers = [
-    {v:'Dato - Click Aquí para más detalle', s:XF.PRM_HDR},
-    {v:'Tipo de Integración',               s:XF.PRM_HDR},
+    {v:I18n.t('docs.xls.col.data'),            s:XF.PRM_HDR},
+    {v:I18n.t('docs.xls.col.integrationType'), s:XF.PRM_HDR},
   ];
   if (jobsMode) {
-    headers.push({v:'Job IBP',      s:XF.PRM_HDR});
-    headers.push({v:'Step',         s:XF.PRM_HDR});
-    headers.push({v:'Tipo de paso', s:XF.PRM_HDR});
-    headers.push({v:'Grupo',        s:XF.PRM_HDR});
+    headers.push({v:I18n.t('docs.xls.col.ibpJob'),   s:XF.PRM_HDR});
+    headers.push({v:I18n.t('docs.xls.col.step'),     s:XF.PRM_HDR});
+    headers.push({v:I18n.t('docs.xls.col.stepType'), s:XF.PRM_HDR});
+    headers.push({v:I18n.t('docs.xls.col.group'),    s:XF.PRM_HDR});
   } else {
-    headers.push({v:'Proceso',      s:XF.PRM_HDR});
-    headers.push({v:'Grupo',        s:XF.PRM_HDR});
+    headers.push({v:I18n.t('docs.xls.col.process'), s:XF.PRM_HDR});
+    headers.push({v:I18n.t('docs.xls.col.group'),   s:XF.PRM_HDR});
   }
   headers.push(
-    {v:'Task CI-DS',             s:XF.PRM_HDR},
-    {v:'Descripción de la task', s:XF.PRM_HDR},
-    {v:'Dataflow CIDS',          s:XF.PRM_HDR},
-    {v:'Sistema fuente',         s:XF.PRM_HDR},
-    {v:'Sistema Destino',        s:XF.PRM_HDR}
+    {v:I18n.t('docs.xls.col.taskCids'),      s:XF.PRM_HDR},
+    {v:I18n.t('docs.xls.col.taskDesc'),      s:XF.PRM_HDR},
+    {v:I18n.t('docs.xls.col.dataflowCids'),  s:XF.PRM_HDR},
+    {v:I18n.t('docs.xls.col.sourceSystem'),  s:XF.PRM_HDR},
+    {v:I18n.t('docs.xls.col.destSystem'),    s:XF.PRM_HDR}
   );
   sb.addRow(headers, 18);
 
@@ -992,23 +992,24 @@ function buildIntegrationSheet(parsed) {
   // Helper: fila vacía
   const emptyRow = () => sb.addRow(Array(N).fill({v:'', s:XF.DEFAULT}), 6);
 
-  // ── Fila 1: Back button en A1 (con hyperlink → Parámetros) + headers tabla 1
-  sb.addHyperlink(0, 0, "#'Parámetros'!A1");
+  // ── Fila 1: Back button en A1 (con hyperlink → hoja índice) + headers tabla 1
+  // El sheet name "Parámetros" se mantiene literal porque ya está fijo en el .xlsx generado
+  sb.addHyperlink(0, 0, "#'" + I18n.t('xls.sheet.parameters') + "'!A1");
   sb.addRow([
-    {v:'<--',                    s:XF.BACK_BTN},
-    {v:' #',                     s:XF.T1_HDR},
-    {v:'Campo Destino',          s:XF.T1_HDR},
-    {v:'Descripción Campo Destino', s:XF.T1_HDR},
-    {v:'Tabla Origen',           s:XF.T1_HDR},
-    {v:'Campo Origen',           s:XF.T1_HDR},
-    {v:'Mapping',                s:XF.T1_HDR},
+    {v:'<--',                                  s:XF.BACK_BTN},
+    {v:' #',                                   s:XF.T1_HDR},
+    {v:I18n.t('docs.xls.col.dstField'),        s:XF.T1_HDR},
+    {v:I18n.t('docs.xls.col.dstFieldDesc'),    s:XF.T1_HDR},
+    {v:I18n.t('docs.xls.col.srcTable'),        s:XF.T1_HDR},
+    {v:I18n.t('docs.xls.col.srcField'),        s:XF.T1_HDR},
+    {v:I18n.t('docs.xls.col.mapping'),         s:XF.T1_HDR},
   ], 22);
 
   // ── Datos tabla 1
   if (!mappings.length) {
     sb.addRow([
       {v:'', s:XF.DEFAULT},
-      {v:'Sin mapeos', s:XF.T1_DATA},
+      {v:I18n.t('docs.xls.empty.noMappings'), s:XF.T1_DATA},
       {v:'', s:XF.T1_DATA},{v:'', s:XF.T1_DATA},
       {v:'', s:XF.T1_DATA},{v:'', s:XF.T1_DATA},{v:'', s:XF.T1_DATA}
     ], 18);
@@ -1035,16 +1036,16 @@ function buildIntegrationSheet(parsed) {
   // ── Tabla 2 — Filtros
   sb.addRow([
     {v:'', s:XF.DEFAULT},
-    {v:'Tabla',              s:XF.T234_HDR},
-    {v:'Filtro',             s:XF.T234_HDR},
-    {v:'Descripción de filtro', s:XF.T234_HDR},
+    {v:I18n.t('docs.xls.col.table'),       s:XF.T234_HDR},
+    {v:I18n.t('docs.xls.col.filter'),      s:XF.T234_HDR},
+    {v:I18n.t('docs.xls.col.filterDesc'),  s:XF.T234_HDR},
     {v:'', s:XF.DEFAULT},{v:'', s:XF.DEFAULT},{v:'', s:XF.DEFAULT}
   ], 18);
 
   if (!filters.length) {
     sb.addRow([
       {v:'', s:XF.DEFAULT},
-      {v:'Sin filtros', s:XF.T2_DATA},
+      {v:I18n.t('docs.xls.empty.noFilters'), s:XF.T2_DATA},
       {v:'', s:XF.T2_DATA},{v:'', s:XF.T2_DATA},
       {v:'', s:XF.DEFAULT},{v:'', s:XF.DEFAULT},{v:'', s:XF.DEFAULT}
     ], 18);
@@ -1066,15 +1067,15 @@ function buildIntegrationSheet(parsed) {
   // ── Tabla 3 — Variables (Parámetros Globales)
   sb.addRow([
     {v:'', s:XF.DEFAULT},
-    {v:'Parámetro Global', s:XF.T234_HDR},
-    {v:'Valor',            s:XF.T234_HDR},
+    {v:I18n.t('docs.xls.col.globalParam'), s:XF.T234_HDR},
+    {v:I18n.t('docs.xls.col.value'),       s:XF.T234_HDR},
     {v:'', s:XF.DEFAULT},{v:'', s:XF.DEFAULT},{v:'', s:XF.DEFAULT},{v:'', s:XF.DEFAULT}
   ], 18);
 
   if (!variables || !variables.length) {
     sb.addRow([
       {v:'', s:XF.DEFAULT},
-      {v:'Sin variables', s:XF.T34_DATA},
+      {v:I18n.t('docs.xls.empty.noVariables'), s:XF.T34_DATA},
       {v:'', s:XF.T34_DATA},
       {v:'', s:XF.DEFAULT},{v:'', s:XF.DEFAULT},{v:'', s:XF.DEFAULT},{v:'', s:XF.DEFAULT}
     ], 18);
@@ -1094,15 +1095,15 @@ function buildIntegrationSheet(parsed) {
   // ── Tabla 4 — Lookups
   sb.addRow([
     {v:'', s:XF.DEFAULT},
-    {v:'Función Lookup', s:XF.T234_HDR},
-    {v:'Transform',      s:XF.T234_HDR},
+    {v:I18n.t('docs.xls.col.lookupFn'),  s:XF.T234_HDR},
+    {v:I18n.t('docs.xls.col.transform'), s:XF.T234_HDR},
     {v:'', s:XF.DEFAULT},{v:'', s:XF.DEFAULT},{v:'', s:XF.DEFAULT},{v:'', s:XF.DEFAULT}
   ], 18);
 
   if (!lookups.length) {
     sb.addRow([
       {v:'', s:XF.DEFAULT},
-      {v:'Sin lookups', s:XF.T34_DATA},
+      {v:I18n.t('docs.xls.empty.noLookups'), s:XF.T34_DATA},
       {v:'', s:XF.T34_DATA},
       {v:'', s:XF.DEFAULT},{v:'', s:XF.DEFAULT},{v:'', s:XF.DEFAULT},{v:'', s:XF.DEFAULT}
     ], 18);
@@ -1405,11 +1406,11 @@ async function buildExcel() {
     sheets.push({ name: paramRow.sheetName, sb });
   }
 
-  docsLog('📋 Generando hoja Parámetros…', 'l-info');
+  docsLog((I18n.getLang() === 'en' ? '📋 Generating ' : '📋 Generando hoja ') + I18n.t('xls.sheet.parameters') + '…', 'l-info');
   const paramSb = buildParamSheet(paramRows, docsMode === 'zipjobs');
-  sheets.unshift({ name: 'Parámetros', sb: paramSb });
+  sheets.unshift({ name: I18n.t('xls.sheet.parameters'), sb: paramSb });
 
-  docsLog('📦 Ensamblando archivo Excel…', 'l-info');
+  docsLog((I18n.getLang() === 'en' ? '📦 Assembling Excel file…' : '📦 Ensamblando archivo Excel…'), 'l-info');
   xlsBuf = await assembleXlsx(sheets);
   setP(100);
   docsLog(`✅ Listo — ${totalJobs} jobs · ${totalMaps} mapeos · ${totalFilts} filtros`, 'l-ok');
@@ -2454,11 +2455,11 @@ async function generateFromJobs() {
     }
   }
 
-  docsLog('📋 Generando hoja Parámetros…', 'l-info');
+  docsLog((I18n.getLang() === 'en' ? '📋 Generating ' : '📋 Generando hoja ') + I18n.t('xls.sheet.parameters') + '…', 'l-info');
   const paramSb = buildParamSheet(paramRows, true);
-  sheets.unshift({ name: 'Parámetros', sb: paramSb });
+  sheets.unshift({ name: I18n.t('xls.sheet.parameters'), sb: paramSb });
 
-  docsLog('📦 Ensamblando archivo Excel…', 'l-info');
+  docsLog((I18n.getLang() === 'en' ? '📦 Assembling Excel file…' : '📦 Ensamblando archivo Excel…'), 'l-info');
   xlsBuf = await assembleXlsx(sheets);
   setP(100);
   docsLog(`✅ Listo — ${totalJobs} integraciones · ${totalMaps} mapeos · ${totalFilts} filtros`, 'l-ok');

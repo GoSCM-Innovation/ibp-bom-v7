@@ -7,33 +7,47 @@
 
   var _currentModule = 'pa';
 
+  /* ─── I18N ─────────────────────────────────────────────────── */
+  function _lang() {
+    try { return (window.I18n && window.I18n.getLang) ? window.I18n.getLang() : 'es'; }
+    catch (e) { return 'es'; }
+  }
+  function _t(s) {
+    if (_lang() !== 'en') return s;
+    return (_TEXTS[s] != null) ? _TEXTS[s] : s;
+  }
+  /* Mapa ES → EN. Las claves son cadenas exactas en español tal como aparecen
+     en el HTML generado por las secciones. Se completa al final del archivo
+     (se hace hoist por ser `var`). */
+  var _TEXTS = {};
+
   /* ─── MICRO-HELPERS ─────────────────────────────────────────── */
   function h(tag, cls, content) {
     return '<' + tag + (cls ? ' class="' + cls + '"' : '') + '>' + content + '</' + tag + '>';
   }
   function badge(sev) {
     var map = {
-      red:    '<span class="glos-badge glos-red">⛔ Alerta</span>',
-      yellow: '<span class="glos-badge glos-yellow">⚠ Advertencia</span>',
-      ok:     '<span class="glos-badge glos-ok">✅ OK</span>',
-      info:   '<span class="glos-badge glos-info">ℹ Info</span>'
+      red:    '<span class="glos-badge glos-red">' + _t('⛔ Alerta') + '</span>',
+      yellow: '<span class="glos-badge glos-yellow">' + _t('⚠ Advertencia') + '</span>',
+      ok:     '<span class="glos-badge glos-ok">' + _t('✅ OK') + '</span>',
+      info:   '<span class="glos-badge glos-info">' + _t('ℹ Info') + '</span>'
     };
     return map[sev] || '';
   }
   function catBadge(cat) {
     var map = {
-      finished:      '<span class="glos-cat glos-cat-finished">Terminado</span>',
-      semi:          '<span class="glos-cat glos-cat-semi">Semiterminado</span>',
-      rawmat:        '<span class="glos-cat glos-cat-rawmat">Mat. Prima</span>',
-      trading:       '<span class="glos-cat glos-cat-trading">Mercadería</span>',
-      uncategorized: '<span class="glos-cat glos-cat-uncategorized">Sin cat.</span>',
-      all:           '<span class="glos-cat glos-cat-all">Todos</span>'
+      finished:      '<span class="glos-cat glos-cat-finished">' + _t('Terminado') + '</span>',
+      semi:          '<span class="glos-cat glos-cat-semi">' + _t('Semiterminado') + '</span>',
+      rawmat:        '<span class="glos-cat glos-cat-rawmat">' + _t('Mat. Prima') + '</span>',
+      trading:       '<span class="glos-cat glos-cat-trading">' + _t('Mercadería') + '</span>',
+      uncategorized: '<span class="glos-cat glos-cat-uncategorized">' + _t('Sin cat.') + '</span>',
+      all:           '<span class="glos-cat glos-cat-all">' + _t('Todos') + '</span>'
     };
     return (cat || []).map(function (c) { return map[c] || ''; }).join(' ');
   }
 
   function obsTable(rows) {
-    var header = '<tr><th>Texto en Excel</th><th>Estado</th><th>Aplica a</th><th>Por qué aparece</th><th>Qué revisar en IBP</th></tr>';
+    var header = '<tr><th>' + _t('Texto en Excel') + '</th><th>' + _t('Estado') + '</th><th>' + _t('Aplica a') + '</th><th>' + _t('Por qué aparece') + '</th><th>' + _t('Qué revisar en IBP') + '</th></tr>';
     var body = rows.map(function (r) {
       return '<tr class="glos-obs-' + r[1] + '">' +
         '<td><code class="glos-obs-code">' + r[0] + '</code></td>' +
@@ -47,7 +61,7 @@
   }
 
   function colTable(rows) {
-    var header = '<tr><th>Columna</th><th>Qué significa</th></tr>';
+    var header = '<tr><th>' + _t('Columna') + '</th><th>' + _t('Qué significa') + '</th></tr>';
     var body = rows.map(function (r) {
       return '<tr><td><strong class="glos-col-name">' + r[0] + '</strong></td><td>' + r[1] + '</td></tr>';
     }).join('');
@@ -55,7 +69,7 @@
   }
 
   function netStatusTable(rows) {
-    var header = '<tr><th>Estado de la Red</th><th>Estado</th><th>Aplica a</th><th>Significado</th></tr>';
+    var header = '<tr><th>' + _t('Estado de la Red') + '</th><th>' + _t('Estado') + '</th><th>' + _t('Aplica a') + '</th><th>' + _t('Significado') + '</th></tr>';
     var body = rows.map(function (r) {
       return '<tr class="glos-obs-' + r[1] + '">' +
         '<td><code class="glos-obs-code">' + r[0] + '</code></td>' +
@@ -876,17 +890,65 @@
     if (!nav) return;
     nav.innerHTML = sections.map(function (s) {
       return '<a class="glos-nav-link" href="#' + s.id + '" onclick="glosarioNavClick(event,\'' + s.id + '\')">' +
-        s.icon + ' ' + s.title + '</a>';
+        s.icon + ' ' + _t(s.title) + '</a>';
     }).join('');
   }
 
   function renderContent(sections) {
     var cont = document.getElementById('glosarioContent');
     if (!cont) return;
-    cont.innerHTML = sections.map(function (s) {
-      return section(s.id, s.icon, s.title, s.content());
+    var html = sections.map(function (s) {
+      return section(s.id, s.icon, _t(s.title), s.content());
     }).join('<hr class="glos-hr">');
+    if (_lang() === 'en') html = _translateHtml(html);
+    cont.innerHTML = html;
     cont.scrollTop = 0;
+  }
+
+  /* Recorre nodos de texto del HTML generado y traduce con _TEXTS.
+     Es robusto frente a inner HTML porque opera sobre nodos de texto y
+     atributos title/aria-label. */
+  function _translateHtml(html) {
+    try {
+      var tmp = document.createElement('div');
+      tmp.innerHTML = html;
+      // Traducir bloques HTML completos cuando coinciden con una clave
+      // (algunas entradas del mapa contienen <strong>...).
+      _walkAndTranslate(tmp);
+      return tmp.innerHTML;
+    } catch (e) {
+      console.warn('[glosario i18n] _translateHtml', e);
+      return html;
+    }
+  }
+
+  function _walkAndTranslate(root) {
+    // 1) intentar match exacto de innerHTML de elementos hoja (p, td, th, li, span, h3, h2, strong, em, div)
+    var candidates = root.querySelectorAll('p, td, th, li, span, h2, h3, h4, strong, em, code, a, div');
+    candidates.forEach(function (el) {
+      // saltar contenedores con muchos hijos estructurales
+      var inner = el.innerHTML;
+      if (inner == null) return;
+      var trimmed = inner.trim();
+      if (!trimmed) return;
+      if (_TEXTS[trimmed] != null) {
+        el.innerHTML = _TEXTS[trimmed];
+      }
+    });
+    // 2) nodos de texto sueltos
+    var walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, null, false);
+    var nodes = [];
+    var n;
+    while ((n = walker.nextNode())) nodes.push(n);
+    nodes.forEach(function (tn) {
+      var t = tn.nodeValue;
+      if (!t) return;
+      var trimmed = t.trim();
+      if (!trimmed) return;
+      if (_TEXTS[trimmed] != null) {
+        tn.nodeValue = t.replace(trimmed, _TEXTS[trimmed]);
+      }
+    });
   }
 
   /* ─── PDF EXPORT ─────────────────────────────────────────────── */
@@ -904,12 +966,12 @@
     var fileName = 'Glosario_' + _currentModule.toUpperCase() + '_' + dateStr + '.pdf';
 
     var btn = document.getElementById('glosarioPdfBtn');
-    if (btn) { btn.disabled = true; btn.textContent = 'Generando...'; }
+    if (btn) { btn.disabled = true; btn.textContent = (_lang() === 'en') ? 'Generating...' : 'Generando...'; }
 
     setTimeout(function () {
       try { _buildPDF(J, modName, today, fileName); }
       finally {
-        if (btn) { btn.disabled = false; btn.textContent = '↓ Exportar PDF'; }
+        if (btn) { btn.disabled = false; btn.textContent = (_lang() === 'en') ? '↓ Export PDF' : '↓ Exportar PDF'; }
       }
     }, 0);
   };
@@ -955,7 +1017,7 @@
       doc.setFontSize(7.5);
       doc.setFont('helvetica', 'normal');
       T([185, 200, 220]);
-      doc.text('GoSCM  |  Glosario ' + modName, ML, 8);
+      doc.text('GoSCM  |  ' + (_lang() === 'en' ? 'Glossary ' : 'Glosario ') + modName, ML, 8);
     }
 
     function newPage() {
@@ -976,17 +1038,19 @@
     doc.text('GOSCM APPLICATIONS HUB', PW / 2, 62, { align: 'center' });
 
     doc.setFontSize(30); T([10, 10, 10]); doc.setFont('helvetica', 'bold');
-    doc.text('Glosario', PW / 2, 94, { align: 'center' });
+    doc.text(_lang() === 'en' ? 'Glossary' : 'Glosario', PW / 2, 94, { align: 'center' });
     doc.setFontSize(17);
     doc.text(modName, PW / 2, 108, { align: 'center' });
 
     D([10, 10, 10]); doc.setLineWidth(0.4);
     doc.line(ML + 25, 140, PW - MR - 25, 140);
 
-    var dateLocale = today.toLocaleDateString('es-CL', { year: 'numeric', month: 'long', day: 'numeric' });
+    var dateLocale = today.toLocaleDateString(_lang() === 'en' ? 'en-US' : 'es-CL', { year: 'numeric', month: 'long', day: 'numeric' });
     doc.setFontSize(9.5); T([150, 165, 205]); doc.setFont('helvetica', 'normal');
-    doc.text('Guía de referencia para la lectura del análisis exportado', PW / 2, 149, { align: 'center' });
-    doc.text('Generado el ' + dateLocale, PW / 2, 159, { align: 'center' });
+    doc.text(_lang() === 'en'
+      ? 'Reference guide for reading the exported analysis'
+      : 'Guía de referencia para la lectura del análisis exportado', PW / 2, 149, { align: 'center' });
+    doc.text((_lang() === 'en' ? 'Generated on ' : 'Generado el ') + dateLocale, PW / 2, 159, { align: 'center' });
 
     /* ── CONTENT PAGES ── */
     newPage();
@@ -1020,7 +1084,7 @@
       doc.line(ML, PH - FTR + 2, PW - MR, PH - FTR + 2);
       doc.setFontSize(7); T(C.muted); doc.setFont('helvetica', 'normal');
       doc.text('GoSCM Applications Hub', ML, PH - 5.5);
-      doc.text('Página ' + (pg - 1) + ' de ' + contPg, PW - MR, PH - 5.5, { align: 'right' });
+      doc.text((_lang() === 'en' ? 'Page ' : 'Página ') + (pg - 1) + (_lang() === 'en' ? ' of ' : ' de ') + contPg, PW - MR, PH - 5.5, { align: 'right' });
     }
 
     doc.save(fileName);
@@ -1111,7 +1175,7 @@
       ensure(12);
       doc.autoTable({
         startY: y,
-        head: [['Estado', 'Significado']],
+        head: [[_t('Estado'), _t('Significado')]],
         body: rows,
         margin: { top: TOP, left: ML, right: MR, bottom: FTR + 3 },
         tableWidth: CW,
@@ -1276,4 +1340,293 @@
   } else {
     hookSwitchTab();
   }
+
+  /* ═══════════════════════════════════════════════════════════════
+     DICCIONARIO ES → EN
+     ═══════════════════════════════════════════════════════════════ */
+
+  // Badges + categorías
+  _TEXTS['⛔ Alerta'] = '⛔ Alert';
+  _TEXTS['⚠ Advertencia'] = '⚠ Warning';
+  _TEXTS['✅ OK'] = '✅ OK';
+  _TEXTS['ℹ Info'] = 'ℹ Info';
+  _TEXTS['Terminado'] = 'Finished';
+  _TEXTS['Semiterminado'] = 'Semi-finished';
+  _TEXTS['Mat. Prima'] = 'Raw mat.';
+  _TEXTS['Mercadería'] = 'Trading';
+  _TEXTS['Sin cat.'] = 'Uncat.';
+  _TEXTS['Todos'] = 'All';
+
+  // Cabeceras de tablas
+  _TEXTS['Texto en Excel'] = 'Excel text';
+  _TEXTS['Estado'] = 'Status';
+  _TEXTS['Aplica a'] = 'Applies to';
+  _TEXTS['Por qué aparece'] = 'Why it appears';
+  _TEXTS['Qué revisar en IBP'] = 'What to review in IBP';
+  _TEXTS['Columna'] = 'Column';
+  _TEXTS['Qué significa'] = 'Meaning';
+  _TEXTS['Estado de la Red'] = 'Network Status';
+  _TEXTS['Significado'] = 'Meaning';
+
+  // Títulos de sección (PA)
+  _TEXTS['Introducción'] = 'Introduction';
+  _TEXTS['Hoja: Resumen'] = 'Sheet: Summary';
+  _TEXTS['Hoja: Product'] = 'Sheet: Product';
+  _TEXTS['Hoja: Location'] = 'Sheet: Location';
+  _TEXTS['Hoja: Resource'] = 'Sheet: Resource';
+  _TEXTS['Hoja: Resource Location'] = 'Sheet: Resource Location';
+  _TEXTS['Hoja: Prod Source Header'] = 'Sheet: Prod Source Header';
+  _TEXTS['Hoja: Prod Source Item'] = 'Sheet: Prod Source Item';
+  _TEXTS['Hoja: Prod Source Resource'] = 'Sheet: Prod Source Resource';
+  _TEXTS['Hoja: Tipos Excluidos'] = 'Sheet: Excluded Types';
+  _TEXTS['Tipos de Material'] = 'Material Types';
+  _TEXTS['Hoja: Customer'] = 'Sheet: Customer';
+  _TEXTS['Hoja: Location Source'] = 'Sheet: Location Source';
+  _TEXTS['Hoja: Customer Source'] = 'Sheet: Customer Source';
+
+  // Sub-títulos
+  _TEXTS['Estados del Excel'] = 'Excel statuses';
+  _TEXTS['Columnas clave'] = 'Key columns';
+  _TEXTS['Observaciones posibles'] = 'Possible observations';
+  _TEXTS['Roles inferidos'] = 'Inferred roles';
+  _TEXTS['Roles inferidos de ubicación'] = 'Inferred location roles';
+  _TEXTS['Columnas generales (todas las ubicaciones)'] = 'General columns (all locations)';
+  _TEXTS['Columnas de planta de producción'] = 'Production plant columns';
+  _TEXTS['Columnas de proveedor / nodo origen'] = 'Supplier / source node columns';
+  _TEXTS['Columnas de nodo de transferencia'] = 'Transfer node columns';
+  _TEXTS['Columnas de nodo receptor'] = 'Receiver node columns';
+  _TEXTS['Columnas de identificación'] = 'Identification columns';
+  _TEXTS['Columnas de presencia en red (flags Sí/No)'] = 'Network presence columns (Yes/No flags)';
+  _TEXTS['Columnas de análisis de red'] = 'Network analysis columns';
+  _TEXTS['Health Score — fórmula por categoría'] = 'Health Score — formula by category';
+  _TEXTS['Estados de la Red'] = 'Network Statuses';
+  _TEXTS['Categorías disponibles'] = 'Available categories';
+  _TEXTS['Impacto por categoría en Network Analyzer'] = 'Impact by category in Network Analyzer';
+
+  // --- INTRO PA ---
+  _TEXTS['El <strong>Production Analyzer</strong> analiza la configuración de producción en SAP IBP y exporta un Excel con hasta 9 hojas. Cada hoja examina una entidad distinta desde el punto de vista de su completitud y consistencia para la planificación.'] =
+    'The <strong>Production Analyzer</strong> analyzes the production configuration in SAP IBP and exports an Excel workbook with up to 9 sheets. Each sheet examines a different entity from the perspective of its completeness and consistency for planning.';
+  _TEXTS['El análisis cruza diez entidades: Production Source Header (PSH), Production Source Item (PSI), Production Source Resource (PSR), Resource, Resource Location, Product, Location, Location Product y Location Source. Los hallazgos se expresan siempre en términos de qué falta o qué está mal configurado respecto a lo que IBP necesita para planificar correctamente.'] =
+    'The analysis cross-references ten entities: Production Source Header (PSH), Production Source Item (PSI), Production Source Resource (PSR), Resource, Resource Location, Product, Location, Location Product and Location Source. Findings are always expressed in terms of what is missing or misconfigured relative to what IBP needs to plan correctly.';
+  _TEXTS['<strong>Hojas condicionales:</strong> Las hojas Product, Location, Resource, Resource Location, Prod Source Item y Prod Source Resource solo se crean si el usuario seleccionó la entidad correspondiente antes de ejecutar el análisis. La hoja Tipos Excluidos solo aparece si existen tipos de material excluidos del análisis principal. La hoja Resumen siempre se genera.'] =
+    '<strong>Conditional sheets:</strong> The Product, Location, Resource, Resource Location, Prod Source Item and Prod Source Resource sheets are only created if the user selected the corresponding entity before running the analysis. The Excluded Types sheet only appears if material types were excluded from the main analysis. The Summary sheet is always generated.';
+  _TEXTS['<strong>Importante:</strong> Los resultados dependen de la categorización de tipos de material (MATTYPEID). Un mismo hallazgo puede ser ⛔ Alerta para un Producto Terminado y no aplicar para una Materia Prima. Ver sección <em>Tipos de Material</em>.'] =
+    '<strong>Important:</strong> Results depend on the material type categorization (MATTYPEID). The same finding can be ⛔ Alert for a Finished Product and not apply for a Raw Material. See the <em>Material Types</em> section.';
+
+  // Legend
+  _TEXTS['Problema crítico que bloquea o distorsiona la planificación en IBP. Requiere acción antes de ejecutar cualquier plan.'] =
+    'Critical issue that blocks or distorts planning in IBP. Requires action before running any plan.';
+  _TEXTS['Dato incompleto o sospechoso que conviene revisar. No bloquea IBP pero puede generar resultados incorrectos.'] =
+    'Incomplete or suspicious data worth reviewing. Does not block IBP but may produce incorrect results.';
+  _TEXTS['Todas las validaciones aplicables pasaron. El registro está correctamente configurado.'] =
+    'All applicable validations passed. The record is correctly configured.';
+  _TEXTS['El dato no aplica para este registro (N/A). Celda con fondo gris claro e itálica. No indica error sino ausencia de dato para ese campo.'] =
+    'The field does not apply for this record (N/A). Cell shown with light gray background and italic. Does not indicate an error, just absence of data for that field.';
+
+  // Resumen PA
+  _TEXTS['Primera hoja del libro. Una fila por cada hoja analizada. Permite ver de un vistazo la salud general de la configuración.'] =
+    'First sheet of the workbook. One row per analyzed sheet. Lets you see overall configuration health at a glance.';
+  _TEXTS['Número de hoja en el libro Excel.'] = 'Sheet number in the Excel workbook.';
+  _TEXTS['Nombre de la hoja analizada (Product, Location, Resource, etc.).'] = 'Name of the analyzed sheet (Product, Location, Resource, etc.).';
+  _TEXTS['Cantidad de filas procesadas. Ej: 350 = se analizaron 350 productos.'] = 'Number of processed rows. Ex: 350 = 350 products analyzed.';
+  _TEXTS['Registros con problema crítico que bloquea o distorsiona la planificación.'] = 'Records with critical issues that block or distort planning.';
+  _TEXTS['Registros con dato incompleto o sospechoso que conviene revisar.'] = 'Records with incomplete or suspicious data worth reviewing.';
+  _TEXTS['Registros sin hallazgos — todas las validaciones aplicables pasaron.'] = 'Records with no findings — all applicable validations passed.';
+  _TEXTS['Porcentaje de registros OK sobre el total. Fórmula: OK / Total × 100. Una hoja con 85% de consistencia tiene el 15% restante con hallazgos.'] =
+    'Percentage of OK records over the total. Formula: OK / Total × 100. A sheet with 85% consistency has 15% of its records with findings.';
+  _TEXTS['<strong>Lectura recomendada:</strong> Comienza por la hoja con menor % de Consistencia y mayor cantidad de Alertas 🔴. Eso indica dónde están los problemas más críticos para la planificación.'] =
+    '<strong>Recommended reading:</strong> Start with the sheet having the lowest Consistency % and the highest number of 🔴 Alerts. That indicates where the most critical planning problems are.';
+
+  // --- PA Product (intro + columnas) ---
+  _TEXTS['Una fila por cada producto del maestro de materiales de SAP IBP. Esta hoja valida si cada producto tiene la configuración mínima necesaria para que IBP lo pueda planificar correctamente.'] =
+    'One row per product in the SAP IBP material master. This sheet validates whether each product has the minimum configuration needed for IBP to plan it correctly.';
+  _TEXTS['⛔ Alerta / ⚠ Advertencia / ✅ OK. El peor hallazgo del producto determina el color de la fila.'] = '⛔ Alert / ⚠ Warning / ✅ OK. The worst finding of the product determines the row color.';
+  _TEXTS['Texto detallado de todos los hallazgos encontrados, separados por |. Si el estado es OK, describe qué validaciones pasaron.'] = 'Detailed text of all findings, separated by |. If status is OK, describes which validations passed.';
+  _TEXTS['Código único del producto en SAP IBP.'] = 'Unique product code in SAP IBP.';
+  _TEXTS['Descripción del producto del maestro.'] = 'Product description from the master.';
+  _TEXTS['Tipo de material SAP. Determina qué validaciones aplican. Es el insumo principal para la categorización.'] = 'SAP material type. Determines which validations apply. Main input for categorization.';
+  _TEXTS['Sí/No — ¿El producto está habilitado en al menos una ubicación? Sin esto IBP ignora completamente el producto.'] = 'Yes/No — Is the product enabled in at least one location? Without this, IBP completely ignores the product.';
+  _TEXTS['Sí/No — ¿El producto tiene fuente de producción propia (SOURCETYPE=P)?'] = 'Yes/No — Does the product have its own production source (SOURCETYPE=P)?';
+  _TEXTS['Sí/No — ¿Este producto es ingrediente en el BOM de algún otro producto?'] = 'Yes/No — Is this product an ingredient in any other product’s BOM?';
+  _TEXTS['Sí/No — ¿Tiene arcos de transferencia entre ubicaciones?'] = 'Yes/No — Does it have transfer arcs between locations?';
+  _TEXTS['Cuántas recetas distintas (SOURCEIDs) producen este producto. Más de una implica multi-sourcing — verificar cuotas (PRATIO).'] = 'How many distinct recipes (SOURCEIDs) produce this product. More than one implies multi-sourcing — check quotas (PRATIO).';
+  _TEXTS['Códigos de los SOURCEIDs que producen este producto.'] = 'Codes of the SOURCEIDs that produce this product.';
+  _TEXTS['Número de plantas distintas donde se fabrica.'] = 'Number of distinct plants where it is manufactured.';
+  _TEXTS['Códigos de las plantas productoras.'] = 'Codes of the producing plants.';
+  _TEXTS['Total de ingredientes PSI definidos en todas sus recetas.'] = 'Total PSI components defined across all its recipes.';
+  _TEXTS['Máquinas/líneas asignadas vía PSR.'] = 'Machines/lines assigned via PSR.';
+  _TEXTS['Códigos de los recursos asignados a las recetas de este producto.'] = 'Codes of the resources assigned to this product’s recipes.';
+  _TEXTS['Número de ubicaciones origen distintas en Location Source (campo LOCFR) que abastecen este producto.'] = 'Number of distinct source locations in Location Source (LOCFR field) supplying this product.';
+  _TEXTS['Códigos de las ubicaciones origen en Location Source.'] = 'Codes of the source locations in Location Source.';
+  _TEXTS['Plantas que reciben este producto con arco de abastecimiento configurado en Location Source.'] = 'Plants that receive this product with a supply arc configured in Location Source.';
+  _TEXTS['Códigos de las plantas con arco de abastecimiento configurado.'] = 'Codes of plants with a supply arc configured.';
+  _TEXTS['Plantas que consumen este producto como insumo pero no tienen arco de abastecimiento configurado. Si > 0: falta Location Source. ⛔ crítico.'] = 'Plants that consume this product as input but have no supply arc configured. If > 0: missing Location Source. ⛔ critical.';
+  _TEXTS['Códigos de las plantas consumidoras sin cobertura de abastecimiento.'] = 'Codes of consumer plants without supply coverage.';
+  _TEXTS['Cuántos otros productos distintos requieren este material como componente PSI.'] = 'How many other distinct products require this material as a PSI component.';
+  _TEXTS['Número de nodos origen distintos detectados en la red de este producto (LOCFR en Location Source).'] = 'Number of distinct source nodes detected in this product’s network (LOCFR in Location Source).';
+  _TEXTS['Códigos de los nodos origen.'] = 'Codes of the source nodes.';
+  _TEXTS['Número de plantas que consumen este producto como componente PSI en alguna receta.'] = 'Number of plants that consume this product as a PSI component in any recipe.';
+  _TEXTS['Códigos de las plantas que consumen este producto como ingrediente.'] = 'Codes of the plants that consume this product as ingredient.';
+  _TEXTS['<strong>Productos sin categoría:</strong> Los tipos de material sin categoría asignada reciben todas las validaciones con severidad ⚠ Advertencia. Sus observaciones van precedidas por <code>Sin categoría [MATTYPEID]</code>. Si no hay hallazgos, muestran <code>Sin categoría [MATTYPEID] — sin hallazgos en modo permisivo</code> con estado ✅ OK. Asignar la categoría correcta activa las validaciones estrictas correspondientes.'] =
+    '<strong>Uncategorized products:</strong> Material types without an assigned category receive all validations at ⚠ Warning severity. Their observations are prefixed with <code>Uncategorized [MATTYPEID]</code>. If there are no findings, they show <code>Uncategorized [MATTYPEID] — no findings in permissive mode</code> with status ✅ OK. Assigning the correct category enables the corresponding strict validations.';
+
+  // --- PA Product observaciones ---
+  _TEXTS['Sin cobertura en Location Product'] = 'No coverage in Location Product';
+  _TEXTS['El producto no está registrado en ninguna ubicación en Location Product.'] = 'The product is not registered in any location in Location Product.';
+  _TEXTS['Habilitar el producto en Location Product para cada planta y/o DC donde se requiera. Sin esto IBP lo ignora en planificación de demanda y producción.'] = 'Enable the product in Location Product for every plant and/or DC where it is required. Without this, IBP ignores it in demand and production planning.';
+  _TEXTS['Sin fuente de producción propia (PSH)'] = 'No production source (PSH)';
+  _TEXTS['No existe ningún Production Source Header activo con SOURCETYPE=P para este producto.'] = 'There is no active Production Source Header with SOURCETYPE=P for this product.';
+  _TEXTS['Crear o activar la receta de producción en IBP (PSH con SOURCETYPE=P). Verificar que el Planning Area y Version sean correctos.'] = 'Create or activate the production recipe in IBP (PSH with SOURCETYPE=P). Verify the Planning Area and Version are correct.';
+  _TEXTS['PSH sin componentes PSI'] = 'PSH without PSI components';
+  _TEXTS['La receta de producción existe pero no tiene ingredientes definidos — BOM vacío.'] = 'The production recipe exists but has no ingredients defined — empty BOM.';
+  _TEXTS['Revisar el BOM en IBP y cargar los componentes (PSI) necesarios en la receta del SOURCEID indicado.'] = 'Review the BOM in IBP and load the required components (PSI) in the recipe of the indicated SOURCEID.';
+  _TEXTS['PSH sin recursos PSR asignados'] = 'PSH without PSR resources assigned';
+  _TEXTS['La receta existe pero no tiene ninguna máquina o línea asignada en Production Source Resource.'] = 'The recipe exists but has no machine or line assigned in Production Source Resource.';
+  _TEXTS['Asignar al menos un recurso productivo (RESID) al SOURCEID vía Production Source Resource en IBP.'] = 'Assign at least one production resource (RESID) to the SOURCEID via Production Source Resource in IBP.';
+  _TEXTS['Planta productora no es origen en Location Source'] = 'Producing plant is not a source in Location Source';
+  _TEXTS['El producto se fabrica en la planta pero no hay arco de Location Source declarando esa planta como LOCFR.'] = 'The product is manufactured in the plant but there is no Location Source arc declaring that plant as LOCFR.';
+  _TEXTS['Crear arco en Location Source con la planta productora como LOCFR para distribuir el producto hacia DCs o clientes.'] = 'Create a Location Source arc with the producing plant as LOCFR to distribute the product to DCs or customers.';
+  _TEXTS['Sin arco de abastecimiento hacia: X, Y'] = 'No supply arc to: X, Y';
+  _TEXTS['El insumo se consume en las plantas indicadas pero no hay Location Source que lo lleve ahí.'] = 'The input is consumed in the indicated plants but there is no Location Source bringing it there.';
+  _TEXTS['Crear arco(s) en Location Source con el proveedor como LOCFR y la planta consumidora como LOCID para cada insumo sin cobertura.'] = 'Create Location Source arc(s) with the supplier as LOCFR and the consuming plant as LOCID for each uncovered input.';
+  _TEXTS['Sin arco de abastecimiento (no registrado en Location Source)'] = 'No supply arc (not registered in Location Source)';
+  _TEXTS['El insumo no tiene ningún arco de transferencia en Location Source.'] = 'The input has no transfer arc in Location Source.';
+  _TEXTS['Configurar Location Source con el proveedor o planta origen como LOCFR hacia la(s) planta(s) consumidora(s).'] = 'Configure Location Source with the supplier or source plant as LOCFR to the consuming plant(s).';
+  _TEXTS['Sin arcos en Location Source'] = 'No arcs in Location Source';
+  _TEXTS['El producto de tipo Mercadería no tiene arcos de distribución en Location Source.'] = 'The Trading-type product has no distribution arcs in Location Source.';
+  _TEXTS['Configurar Location Source con el proveedor/origen del producto para que IBP pueda planificar su flujo.'] = 'Configure Location Source with the supplier/source of the product so IBP can plan its flow.';
+  _TEXTS['Sin acción requerida.'] = 'No action required.';
+
+  // --- PA Location ---
+  _TEXTS['Una fila por cada ubicación (planta, DC, proveedor, etc.) detectada en los datos. El análisis infiere el <strong>rol real</strong> de cada ubicación según su comportamiento en los datos, independientemente del campo LOCTYPE de IBP. Las columnas se agrupan por rol: las columnas de planta solo tienen datos si la ubicación tiene producción, y así sucesivamente.'] =
+    'One row per location (plant, DC, supplier, etc.) detected in the data. The analysis infers each location’s <strong>actual role</strong> from its behavior in the data, regardless of the LOCTYPE field in IBP. Columns are grouped by role: plant columns only have data if the location has production, and so on.';
+  _TEXTS['Planta de producción'] = 'Production plant';
+  _TEXTS['Tiene al menos un Production Source Header (PSH) asociado — fabrica productos.'] = 'Has at least one associated Production Source Header (PSH) — manufactures products.';
+  _TEXTS['Proveedor'] = 'Supplier';
+  _TEXTS['Aparece como LOCFR en Location Source enviando productos que se consumen como PSI en la planta destino — abastece insumos.'] = 'Appears as LOCFR in Location Source sending products that are consumed as PSI in the destination plant — supplies inputs.';
+  _TEXTS['Nodo de transferencia'] = 'Transfer node';
+  _TEXTS['Aparece como LOCFR en Location Source enviando productos que NO se consumen como PSI en el destino — redistribuye o distribuye.'] = 'Appears as LOCFR in Location Source sending products that are NOT consumed as PSI in the destination — redistributes or distributes.';
+  _TEXTS['Nodo receptor'] = 'Receiver node';
+  _TEXTS['Solo aparece como LOCID (destino) en Location Source, sin producción propia ni envíos salientes — solo recibe.'] = 'Only appears as LOCID (destination) in Location Source, without own production or outgoing shipments — only receives.';
+  _TEXTS['Nodo de recursos'] = 'Resource node';
+  _TEXTS['Tiene recursos asignados en Resource Location pero sin producción ni transferencias activas.'] = 'Has resources assigned in Resource Location but no active production or transfers.';
+  _TEXTS['Sin actividad'] = 'No activity';
+  _TEXTS['Existe en el maestro de ubicaciones pero no aparece en ningún otro dato — ubicación inactiva o huérfana.'] = 'Exists in the location master but does not appear in any other data — inactive or orphan location.';
+  _TEXTS['Código único de la ubicación en SAP IBP.'] = 'Unique location code in SAP IBP.';
+  _TEXTS['Descripción de la ubicación del maestro.'] = 'Location description from the master.';
+  _TEXTS['Tipo de ubicación del maestro (ej: 1010 = planta). Informativo — el rol real se infiere del comportamiento.'] = 'Location type from the master (e.g. 1010 = plant). Informational — the actual role is inferred from behavior.';
+  _TEXTS['Uno o más roles detectados según participación real en PSH, Location Source y Customer Source.'] = 'One or more roles detected based on actual participation in PSH, Location Source and Customer Source.';
+  _TEXTS['Sí/No — ¿La ubicación está habilitada en Location Product? Sin esto IBP no planifica en esa ubicación.'] = 'Yes/No — Is the location enabled in Location Product? Without this, IBP does not plan at that location.';
+
+  // --- PA Resource ---
+  _TEXTS['Una fila por cada recurso productivo (máquina, línea, horno, etc.) del maestro de recursos de SAP IBP. Valida que cada recurso tenga planta asignada y esté en uso en alguna receta.'] =
+    'One row per production resource (machine, line, oven, etc.) from the SAP IBP resource master. Validates that each resource has an assigned plant and is used in some recipe.';
+  _TEXTS['Código único del recurso en SAP IBP. Ej: LINEA-01, HORNO-A.'] = 'Unique resource code in SAP IBP. Ex: LINE-01, OVEN-A.';
+  _TEXTS['Descripción del recurso del maestro.'] = 'Resource description from the master.';
+  _TEXTS['Recurso huérfano: sin uso en producción ni planta asignada'] = 'Orphan resource: not used in production and no plant assigned';
+  _TEXTS['Sin uso en producción (no aparece en PSR)'] = 'Not used in production (does not appear in PSR)';
+  _TEXTS['Sin planta asignada en Resource Location'] = 'No plant assigned in Resource Location';
+  _TEXTS['En uso en PSR y con planta asignada en Resource Location'] = 'In use in PSR and with plant assigned in Resource Location';
+
+  // --- PA PSH/PSI/PSR ---
+  _TEXTS['Una fila por cada fuente de producción (SOURCEID) en SAP IBP. Cada SOURCEID representa una receta que transforma insumos en un producto terminado o semiterminado en una planta específica.'] =
+    'One row per production source (SOURCEID) in SAP IBP. Each SOURCEID represents a recipe that transforms inputs into a finished or semi-finished product at a specific plant.';
+  _TEXTS['Identificador único de la receta de producción.'] = 'Unique identifier of the production recipe.';
+  _TEXTS['Producto que produce esta receta (output principal).'] = 'Product produced by this recipe (main output).';
+  _TEXTS['Descripción del producto output.'] = 'Output product description.';
+  _TEXTS['Tipo de material del producto output. Determina qué validaciones aplican a esta receta.'] = 'Material type of the output product. Determines which validations apply to this recipe.';
+  _TEXTS['Planta donde se ejecuta esta producción.'] = 'Plant where this production runs.';
+  _TEXTS['Descripción de la planta.'] = 'Plant description.';
+
+  // --- PA Tipos de Material ---
+  _TEXTS['Antes de ejecutar el análisis, el usuario asigna cada MATTYPEID a una o más categorías. Esta categorización determina <strong>qué validaciones aplican</strong> y <strong>qué severidad</strong> tienen los hallazgos. Un mismo dato faltante puede ser ⛔ Alerta para un Terminado y no generar ningún hallazgo para una Materia Prima.'] =
+    'Before running the analysis, the user assigns each MATTYPEID to one or more categories. This categorization determines <strong>which validations apply</strong> and the <strong>severity</strong> of the findings. The same missing data can be ⛔ Alert for a Finished product and not generate any finding for a Raw Material.';
+  _TEXTS['Si no se asigna ninguna categoría, el análisis aplica reglas en "modo permisivo" (todo se marca máximo ⚠ Advertencia) y puede ocultar problemas críticos reales. <strong>Se recomienda siempre categorizar antes de interpretar los resultados.</strong>'] =
+    'If no category is assigned, the analysis applies rules in "permissive mode" (everything is marked at most ⚠ Warning) and may hide real critical problems. <strong>It is always recommended to categorize before interpreting the results.</strong>';
+  _TEXTS['Producto Terminado'] = 'Finished Product';
+  _TEXTS['Mat. Prima / Insumo'] = 'Raw Material / Input';
+
+  // --- SN Intro ---
+  _TEXTS['El <strong>Network Analyzer</strong> examina la red logística completa de SAP IBP: plantas, centros de distribución, clientes, arcos de transferencia (Location Source) y arcos de entrega (Customer Source). Para cada producto, construye el grafo de la red y detecta anomalías topológicas.'] =
+    'The <strong>Network Analyzer</strong> examines the complete SAP IBP logistics network: plants, distribution centers, customers, transfer arcs (Location Source) and delivery arcs (Customer Source). For each product, it builds the network graph and detects topological anomalies.';
+  _TEXTS['El Excel de salida tiene 6 hojas: Resumen, Product, Location, Customer, Location Source y Customer Source. Cada hoja analiza la entidad desde la perspectiva de conectividad, lead times y habilitación en Location Product.'] =
+    'The output Excel has 6 sheets: Summary, Product, Location, Customer, Location Source and Customer Source. Each sheet analyzes the entity from the perspective of connectivity, lead times and enablement in Location Product.';
+  _TEXTS['<strong>Importante:</strong> Al igual que en Production Analyzer, los hallazgos dependen de la categorización de tipos de material. Un producto Terminado que no llega a ningún cliente genera ⛔ Alerta; el mismo problema en un Semiterminado puede no generar alerta porque no se espera que llegue directamente al cliente. Ver sección <em>Tipos de Material</em>.'] =
+    '<strong>Important:</strong> As in Production Analyzer, findings depend on the material type categorization. A Finished product that does not reach any customer generates ⛔ Alert; the same problem in a Semi-finished may not generate an alert because it is not expected to reach the customer directly. See the <em>Material Types</em> section.';
+  _TEXTS['<strong>Auto-split:</strong> Si una hoja supera 900.000 filas, el analizador crea hojas adicionales con el mismo nombre y sufijo numérico: Product (2), Product (3), etc. Las columnas son idénticas en todas las hojas del mismo grupo.'] =
+    '<strong>Auto-split:</strong> If a sheet exceeds 900,000 rows, the analyzer creates additional sheets with the same name and a numeric suffix: Product (2), Product (3), etc. Columns are identical across all sheets in the same group.';
+
+  // SN Resumen
+  _TEXTS['Primera hoja del libro. Una fila por cada hoja analizada. Permite ver de un vistazo la salud general de la red logística.'] =
+    'First sheet of the workbook. One row per analyzed sheet. Lets you see overall logistics network health at a glance.';
+  _TEXTS['Nombre de la hoja analizada (Product, Location, Customer, Location Source, Customer Source).'] = 'Name of the analyzed sheet (Product, Location, Customer, Location Source, Customer Source).';
+  _TEXTS['Cantidad de filas procesadas en esa hoja.'] = 'Number of processed rows in that sheet.';
+  _TEXTS['Registros con problema crítico de conectividad o configuración.'] = 'Records with critical connectivity or configuration issues.';
+  _TEXTS['Porcentaje de registros OK sobre el total. Fórmula: OK / Total × 100.'] = 'Percentage of OK records over the total. Formula: OK / Total × 100.';
+  _TEXTS['<strong>Lectura recomendada:</strong> Comienza por la hoja Product, que concentra los hallazgos más importantes de conectividad. Luego revisa Location para identificar nodos críticos y finalmente Location Source / Customer Source para arcos con problemas de lead time o configuración.'] =
+    '<strong>Recommended reading:</strong> Start with the Product sheet, which concentrates the most important connectivity findings. Then review Location to identify critical nodes and finally Location Source / Customer Source for arcs with lead time or configuration issues.';
+
+  // SN Product
+  _TEXTS['Una fila por cada producto presente en la red (Location Source, Customer Source, PSH o Location Product). Esta hoja es el corazón del análisis: construye el grafo completo de la red para cada producto y detecta anomalías de conectividad.'] =
+    'One row per product present in the network (Location Source, Customer Source, PSH or Location Product). This sheet is the heart of the analysis: it builds the complete network graph for each product and detects connectivity anomalies.';
+
+  // SN Network states (cabeceras)
+  _TEXTS['Red Completa'] = 'Complete Network';
+  _TEXTS['Sin Entrega a Cliente'] = 'No Customer Delivery';
+  _TEXTS['Sin Distribución'] = 'No Distribution';
+  _TEXTS['Distribución sin ruta completa'] = 'Distribution without complete route';
+  _TEXTS['Solo Entrega'] = 'Delivery only';
+  _TEXTS['Solo Distribución'] = 'Distribution only';
+  _TEXTS['Solo Distribución + Entrega'] = 'Distribution + Delivery only';
+  _TEXTS['Semiterminado Local'] = 'Local Semi-finished';
+  _TEXTS['Semiterminado con Transferencia'] = 'Semi-finished with Transfer';
+  _TEXTS['Semiterminado Local con Transferencia'] = 'Local Semi-finished with Transfer';
+  _TEXTS['Semiterminado sin Transferencia'] = 'Semi-finished without Transfer';
+  _TEXTS['Sin Producción'] = 'No Production';
+  _TEXTS['Sin Consumo PSI'] = 'No PSI Consumption';
+  _TEXTS['Abastecimiento Completo'] = 'Complete Supply';
+  _TEXTS['Abastecimiento Parcial'] = 'Partial Supply';
+  _TEXTS['Abastecimiento sin Consumo PSI'] = 'Supply without PSI consumption';
+  _TEXTS['Sin Abastecimiento'] = 'No Supply';
+  _TEXTS['Sin arcos de red'] = 'No network arcs';
+  _TEXTS['Huérfano'] = 'Orphan';
+
+  // SN Customer
+  _TEXTS['Una fila por cada cliente detectado en la red (Customer Source o Customer Product). Analiza si cada cliente puede recibir productos a través de rutas completas desde la producción.'] =
+    'One row per customer detected in the network (Customer Source or Customer Product). Analyzes whether each customer can receive products through complete routes from production.';
+  _TEXTS['Código único del cliente en SAP IBP.'] = 'Unique customer code in SAP IBP.';
+  _TEXTS['Descripción del cliente del maestro.'] = 'Customer description from the master.';
+
+  // SN Location Source / Customer Source
+  _TEXTS['Una fila por cada arco de transferencia en Location Source (combinación PRDID + LOCFR + LOCID). Analiza si cada arco tiene lead time definido, si los nodos extremos están habilitados en Location Product, y si el arco pertenece a alguna ruta completa.'] =
+    'One row per transfer arc in Location Source (PRDID + LOCFR + LOCID combination). Analyzes whether each arc has a defined lead time, whether the endpoint nodes are enabled in Location Product, and whether the arc is part of a complete route.';
+  _TEXTS['Una fila por cada arco de entrega a cliente en Customer Source (combinación PRDID + LOCID + CUSTID). Analiza si cada entrega tiene lead time definido, si los extremos están habilitados, y si existe una ruta completa que la abastezca.'] =
+    'One row per customer delivery arc in Customer Source (PRDID + LOCID + CUSTID combination). Analyzes whether each delivery has a defined lead time, whether the endpoints are enabled, and whether a complete supply route exists.';
+  _TEXTS['<strong>Lectura clave:</strong> Los arcos con <em>Entrega alcanzable = No</em> indican que el cliente tiene arcos de entrega configurados pero la producción nunca llega hasta ese punto — hay una brecha en la red de distribución.'] =
+    '<strong>Key reading:</strong> Arcs with <em>Reachable Delivery = No</em> indicate the customer has delivery arcs configured but production never reaches that point — there is a gap in the distribution network.';
+
+  // SN Tipos de Material
+  _TEXTS['La categorización de MATTYPEID afecta directamente qué hallazgos se generan y cuál es su severidad en la hoja Product del Network Analyzer. La misma ausencia de ruta a cliente puede ser ⛔ Alerta para un Terminado y no generar ningún hallazgo para un Semiterminado.'] =
+    'MATTYPEID categorization directly affects which findings are generated and their severity in the Network Analyzer Product sheet. The same lack of route to customer can be ⛔ Alert for a Finished product and not generate any finding for a Semi-finished.';
+  _TEXTS['<strong>Tipo excluido:</strong> Los productos excluidos no generan filas en la hoja Product del Network Analyzer. Sin embargo, si son componentes PSI de productos incluidos, sus arcos de abastecimiento sí se validan en la hoja Product del producto consumidor.'] =
+    '<strong>Excluded type:</strong> Excluded products do not generate rows in the Network Analyzer Product sheet. However, if they are PSI components of included products, their supply arcs are validated in the consumer product’s Product sheet.';
+  _TEXTS['<strong>Sin categoría (uncategorized):</strong> Se ejecutan todas las validaciones disponibles — es el modo más completo, equivalente al de Terminado. El Estado de la Red se determina por lo que está presente en la data: si tiene PSH, se evalúa como Terminado; si tiene PSI sin PSH, como insumo. Cualquier anomalía detectada genera ⛔ Alerta igual que un Terminado. Se recomienda categorizar los materiales para obtener hallazgos precisos según el rol real del producto.'] =
+    '<strong>Uncategorized:</strong> All available validations are executed — it is the most complete mode, equivalent to Finished. The Network Status is determined by what is present in the data: if it has PSH, it is evaluated as Finished; if it has PSI without PSH, as input. Any detected anomaly generates ⛔ Alert just like a Finished product. It is recommended to categorize materials to obtain accurate findings according to the actual product role.';
+
+  /* Re-render al cambiar de idioma */
+  document.addEventListener('i18n:change', function () {
+    try {
+      var tab = document.getElementById('tab-glosario');
+      if (!tab) return;
+      if (_initialized) {
+        var sections = _currentModule === 'pa' ? PA_SECTIONS : SN_SECTIONS;
+        renderNav(sections);
+        renderContent(sections);
+      }
+      var btn = document.getElementById('glosarioPdfBtn');
+      if (btn && !btn.disabled) {
+        btn.textContent = (_lang() === 'en') ? '↓ Export PDF' : '↓ Exportar PDF';
+      }
+    } catch (e) { console.warn('[glosario i18n change]', e); }
+  });
 })();
