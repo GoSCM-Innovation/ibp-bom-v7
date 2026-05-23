@@ -2,6 +2,171 @@
        SUPPLY NETWORK: STREAMING FETCH + INDEX + ANALYSE + EXPORT
        ═══════════════════════════════════════════════════════════════ */
 
+    /* ── i18n helper para notas de columnas Excel ── */
+    var _XLS_NOTES_EN = {
+      'Color: ⛔ Alerta = problema critico | ⚠ Advertencia = dato incompleto | ✅ OK = sin hallazgos.':
+        'Color: ⛔ Alert = critical issue | ⚠ Warning = incomplete data | ✅ OK = no findings.',
+      'Color: ⛔ Alerta | ⚠ Advertencia | ✅ OK.':
+        'Color: ⛔ Alert | ⚠ Warning | ✅ OK.',
+      'Detalle de validaciones. En estado OK lista las que pasaron.':
+        'Validation detail. In OK status, lists those that passed.',
+      'Codigo unico del producto (PRDID).': 'Unique product code (PRDID).',
+      'Descripcion del producto segun maestro.': 'Product description from master.',
+      'Tipo de material SAP (MATTYPEID). Determina reglas de validacion por categoria.':
+        'SAP material type (MATTYPEID). Determines validation rules per category.',
+      'Si/No — tiene fuente de produccion (PSH) activa. Sin PSH = no se fabrica internamente.':
+        'Yes/No — has active production source (PSH). No PSH = not manufactured internally.',
+      'Si/No — aparece como componente en BOM de algun otro producto (PSI).':
+        'Yes/No — appears as a component in another product’s BOM (PSI).',
+      'Si/No — tiene arcos de transferencia entre ubicaciones (Location Source).':
+        'Yes/No — has transfer arcs between locations (Location Source).',
+      'Si/No — tiene arcos de entrega a cliente (Customer Source).':
+        'Yes/No — has customer delivery arcs (Customer Source).',
+      'Si/No — habilitado en al menos una ubicacion (Location Product). Sin esto IBP ignora el producto.':
+        'Yes/No — enabled in at least one location (Location Product). Without this IBP ignores the product.',
+      'Si/No — habilitado para al menos un cliente (Customer Product).':
+        'Yes/No — enabled for at least one customer (Customer Product).',
+      'Si/No — solo existe en el maestro, sin actividad en ninguna entidad de red.':
+        'Yes/No — exists only in master data, no activity in any network entity.',
+      'Estado logistico: Red Completa = tiene ruta de planta a cliente | Sin Entrega = tiene produccion pero no llega a cliente | Huerfano = sin actividad de red.':
+        'Logistics status: Full Network = has plant-to-customer route | No Delivery = has production but does not reach a customer | Orphan = no network activity.',
+      'Numero de plantas productoras (nodos con PSH) desde las que este producto puede originarse.':
+        'Number of producing plants (PSH nodes) from which this product can originate.',
+      'Numero de centros de distribucion intermedios en la red del producto.':
+        'Number of intermediate distribution centers in the product’s network.',
+      'Numero de clientes alcanzables a traves de rutas completas.':
+        'Number of customers reachable through full routes.',
+      'Cantidad de rutas completas de planta a cliente. 0 = no llega a ningun cliente.':
+        'Number of full plant-to-customer routes. 0 = does not reach any customer.',
+      'Numero de saltos de la ruta mas larga de planta a cliente.':
+        'Number of hops in the longest plant-to-customer route.',
+      'Ubicaciones que reciben producto pero cuyas salidas no llegan a ningun cliente.':
+        'Locations that receive product but whose outflows do not reach any customer.',
+      'Ubicaciones que reciben producto pero no tienen ninguna salida configurada.':
+        'Locations that receive product but have no outflow configured.',
+      'Puntaje de salud 0-100 calculado en base a completitud de rutas, anomalias y lead times.':
+        'Health score 0-100 calculated based on route completeness, anomalies and lead times.',
+      'Clasificacion del puntaje: Healthy (≥80) | Acceptable (≥60) | Weak (≥40) | Critical (<40).':
+        'Score classification: Healthy (≥80) | Acceptable (≥60) | Weak (≥40) | Critical (<40).',
+      'Desglose paso a paso del calculo: bonificaciones (+) y penalizaciones (-) que determinan el score final.':
+        'Step-by-step breakdown: bonuses (+) and penalties (-) that determine the final score.',
+      'Cantidad de ubicaciones origen distintas (LOCFR) en Location Source para este producto.':
+        'Number of distinct origin locations (LOCFR) in Location Source for this product.',
+      'Codigos de las ubicaciones origen separados por coma.':
+        'Comma-separated origin location codes.',
+      'Cantidad de ubicaciones destino distintas (LOCID) en Location Source para este producto.':
+        'Number of distinct destination locations (LOCID) in Location Source for this product.',
+      'Codigos de las ubicaciones destino separados por coma.':
+        'Comma-separated destination location codes.',
+      'Cantidad de clientes distintos declarados en Customer Source para este producto.':
+        'Number of distinct customers declared in Customer Source for this product.',
+      'Codigos de los clientes en Customer Source separados por coma.':
+        'Comma-separated customer codes from Customer Source.',
+      'Si/No — alguna ubicacion destino recibe este producto desde mas de un origen simultaneamente (multi-sourcing).':
+        'Yes/No — some destination location receives this product from more than one origin simultaneously (multi-sourcing).',
+      'Promedio de TLEADTIME (dias) para todos los arcos de Location Source de este producto. — si no hay arcos con lead time definido.':
+        'Average TLEADTIME (days) across all Location Source arcs for this product. — if no arcs have a defined lead time.',
+      'Promedio de CLEADTIME (dias) para todos los arcos de Customer Source de este producto. — si no hay arcos con lead time definido.':
+        'Average CLEADTIME (days) across all Customer Source arcs for this product. — if no arcs have a defined lead time.',
+      'Cantidad de plantas que producen este producto pero no tienen ninguna ruta hasta algun cliente.':
+        'Number of plants that produce this product but have no route to any customer.',
+      'Codigo unico de la ubicacion (LOCID).': 'Unique location code (LOCID).',
+      'Descripcion de la ubicacion segun maestro.': 'Location description from master.',
+      'Tipo de ubicacion SAP (LOCTYPE). Informativo; el rol real se infiere del comportamiento en los datos.':
+        'SAP location type (LOCTYPE). Informational; the real role is inferred from data behavior.',
+      'Rol inferido del comportamiento en los datos: Planta con Entrega = PSH + CustSrc | Planta = solo PSH | DC con Entrega Directa = LocSrc + CustSrc | DC = solo LocSrc | Punto de Entrega = solo CustSrc | Sin rol activo = sin presencia en red.':
+        'Role inferred from data behavior: Plant with Delivery = PSH + CustSrc | Plant = PSH only | DC with Direct Delivery = LocSrc + CustSrc | DC = LocSrc only | Delivery Point = CustSrc only | No active role = no network presence.',
+      'Si/No — tiene al menos una fuente de produccion (PSH) en esta ubicacion.':
+        'Yes/No — has at least one production source (PSH) at this location.',
+      'Si/No — aparece como origen o destino en Location Source.':
+        'Yes/No — appears as origin or destination in Location Source.',
+      'Si/No — aparece como ubicacion de entrega en Customer Source.':
+        'Yes/No — appears as a delivery location in Customer Source.',
+      'Si/No — habilitada en Location Product. Sin esto IBP no planifica en esta ubicacion.':
+        'Yes/No — enabled in Location Product. Without this IBP does not plan at this location.',
+      'Si/No — solo en maestro, sin actividad en red.':
+        'Yes/No — master-only, no network activity.',
+      'Total de productos distintos que pasan por esta ubicacion (como origen o destino en LocSrc).':
+        'Total distinct products that pass through this location (as origin or destination in LocSrc).',
+      'Productos para los que esta ubicacion actua como origen (LOCFR) en Location Source.':
+        'Products for which this location acts as origin (LOCFR) in Location Source.',
+      'Productos para los que esta ubicacion actua como destino (LOCID) en Location Source.':
+        'Products for which this location acts as destination (LOCID) in Location Source.',
+      'Clientes que pueden ser abastecidos desde esta ubicacion via Customer Source.':
+        'Customers that can be supplied from this location via Customer Source.',
+      'Si/No — su eliminacion cortaria rutas de multiples productos a clientes.':
+        'Yes/No — its removal would cut routes of multiple products to customers.',
+      'Numero de productos cuyas rutas pasan por este nodo critico.':
+        'Number of products whose routes pass through this critical node.',
+      'Numero de clientes cuyo abastecimiento depende de este nodo.':
+        'Number of customers whose supply depends on this node.',
+      'Critical (≥4 productos) | High (2–3) | Medium (1).':
+        'Critical (≥4 products) | High (2–3) | Medium (1).',
+      'Codigo unico del cliente (CUSTID).': 'Unique customer code (CUSTID).',
+      'Descripcion del cliente segun maestro.': 'Customer description from master.',
+      'Si/No — tiene al menos un arco de entrega configurado (Customer Source).':
+        'Yes/No — has at least one delivery arc configured (Customer Source).',
+      'Si/No — habilitado en Customer Product. Sin esto IBP ignora el cliente en planificacion.':
+        'Yes/No — enabled in Customer Product. Without this IBP ignores the customer in planning.',
+      'Si/No — solo en maestro, sin arcos de entrega.':
+        'Yes/No — master-only, no delivery arcs.',
+      'Numero de productos distintos que este cliente puede recibir segun Customer Source.':
+        'Number of distinct products this customer can receive according to Customer Source.',
+      'Numero de ubicaciones desde las que se despacha al cliente.':
+        'Number of locations that dispatch to the customer.',
+      'Total de rutas completas de planta a este cliente sumadas para todos sus productos.':
+        'Total full plant-to-customer routes summed across all its products.',
+      'Single Path = algún producto llega solo por una ruta | Single Node Dependency = hay un nodo unico que si falla corta el abastecimiento | Resilient = todos los productos tienen rutas alternativas.':
+        'Single Path = some product reaches via a single route only | Single Node Dependency = there is a single node whose failure cuts supply | Resilient = all products have alternative routes.',
+      'Producto transferido en este arco.': 'Product transferred in this arc.',
+      'Descripcion del producto.': 'Product description.',
+      'Tipo de material del producto (MATTYPEID).': 'Product material type (MATTYPEID).',
+      'Ubicacion de origen (LOCFR) del arco de transferencia.':
+        'Origin location (LOCFR) of the transfer arc.',
+      'Descripcion de la ubicacion origen.': 'Origin location description.',
+      'Ubicacion de destino (LOCID) del arco de transferencia.':
+        'Destination location (LOCID) of the transfer arc.',
+      'Descripcion de la ubicacion destino.': 'Destination location description.',
+      'Lead time de transferencia en dias. 0 o vacio = ⚠ Advertencia.':
+        'Transfer lead time in days. 0 or empty = ⚠ Warning.',
+      'Si/No — el origen esta habilitado para este producto en Location Product.':
+        'Yes/No — the origin is enabled for this product in Location Product.',
+      'Si/No — el destino esta habilitado para este producto en Location Product.':
+        'Yes/No — the destination is enabled for this product in Location Product.',
+      'Si/No — el producto tiene produccion propia (PSH) en alguna planta.':
+        'Yes/No — the product has its own production (PSH) at some plant.',
+      'Si/No — este arco pertenece a al menos una ruta completa que llega a un cliente.':
+        'Yes/No — this arc belongs to at least one full route that reaches a customer.',
+      'Si/No — existe un arco configurado en la direccion opuesta (LOCID->LOCFR) para el mismo producto.':
+        'Yes/No — there is an arc configured in the opposite direction (LOCID->LOCFR) for the same product.',
+      'OK = lead time > 0 | Zero = TLEADTIME = 0 | Missing = sin valor.':
+        'OK = lead time > 0 | Zero = TLEADTIME = 0 | Missing = no value.',
+      'Si/No — SPOF: este LOCID tiene un unico LOCFR para este producto. Si falla el origen, el destino queda sin abastecimiento.':
+        'Yes/No — SPOF: this LOCID has a single LOCFR for this product. If the origin fails, the destination is left without supply.',
+      'Producto entregado al cliente en este arco.':
+        'Product delivered to the customer in this arc.',
+      'Ubicacion de despacho (LOCID) desde la que sale el producto al cliente.':
+        'Dispatch location (LOCID) from which the product is shipped to the customer.',
+      'Descripcion de la ubicacion de despacho.': 'Dispatch location description.',
+      'Cliente receptor (CUSTID).': 'Receiving customer (CUSTID).',
+      'Descripcion del cliente.': 'Customer description.',
+      'Lead time de entrega al cliente en dias. 0 o vacio = ⚠ Advertencia.':
+        'Customer delivery lead time in days. 0 or empty = ⚠ Warning.',
+      'Si/No — la ubicacion de despacho esta habilitada para este producto en Location Product.':
+        'Yes/No — the dispatch location is enabled for this product in Location Product.',
+      'Si/No — el cliente esta habilitado para este producto en Customer Product.':
+        'Yes/No — the customer is enabled for this product in Customer Product.',
+      'Si/No — el producto tiene produccion propia (PSH) en alguna planta de la red.':
+        'Yes/No — the product has its own production (PSH) at some plant in the network.',
+      'Si/No — existe una ruta completa de produccion hasta esta entrega al cliente.':
+        'Yes/No — there is a full production route up to this customer delivery.',
+      'OK = lead time > 0 | Zero = CLEADTIME = 0 | Missing = sin valor.':
+        'OK = lead time > 0 | Zero = CLEADTIME = 0 | Missing = no value.'
+    };
+    function _xn(s) {
+      return (window.I18n && I18n.getLang() === 'en' && _XLS_NOTES_EN[s]) ? _XLS_NOTES_EN[s] : s;
+    }
+
     /* Fetches all OData pages, calls onPage(results) per page (no accumulation). */
     async function fetchAndIndex(entityUrl, logEl, pverFilter, selectFields, onPage) {
       var PAGE_SIZE = 50000;
@@ -1011,39 +1176,39 @@
         (I18n.getLang()==='en'?'# Isolated plants':'# Plantas aisladas')
       ];
       var _prdNotes = [
-        'Color: \u26d4 Alerta = problema critico | \u26a0 Advertencia = dato incompleto | \u2705 OK = sin hallazgos.',
-        'Detalle de validaciones. En estado OK lista las que pasaron.',
-        'Codigo unico del producto (PRDID).',
-        'Descripcion del producto segun maestro.',
-        'Tipo de material SAP (MATTYPEID). Determina reglas de validacion por categoria.',
-        'Si/No — tiene fuente de produccion (PSH) activa. Sin PSH = no se fabrica internamente.',
-        'Si/No — aparece como componente en BOM de algun otro producto (PSI).',
-        'Si/No — tiene arcos de transferencia entre ubicaciones (Location Source).',
-        'Si/No — tiene arcos de entrega a cliente (Customer Source).',
-        'Si/No — habilitado en al menos una ubicacion (Location Product). Sin esto IBP ignora el producto.',
-        'Si/No — habilitado para al menos un cliente (Customer Product).',
-        'Si/No — solo existe en el maestro, sin actividad en ninguna entidad de red.',
-        'Estado logistico: Red Completa = tiene ruta de planta a cliente | Sin Entrega = tiene produccion pero no llega a cliente | Huerfano = sin actividad de red.',
-        'Numero de plantas productoras (nodos con PSH) desde las que este producto puede originarse.',
-        'Numero de centros de distribucion intermedios en la red del producto.',
-        'Numero de clientes alcanzables a traves de rutas completas.',
-        'Cantidad de rutas completas de planta a cliente. 0 = no llega a ningun cliente.',
-        'Numero de saltos de la ruta mas larga de planta a cliente.',
-        'Ubicaciones que reciben producto pero cuyas salidas no llegan a ningun cliente.',
-        'Ubicaciones que reciben producto pero no tienen ninguna salida configurada.',
-        'Puntaje de salud 0-100 calculado en base a completitud de rutas, anomalias y lead times.',
-        'Clasificacion del puntaje: Healthy (\u226580) | Acceptable (\u226560) | Weak (\u226540) | Critical (<40).',
-        'Desglose paso a paso del calculo: bonificaciones (+) y penalizaciones (-) que determinan el score final.',
-        'Cantidad de ubicaciones origen distintas (LOCFR) en Location Source para este producto.',
-        'Codigos de las ubicaciones origen separados por coma.',
-        'Cantidad de ubicaciones destino distintas (LOCID) en Location Source para este producto.',
-        'Codigos de las ubicaciones destino separados por coma.',
-        'Cantidad de clientes distintos declarados en Customer Source para este producto.',
-        'Codigos de los clientes en Customer Source separados por coma.',
-        'Si/No — alguna ubicacion destino recibe este producto desde mas de un origen simultaneamente (multi-sourcing).',
-        'Promedio de TLEADTIME (dias) para todos los arcos de Location Source de este producto. \u2014 si no hay arcos con lead time definido.',
-        'Promedio de CLEADTIME (dias) para todos los arcos de Customer Source de este producto. \u2014 si no hay arcos con lead time definido.',
-        'Cantidad de plantas que producen este producto pero no tienen ninguna ruta hasta algun cliente.'
+        _xn('Color: \u26d4 Alerta = problema critico | \u26a0 Advertencia = dato incompleto | \u2705 OK = sin hallazgos.'),
+        _xn('Detalle de validaciones. En estado OK lista las que pasaron.'),
+        _xn('Codigo unico del producto (PRDID).'),
+        _xn('Descripcion del producto segun maestro.'),
+        _xn('Tipo de material SAP (MATTYPEID). Determina reglas de validacion por categoria.'),
+        _xn('Si/No — tiene fuente de produccion (PSH) activa. Sin PSH = no se fabrica internamente.'),
+        _xn('Si/No — aparece como componente en BOM de algun otro producto (PSI).'),
+        _xn('Si/No — tiene arcos de transferencia entre ubicaciones (Location Source).'),
+        _xn('Si/No — tiene arcos de entrega a cliente (Customer Source).'),
+        _xn('Si/No — habilitado en al menos una ubicacion (Location Product). Sin esto IBP ignora el producto.'),
+        _xn('Si/No — habilitado para al menos un cliente (Customer Product).'),
+        _xn('Si/No — solo existe en el maestro, sin actividad en ninguna entidad de red.'),
+        _xn('Estado logistico: Red Completa = tiene ruta de planta a cliente | Sin Entrega = tiene produccion pero no llega a cliente | Huerfano = sin actividad de red.'),
+        _xn('Numero de plantas productoras (nodos con PSH) desde las que este producto puede originarse.'),
+        _xn('Numero de centros de distribucion intermedios en la red del producto.'),
+        _xn('Numero de clientes alcanzables a traves de rutas completas.'),
+        _xn('Cantidad de rutas completas de planta a cliente. 0 = no llega a ningun cliente.'),
+        _xn('Numero de saltos de la ruta mas larga de planta a cliente.'),
+        _xn('Ubicaciones que reciben producto pero cuyas salidas no llegan a ningun cliente.'),
+        _xn('Ubicaciones que reciben producto pero no tienen ninguna salida configurada.'),
+        _xn('Puntaje de salud 0-100 calculado en base a completitud de rutas, anomalias y lead times.'),
+        _xn('Clasificacion del puntaje: Healthy (\u226580) | Acceptable (\u226560) | Weak (\u226540) | Critical (<40).'),
+        _xn('Desglose paso a paso del calculo: bonificaciones (+) y penalizaciones (-) que determinan el score final.'),
+        _xn('Cantidad de ubicaciones origen distintas (LOCFR) en Location Source para este producto.'),
+        _xn('Codigos de las ubicaciones origen separados por coma.'),
+        _xn('Cantidad de ubicaciones destino distintas (LOCID) en Location Source para este producto.'),
+        _xn('Codigos de las ubicaciones destino separados por coma.'),
+        _xn('Cantidad de clientes distintos declarados en Customer Source para este producto.'),
+        _xn('Codigos de los clientes en Customer Source separados por coma.'),
+        _xn('Si/No — alguna ubicacion destino recibe este producto desde mas de un origen simultaneamente (multi-sourcing).'),
+        _xn('Promedio de TLEADTIME (dias) para todos los arcos de Location Source de este producto. \u2014 si no hay arcos con lead time definido.'),
+        _xn('Promedio de CLEADTIME (dias) para todos los arcos de Customer Source de este producto. \u2014 si no hay arcos con lead time definido.'),
+        _xn('Cantidad de plantas que producen este producto pero no tienen ninguna ruta hasta algun cliente.')
       ];
       var _prdGroups = [
         'control','control',
@@ -1066,25 +1231,25 @@
         I18n.t('xls.col.isCriticalNodeQ'), I18n.t('xls.col.numImpactedProducts'), I18n.t('xls.col.numImpactedCustomers'), I18n.t('xls.col.riskLevel')
       ];
       var _locNotes = [
-        'Color: \u26d4 Alerta | \u26a0 Advertencia | \u2705 OK.',
-        'Detalle de validaciones. En estado OK lista las que pasaron.',
-        'Codigo unico de la ubicacion (LOCID).',
-        'Descripcion de la ubicacion segun maestro.',
-        'Tipo de ubicacion SAP (LOCTYPE). Informativo; el rol real se infiere del comportamiento en los datos.',
-        'Rol inferido del comportamiento en los datos: Planta con Entrega = PSH + CustSrc | Planta = solo PSH | DC con Entrega Directa = LocSrc + CustSrc | DC = solo LocSrc | Punto de Entrega = solo CustSrc | Sin rol activo = sin presencia en red.',
-        'Si/No — tiene al menos una fuente de produccion (PSH) en esta ubicacion.',
-        'Si/No — aparece como origen o destino en Location Source.',
-        'Si/No — aparece como ubicacion de entrega en Customer Source.',
-        'Si/No — habilitada en Location Product. Sin esto IBP no planifica en esta ubicacion.',
-        'Si/No — solo en maestro, sin actividad en red.',
-        'Total de productos distintos que pasan por esta ubicacion (como origen o destino en LocSrc).',
-        'Productos para los que esta ubicacion actua como origen (LOCFR) en Location Source.',
-        'Productos para los que esta ubicacion actua como destino (LOCID) en Location Source.',
-        'Clientes que pueden ser abastecidos desde esta ubicacion via Customer Source.',
-        'Si/No — su eliminacion cortaria rutas de multiples productos a clientes.',
-        'Numero de productos cuyas rutas pasan por este nodo critico.',
-        'Numero de clientes cuyo abastecimiento depende de este nodo.',
-        'Critical (\u22654 productos) | High (2\u20133) | Medium (1).'
+        _xn('Color: \u26d4 Alerta | \u26a0 Advertencia | \u2705 OK.'),
+        _xn('Detalle de validaciones. En estado OK lista las que pasaron.'),
+        _xn('Codigo unico de la ubicacion (LOCID).'),
+        _xn('Descripcion de la ubicacion segun maestro.'),
+        _xn('Tipo de ubicacion SAP (LOCTYPE). Informativo; el rol real se infiere del comportamiento en los datos.'),
+        _xn('Rol inferido del comportamiento en los datos: Planta con Entrega = PSH + CustSrc | Planta = solo PSH | DC con Entrega Directa = LocSrc + CustSrc | DC = solo LocSrc | Punto de Entrega = solo CustSrc | Sin rol activo = sin presencia en red.'),
+        _xn('Si/No — tiene al menos una fuente de produccion (PSH) en esta ubicacion.'),
+        _xn('Si/No — aparece como origen o destino en Location Source.'),
+        _xn('Si/No — aparece como ubicacion de entrega en Customer Source.'),
+        _xn('Si/No — habilitada en Location Product. Sin esto IBP no planifica en esta ubicacion.'),
+        _xn('Si/No — solo en maestro, sin actividad en red.'),
+        _xn('Total de productos distintos que pasan por esta ubicacion (como origen o destino en LocSrc).'),
+        _xn('Productos para los que esta ubicacion actua como origen (LOCFR) en Location Source.'),
+        _xn('Productos para los que esta ubicacion actua como destino (LOCID) en Location Source.'),
+        _xn('Clientes que pueden ser abastecidos desde esta ubicacion via Customer Source.'),
+        _xn('Si/No — su eliminacion cortaria rutas de multiples productos a clientes.'),
+        _xn('Numero de productos cuyas rutas pasan por este nodo critico.'),
+        _xn('Numero de clientes cuyo abastecimiento depende de este nodo.'),
+        _xn('Critical (\u22654 productos) | High (2\u20133) | Medium (1).')
       ];
       var _locGroups = [
         'control','control',
@@ -1103,17 +1268,17 @@
         I18n.t('xls.col.numProductsReceived'), I18n.t('xls.col.numSupplyingLocs'), I18n.t('xls.col.numPathsReaching'), I18n.t('xls.col.predominantResilience')
       ];
       var _custNotes = [
-        'Color: \u26d4 Alerta | \u26a0 Advertencia | \u2705 OK.',
-        'Detalle de validaciones. En estado OK lista las que pasaron.',
-        'Codigo unico del cliente (CUSTID).',
-        'Descripcion del cliente segun maestro.',
-        'Si/No — tiene al menos un arco de entrega configurado (Customer Source).',
-        'Si/No — habilitado en Customer Product. Sin esto IBP ignora el cliente en planificacion.',
-        'Si/No — solo en maestro, sin arcos de entrega.',
-        'Numero de productos distintos que este cliente puede recibir segun Customer Source.',
-        'Numero de ubicaciones desde las que se despacha al cliente.',
-        'Total de rutas completas de planta a este cliente sumadas para todos sus productos.',
-        'Single Path = algún producto llega solo por una ruta | Single Node Dependency = hay un nodo unico que si falla corta el abastecimiento | Resilient = todos los productos tienen rutas alternativas.'
+        _xn('Color: \u26d4 Alerta | \u26a0 Advertencia | \u2705 OK.'),
+        _xn('Detalle de validaciones. En estado OK lista las que pasaron.'),
+        _xn('Codigo unico del cliente (CUSTID).'),
+        _xn('Descripcion del cliente segun maestro.'),
+        _xn('Si/No — tiene al menos un arco de entrega configurado (Customer Source).'),
+        _xn('Si/No — habilitado en Customer Product. Sin esto IBP ignora el cliente en planificacion.'),
+        _xn('Si/No — solo en maestro, sin arcos de entrega.'),
+        _xn('Numero de productos distintos que este cliente puede recibir segun Customer Source.'),
+        _xn('Numero de ubicaciones desde las que se despacha al cliente.'),
+        _xn('Total de rutas completas de planta a este cliente sumadas para todos sus productos.'),
+        _xn('Single Path = algún producto llega solo por una ruta | Single Node Dependency = hay un nodo unico que si falla corta el abastecimiento | Resilient = todos los productos tienen rutas alternativas.')
       ];
       var _custGroups = [
         'control','control',
@@ -1131,23 +1296,23 @@
         I18n.t('xls.col.arcInFullRoute'), I18n.t('xls.col.arcInverse'), I18n.t('xls.col.leadTimeStatus'), I18n.t('xls.col.spofArc')
       ];
       var _lsNotes = [
-        'Color: \u26d4 Alerta | \u26a0 Advertencia | \u2705 OK.',
-        'Detalle de validaciones. En estado OK lista las que pasaron.',
-        'Producto transferido en este arco.',
-        'Descripcion del producto.',
-        'Tipo de material del producto (MATTYPEID).',
-        'Ubicacion de origen (LOCFR) del arco de transferencia.',
-        'Descripcion de la ubicacion origen.',
-        'Ubicacion de destino (LOCID) del arco de transferencia.',
-        'Descripcion de la ubicacion destino.',
-        'Lead time de transferencia en dias. 0 o vacio = \u26a0 Advertencia.',
-        'Si/No — el origen esta habilitado para este producto en Location Product.',
-        'Si/No — el destino esta habilitado para este producto en Location Product.',
-        'Si/No — el producto tiene produccion propia (PSH) en alguna planta.',
-        'Si/No — este arco pertenece a al menos una ruta completa que llega a un cliente.',
-        'Si/No — existe un arco configurado en la direccion opuesta (LOCID->LOCFR) para el mismo producto.',
-        'OK = lead time > 0 | Zero = TLEADTIME = 0 | Missing = sin valor.',
-        'Si/No — SPOF: este LOCID tiene un unico LOCFR para este producto. Si falla el origen, el destino queda sin abastecimiento.'
+        _xn('Color: \u26d4 Alerta | \u26a0 Advertencia | \u2705 OK.'),
+        _xn('Detalle de validaciones. En estado OK lista las que pasaron.'),
+        _xn('Producto transferido en este arco.'),
+        _xn('Descripcion del producto.'),
+        _xn('Tipo de material del producto (MATTYPEID).'),
+        _xn('Ubicacion de origen (LOCFR) del arco de transferencia.'),
+        _xn('Descripcion de la ubicacion origen.'),
+        _xn('Ubicacion de destino (LOCID) del arco de transferencia.'),
+        _xn('Descripcion de la ubicacion destino.'),
+        _xn('Lead time de transferencia en dias. 0 o vacio = \u26a0 Advertencia.'),
+        _xn('Si/No — el origen esta habilitado para este producto en Location Product.'),
+        _xn('Si/No — el destino esta habilitado para este producto en Location Product.'),
+        _xn('Si/No — el producto tiene produccion propia (PSH) en alguna planta.'),
+        _xn('Si/No — este arco pertenece a al menos una ruta completa que llega a un cliente.'),
+        _xn('Si/No — existe un arco configurado en la direccion opuesta (LOCID->LOCFR) para el mismo producto.'),
+        _xn('OK = lead time > 0 | Zero = TLEADTIME = 0 | Missing = sin valor.'),
+        _xn('Si/No — SPOF: este LOCID tiene un unico LOCFR para este producto. Si falla el origen, el destino queda sin abastecimiento.')
       ];
       var _lsGroups = [
         'control','control',
@@ -1165,21 +1330,21 @@
         I18n.t('xls.col.deliveryReachableFromProd'), I18n.t('xls.col.leadTimeStatus')
       ];
       var _csNotes = [
-        'Color: \u26d4 Alerta | \u26a0 Advertencia | \u2705 OK.',
-        'Detalle de validaciones. En estado OK lista las que pasaron.',
-        'Producto entregado al cliente en este arco.',
-        'Descripcion del producto.',
-        'Tipo de material del producto (MATTYPEID).',
-        'Ubicacion de despacho (LOCID) desde la que sale el producto al cliente.',
-        'Descripcion de la ubicacion de despacho.',
-        'Cliente receptor (CUSTID).',
-        'Descripcion del cliente.',
-        'Lead time de entrega al cliente en dias. 0 o vacio = \u26a0 Advertencia.',
-        'Si/No — la ubicacion de despacho esta habilitada para este producto en Location Product.',
-        'Si/No — el cliente esta habilitado para este producto en Customer Product.',
-        'Si/No — el producto tiene produccion propia (PSH) en alguna planta de la red.',
-        'Si/No — existe una ruta completa de produccion hasta esta entrega al cliente.',
-        'OK = lead time > 0 | Zero = CLEADTIME = 0 | Missing = sin valor.'
+        _xn('Color: \u26d4 Alerta | \u26a0 Advertencia | \u2705 OK.'),
+        _xn('Detalle de validaciones. En estado OK lista las que pasaron.'),
+        _xn('Producto entregado al cliente en este arco.'),
+        _xn('Descripcion del producto.'),
+        _xn('Tipo de material del producto (MATTYPEID).'),
+        _xn('Ubicacion de despacho (LOCID) desde la que sale el producto al cliente.'),
+        _xn('Descripcion de la ubicacion de despacho.'),
+        _xn('Cliente receptor (CUSTID).'),
+        _xn('Descripcion del cliente.'),
+        _xn('Lead time de entrega al cliente en dias. 0 o vacio = \u26a0 Advertencia.'),
+        _xn('Si/No — la ubicacion de despacho esta habilitada para este producto en Location Product.'),
+        _xn('Si/No — el cliente esta habilitado para este producto en Customer Product.'),
+        _xn('Si/No — el producto tiene produccion propia (PSH) en alguna planta de la red.'),
+        _xn('Si/No — existe una ruta completa de produccion hasta esta entrega al cliente.'),
+        _xn('OK = lead time > 0 | Zero = CLEADTIME = 0 | Missing = sin valor.')
       ];
       var _csGroups = [
         'control','control',

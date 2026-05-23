@@ -7,6 +7,307 @@
      Prod Source Resource, Location, Tipos Excluidos
    ═══════════════════════════════════════════════════════════════ */
 
+/* ── i18n helper para notas de columnas Excel ── */
+var _XLS_PA_NOTES_EN = {
+  'Color de alerta: 🔴 Alerta = BOM vacío, PLEADTIME=0, sin Location Product o sin PSR | 🟡 Advertencia = sin SOURCETYPE=P o múltiples fuentes sin cuota | ✅ OK = receta completa.':
+    'Alert color: 🔴 Alert = empty BOM, PLEADTIME=0, no Location Product, or no PSR | 🟡 Warning = no SOURCETYPE=P or multiple sources without quota | ✅ OK = complete recipe.',
+  'Color de alerta: 🔴 Alerta = coeficiente cero, insumo sin arco de abastecimiento o componente sin Location Product | 🟡 Advertencia = SOURCEID no encontrado o sustituto sin registro Item Sub | ✅ OK = componente bien configurado.':
+    'Alert color: 🔴 Alert = zero coefficient, input without supply arc, or component without Location Product | 🟡 Warning = SOURCEID not found or substitute without Item Sub record | ✅ OK = well-configured component.',
+  'Color de alerta: 🔴 Alerta = problema crítico que bloquea la planificación | 🟡 Advertencia = dato incompleto o sospechoso | ✅ OK = sin hallazgos.':
+    'Alert color: 🔴 Alert = critical issue that blocks planning | 🟡 Warning = incomplete or suspicious data | ✅ OK = no findings.',
+  'Color de alerta: 🔴 Alerta = recurso completamente huérfano (sin PSR ni Resource Location) | 🟡 Advertencia = dato incompleto | ✅ OK = recurso activo y con planta asignada.':
+    'Alert color: 🔴 Alert = fully orphan resource (no PSR nor Resource Location) | 🟡 Warning = incomplete data | ✅ OK = active resource with plant assigned.',
+  'Color de alerta: 🟡 Advertencia = recurso asignado a planta pero sin uso en ninguna receta | ✅ OK = recurso activo en PSR para esta planta.':
+    'Alert color: 🟡 Warning = resource assigned to plant but not used in any recipe | ✅ OK = resource active in PSR at this plant.',
+  'Color de alerta: 🟡 Advertencia = recurso asignado a una receta pero sin Resource Location en esa planta | ✅ OK = asignación válida y consistente.':
+    'Alert color: 🟡 Warning = resource assigned to a recipe but without Resource Location at that plant | ✅ OK = valid and consistent assignment.',
+  'Cuántas recetas de producción distintas (SOURCEIDs) tienen a este producto como output principal. Ej: 2 = puede fabricarse de dos maneras diferentes.':
+    'How many distinct production recipes (SOURCEIDs) have this product as primary output. E.g.: 2 = can be manufactured in two different ways.',
+  'Cuántos otros productos distintos requieren este material como componente en sus BOMs. Ej: 3 = MAT-A es ingrediente en PROD-001, PROD-002 y PROD-003.':
+    'How many other distinct products require this material as a component in their BOMs. E.g.: 3 = MAT-A is an ingredient in PROD-001, PROD-002 and PROD-003.',
+  'Código de la planta donde está configurado este recurso (LOCID). Ej: P001.':
+    'Code of the plant where this resource is configured (LOCID). E.g.: P001.',
+  'Código de la planta donde se ejecuta esta producción (LOCID). Ej: P001.':
+    'Code of the plant where this production runs (LOCID). E.g.: P001.',
+  'Código del componente principal al que reemplaza este sustituto. Solo aplica cuando ISALTITEM=X. Ej: MAT-A = este sustituto reemplaza a MAT-A.':
+    'Code of the primary component this substitute replaces. Only applies when ISALTITEM=X. E.g.: MAT-A = this substitute replaces MAT-A.',
+  'Código del material que se consume como ingrediente en esta receta (PRDID componente). Ej: MAT-A.':
+    'Code of the material consumed as ingredient in this recipe (component PRDID). E.g.: MAT-A.',
+  'Código del producto que fabrica esta fuente. Ej: PROD-001.':
+    'Code of the product manufactured by this source. E.g.: PROD-001.',
+  'Código del producto terminado que produce esta receta (output). Ej: PROD-001.':
+    'Code of the finished product this recipe produces (output). E.g.: PROD-001.',
+  'Código del producto terminado que se fabrica en esta receta (output). Ej: PROD-001.':
+    'Code of the finished product manufactured in this recipe (output). E.g.: PROD-001.',
+  'Código del recurso asignado a esta fuente de producción (RESID). Ej: LINEA-01.':
+    'Code of the resource assigned to this production source (RESID). E.g.: LINEA-01.',
+  'Código del recurso productivo (RESID). Ej: LINEA-01.':
+    'Production resource code (RESID). E.g.: LINEA-01.',
+  'Código del tipo de material excluido del análisis principal por configuración del usuario. Ej: VERP = embalajes, NLAG = no planificados.':
+    'Material type code excluded from main analysis per user configuration. E.g.: VERP = packaging, NLAG = non-planned.',
+  'Código único de la ubicación en SAP IBP (LOCID). Ej: P001, DC-NORTE, PROV-05.':
+    'Unique location code in SAP IBP (LOCID). E.g.: P001, DC-NORTH, PROV-05.',
+  'Código único del producto en SAP IBP (PRDID). Ej: PROD-001, MAT-A.':
+    'Unique product code in SAP IBP (PRDID). E.g.: PROD-001, MAT-A.',
+  'Código único del recurso productivo en SAP IBP (RESID). Ej: LINEA-01, HORNO-A, MAQUINA-03.':
+    'Unique production resource code in SAP IBP (RESID). E.g.: LINEA-01, OVEN-A, MACHINE-03.',
+  'Código(s) de la(s) ubicación(es) desde donde se transfiere este componente hacia la planta (LOCFR). Ej: PROV-01, PROV-02 si llega desde dos orígenes distintos.':
+    'Code(s) of the origin location(s) from which this component is transferred to the plant (LOCFR). E.g.: PROV-01, PROV-02 if it arrives from two different origins.',
+  'Códigos de las fuentes de producción (SOURCEIDs) donde este producto es el output. Ej: SRC-001, SRC-002.':
+    'Codes of the production sources (SOURCEIDs) where this product is the output. E.g.: SRC-001, SRC-002.',
+  'Códigos de las plantas (LOCID) donde este recurso está configurado en Resource Location. Ej: P001, P002.':
+    'Codes of the plants (LOCID) where this resource is configured in Resource Location. E.g.: P001, P002.',
+  'Códigos de las plantas de producción (LOCID) donde tiene PSH asociado. Ej: P001, P002.':
+    'Codes of the production plants (LOCID) where it has an associated PSH. E.g.: P001, P002.',
+  'Códigos de las plantas destino abastecidas. Ej: P001, P002.':
+    'Codes of the destination plants supplied. E.g.: P001, P002.',
+  'Códigos de las plantas donde este producto aparece como componente PSI. Ej: P001, P002.':
+    'Codes of the plants where this product appears as a PSI component. E.g.: P001, P002.',
+  'Códigos de las plantas donde este recurso tiene Resource Location configurado. Ej: P001, P002.':
+    'Codes of the plants where this resource has Resource Location configured. E.g.: P001, P002.',
+  'Códigos de las plantas que sí tienen arco de abastecimiento para este producto. Ej: P001, P002.':
+    'Codes of plants that do have a supply arc for this product. E.g.: P001, P002.',
+  'Códigos de las plantas sin cobertura de abastecimiento. Ej: P003.':
+    'Codes of plants without supply coverage. E.g.: P003.',
+  'Códigos de las ubicaciones destino de transferencia. Ej: DC-SUR, DC-ESTE.':
+    'Codes of transfer destination locations. E.g.: DC-SOUTH, DC-EAST.',
+  'Códigos de las ubicaciones origen (LOCFR) que proveen este producto. Ej: PROV-01, PROV-02.':
+    'Codes of the origin locations (LOCFR) that supply this product. E.g.: PROV-01, PROV-02.',
+  'Códigos de las ubicaciones origen que abastecen a esta ubicación. Ej: P001, PROV-01.':
+    'Codes of the origin locations that supply this location. E.g.: P001, PROV-01.',
+  'Códigos de los SOURCEIDs a los que está asignado este recurso. Ej: SRC-001, SRC-002.':
+    'Codes of the SOURCEIDs to which this resource is assigned. E.g.: SRC-001, SRC-002.',
+  'Códigos de los SOURCEIDs con BOM vacío (sin PSI). Ej: SRC-003.':
+    'Codes of the SOURCEIDs with empty BOM (no PSI). E.g.: SRC-003.',
+  'Códigos de los SOURCEIDs con PLEADTIME faltante o cero en esta planta. Ej: SRC-001.':
+    'Codes of the SOURCEIDs with missing or zero PLEADTIME at this plant. E.g.: SRC-001.',
+  'Códigos de los SOURCEIDs de producción de esta planta. Ej: SRC-001, SRC-002.':
+    'Codes of this plant’s production SOURCEIDs. E.g.: SRC-001, SRC-002.',
+  'Códigos de los SOURCEIDs donde productos de este tipo excluido aparecen como componente en un BOM. Ej: SRC-001, SRC-005.':
+    'Codes of the SOURCEIDs where products of this excluded type appear as a component in a BOM. E.g.: SRC-001, SRC-005.',
+  'Códigos de los SOURCEIDs sin recursos PSR asignados. Ej: SRC-002.':
+    'Codes of the SOURCEIDs without PSR resources assigned. E.g.: SRC-002.',
+  'Códigos de los insumos externos sin cobertura de abastecimiento hacia esta planta. Ej: MAT-A, MAT-B.':
+    'Codes of the external inputs without supply coverage to this plant. E.g.: MAT-A, MAT-B.',
+  'Códigos de los nodos origen del componente hacia esta planta. Ej: PROV-01, PROV-02.':
+    'Codes of the component’s origin nodes toward this plant. E.g.: PROV-01, PROV-02.',
+  'Códigos de los nodos origen del producto en la red. Ej: PROV-01, P002.':
+    'Codes of the product’s network origin nodes. E.g.: PROV-01, P002.',
+  'Códigos de los productos abastecidos desde esta ubicación. Ej: MAT-A, MAT-B.':
+    'Codes of the products supplied from this location. E.g.: MAT-A, MAT-B.',
+  'Códigos de los productos enviados sin consumo PSI en la planta destino. Ej: MAT-X.':
+    'Codes of products shipped without PSI consumption at the destination plant. E.g.: MAT-X.',
+  'Códigos de los productos fabricados en esta planta. Ej: PROD-001, PROD-002.':
+    'Codes of the products manufactured at this plant. E.g.: PROD-001, PROD-002.',
+  'Códigos de los productos fabricados por las fuentes donde participa este recurso. Ej: PROD-001, PROD-002.':
+    'Codes of the products manufactured by the sources where this resource participates. E.g.: PROD-001, PROD-002.',
+  'Códigos de los productos recibidos en esta ubicación. Ej: PROD-001, MAT-A.':
+    'Codes of the products received at this location. E.g.: PROD-001, MAT-A.',
+  'Códigos de los productos sin Location Product en la planta destino. Ej: MAT-Y.':
+    'Codes of the products without Location Product at the destination plant. E.g.: MAT-Y.',
+  'Códigos de los productos transferidos sin consumo productivo en destino. Ej: PROD-001.':
+    'Codes of products transferred without productive consumption at destination. E.g.: PROD-001.',
+  'Códigos de los recursos (RESID) asignados a esta fuente de producción. Ej: LINEA-01, HORNO-A.':
+    'Codes of the resources (RESID) assigned to this production source. E.g.: LINEA-01, OVEN-A.',
+  'Códigos de los recursos (RESID) asignados a sus fuentes de producción. Ej: LINEA-01, HORNO-A.':
+    'Codes of the resources (RESID) assigned to its production sources. E.g.: LINEA-01, OVEN-A.',
+  'Códigos de los recursos activos en algún PSR de esta planta. Ej: LINEA-01, LINEA-02, HORNO-A.':
+    'Codes of resources active in some PSR at this plant. E.g.: LINEA-01, LINEA-02, OVEN-A.',
+  'Códigos de los recursos asignados a esta planta en Resource Location. Ej: LINEA-01, HORNO-A.':
+    'Codes of resources assigned to this plant in Resource Location. E.g.: LINEA-01, OVEN-A.',
+  'Códigos de los recursos ociosos (en Resource Location sin uso en PSR). Ej: HORNO-B.':
+    'Codes of idle resources (in Resource Location without use in PSR). E.g.: OVEN-B.',
+  'Descripción de la planta de fabricación. Ej: "Planta Santiago".':
+    'Manufacturing plant description. E.g.: "Santiago Plant".',
+  'Descripción de la planta de producción. Ej: "Planta Santiago".':
+    'Production plant description. E.g.: "Santiago Plant".',
+  'Descripción de la planta del maestro de ubicaciones. Ej: "Planta Santiago".':
+    'Plant description from the location master. E.g.: "Santiago Plant".',
+  'Descripción de la planta. Ej: "Planta Santiago".':
+    'Plant description. E.g.: "Santiago Plant".',
+  'Descripción de la ubicación del maestro de ubicaciones. Ej: "Planta Santiago", "Centro Distribución Norte".':
+    'Location description from the location master. E.g.: "Santiago Plant", "North Distribution Center".',
+  'Descripción del componente del maestro de materiales. Ej: "Aceite crudo a granel".':
+    'Component description from the material master. E.g.: "Bulk crude oil".',
+  'Descripción del producto output. Ej: "Aceite refinado 1L".':
+    'Output product description. E.g.: "Refined oil 1L".',
+  'Descripción del producto según el maestro de materiales. Ej: "Aceite refinado 1L".':
+    'Product description from the material master. E.g.: "Refined oil 1L".',
+  'Descripción del recurso del maestro de recursos. Ej: "Línea de envasado 1", "Horno túnel A".':
+    'Resource description from the resource master. E.g.: "Packaging Line 1", "Tunnel Oven A".',
+  'Descripción del recurso del maestro de recursos. Ej: "Línea de envasado 1".':
+    'Resource description from the resource master. E.g.: "Packaging Line 1".',
+  'Descripción(es) de la(s) ubicación(es) origen del componente. Ej: "Proveedor Nacional 01".':
+    'Description(s) of the component’s origin location(s). E.g.: "National Supplier 01".',
+  'Detalle de cada validación. Ej 🔴: "2 SOURCEID(s) sin PSI | 1 componente sin arco de abastecimiento". Ej ✅: "BOMs con PSI, PSR y lead time | Sin componentes descubiertos".':
+    'Detail of each validation. E.g. 🔴: "2 SOURCEID(s) without PSI | 1 component without supply arc". E.g. ✅: "BOMs with PSI, PSR and lead time | No uncovered components".',
+  'Detalle de cada validación. Si hay hallazgos, describe el problema concreto. Si el estado es OK, lista las validaciones que pasaron. Ej OK: "Habilitado en Location Product | Con PSH, PSI y PSR | Lead time definido en todos los SOURCEIDs".':
+    'Detail of each validation. If there are findings, describes the concrete issue. If status is OK, lists the validations that passed. E.g. OK: "Enabled in Location Product | With PSH, PSI and PSR | Lead time defined in all SOURCEIDs".',
+  'Detalle de hallazgos. Ej 🔴: "BOM vacío: sin componentes PSI | PLEADTIME = 0 o no definido". Ej 🟡: "Múltiples SOURCEIDs para mismo PRDID+LOCID — verificar cuotas". Ej ✅: "BOM con PSI | Lead time definido | Habilitado en LP | SOURCETYPE=P presente | Recursos PSR asignados".':
+    'Findings detail. E.g. 🔴: "Empty BOM: no PSI components | PLEADTIME = 0 or undefined". E.g. 🟡: "Multiple SOURCEIDs for same PRDID+LOCID — verify quotas". E.g. ✅: "BOM with PSI | Lead time defined | Enabled in LP | SOURCETYPE=P present | PSR resources assigned".',
+  'Detalle de hallazgos. Ej 🔴: "Coeficiente = 0 o no definido | Insumo sin arco de abastecimiento en Location Source". Ej ✅: "SOURCEID válido | Coeficiente definido | Con arco de abastecimiento | Habilitado en Location Product".':
+    'Findings detail. E.g. 🔴: "Coefficient = 0 or undefined | Input without supply arc in Location Source". E.g. ✅: "Valid SOURCEID | Coefficient defined | Has supply arc | Enabled in Location Product".',
+  'Detalle de la validación. Ej ✅: "Recurso LINEA-01 asignado en Resource Location para planta P001 | Asociado a SOURCEID SRC-001". Ej 🟡: "Recurso en producción sin asignación en Resource Location para planta P001" — el recurso opera en una receta de P001 pero no figura en el maestro de esa planta.':
+    'Validation detail. E.g. ✅: "Resource LINEA-01 assigned in Resource Location for plant P001 | Linked to SOURCEID SRC-001". E.g. 🟡: "Resource in production without assignment in Resource Location for plant P001" — the resource operates in a P001 recipe but is not in that plant’s master.',
+  'Detalle de la validación. Ej ✅: "Recurso activo en PSR para esta planta". Ej 🟡: "Recurso asignado a planta pero sin uso en PSR para esta planta" — significa que está en el maestro pero IBP nunca lo considera en esa planta.':
+    'Validation detail. E.g. ✅: "Resource active in PSR for this plant". E.g. 🟡: "Resource assigned to plant but not used in PSR for this plant" — means it is in the master but IBP never considers it at that plant.',
+  'Detalle de la validación. Ej 🔴: "Recurso huérfano: sin uso en producción ni planta asignada". Ej 🟡: "Sin uso en producción (no aparece en PSR)". Ej ✅: "En uso en PSR y con planta asignada en Resource Location".':
+    'Validation detail. E.g. 🔴: "Orphan resource: no use in production nor plant assigned". E.g. 🟡: "No use in production (does not appear in PSR)". E.g. ✅: "In use in PSR and with plant assigned in Resource Location".',
+  'Detalle: indica si el tipo aparece como componente en BOMs activos y si hay gaps de abastecimiento detectados. Ej: "Excluido del análisis principal. Validado como componente en 12 fuente(s). ⚠️ 3 combinación(es) componente-planta sin arco de abastecimiento".':
+    'Detail: indicates whether the type appears as a component in active BOMs and whether supply gaps were detected. E.g.: "Excluded from main analysis. Validated as a component in 12 source(s). ⚠️ 3 component-plant combination(s) without supply arc".',
+  'Fuente de producción (SOURCEID) a la que está asignado este recurso. Ej: SRC-001.':
+    'Production source (SOURCEID) to which this resource is assigned. E.g.: SRC-001.',
+  'Fuente de producción (SOURCEID) a la que pertenece este componente. Ej: SRC-001 = este componente es ingrediente de la receta SRC-001.':
+    'Production source (SOURCEID) this component belongs to. E.g.: SRC-001 = this component is an ingredient of recipe SRC-001.',
+  'Identificador único de la fuente de producción (SOURCEID) en SAP IBP. Ej: SRC-001.':
+    'Unique production source identifier (SOURCEID) in SAP IBP. E.g.: SRC-001.',
+  'Lead time de producción en días. Indica cuánto tarda el proceso desde que se lanza la orden hasta tener el producto listo. PLEADTIME = 0 o vacío hace que IBP planifique como producción instantánea → 🔴. Ej: 5 = 5 días de fabricación.':
+    'Production lead time in days. Indicates how long the process takes from order release until the product is ready. PLEADTIME = 0 or empty makes IBP plan as instantaneous production → 🔴. E.g.: 5 = 5 manufacturing days.',
+  'Nombre de la hoja analizada.': 'Name of the analyzed sheet.',
+  'Número de SOURCEIDs de esta planta con PLEADTIME = 0 o no definido. Un lead time cero hace que IBP planifique como si la producción fuera instantánea. Ej: SRC-001 con PLEADTIME=0 → 🔴.':
+    'Number of this plant’s SOURCEIDs with PLEADTIME = 0 or undefined. A zero lead time makes IBP plan as if production were instantaneous. E.g.: SRC-001 with PLEADTIME=0 → 🔴.',
+  'Número de SOURCEIDs de esta planta que no tienen ningún componente PSI definido (BOMs vacíos). Un BOM vacío impide planificar la compra de insumos. Ej: SRC-003 sin PSI → 🔴.':
+    'Number of this plant’s SOURCEIDs with no PSI component defined (empty BOMs). An empty BOM prevents planning input purchases. E.g.: SRC-003 without PSI → 🔴.',
+  'Número de SOURCEIDs de esta planta que no tienen ningún recurso PSR asignado. Sin recurso, IBP no puede planificar capacidad. Ej: SRC-002 sin PSR → 🔴.':
+    'Number of this plant’s SOURCEIDs with no PSR resource assigned. Without a resource, IBP cannot plan capacity. E.g.: SRC-002 without PSR → 🔴.',
+  'Número de combinaciones componente-planta (de este tipo excluido) con arco de abastecimiento configurado en Location Source. Ej: 8 = 8 pares producto-planta tienen ruta de abastecimiento.':
+    'Number of component-plant combinations (of this excluded type) with a supply arc configured in Location Source. E.g.: 8 = 8 product-plant pairs have a supply route.',
+  'Número de combinaciones componente-planta SIN arco de abastecimiento. Si > 0, hay insumos de tipo excluido sin ruta de llegada a la planta que los consume. Ej: 3 = 3 pares sin cobertura → 🟡 aunque el tipo esté excluido del análisis principal.':
+    'Number of component-plant combinations WITHOUT supply arc. If > 0, there are excluded-type inputs without a route to the plant that consumes them. E.g.: 3 = 3 pairs without coverage → 🟡 even if the type is excluded from the main analysis.',
+  'Número de componentes (PSI) definidos en el BOM de esta receta. 0 = BOM vacío → IBP no planifica compra de insumos. Ej: 4 = esta receta requiere 4 ingredientes.':
+    'Number of components (PSI) defined in this recipe’s BOM. 0 = empty BOM → IBP does not plan input purchases. E.g.: 4 = this recipe requires 4 ingredients.',
+  'Número de componentes PSI marcados como material de reemplazo alternativo (ISALTITEM=X). Ej: 1 = MAT-A-PREMIUM puede reemplazar a MAT-A en esta receta.':
+    'Number of PSI components flagged as alternative replacement materials (ISALTITEM=X). E.g.: 1 = MAT-A-PREMIUM can replace MAT-A in this recipe.',
+  'Número de fuentes de producción (SOURCEIDs) a las que está asignado vía PSR. Ej: 3 = participa en SRC-001, SRC-002, SRC-003.':
+    'Number of production sources (SOURCEIDs) to which it is assigned via PSR. E.g.: 3 = participates in SRC-001, SRC-002, SRC-003.',
+  'Número de fuentes de producción (SOURCEIDs) asociadas a esta planta. Ej: 3 = SRC-001, SRC-002, SRC-003.':
+    'Number of production sources (SOURCEIDs) associated with this plant. E.g.: 3 = SRC-001, SRC-002, SRC-003.',
+  'Número de fuentes de producción (SOURCEIDs) que usan productos de este tipo como componente PSI. Aunque estén excluidos del análisis principal, se valida su presencia como insumo. Ej: 12 = 12 recetas distintas usan un VERP como ingrediente.':
+    'Number of production sources (SOURCEIDs) that use products of this type as a PSI component. Even when excluded from main analysis, their presence as input is validated. E.g.: 12 = 12 distinct recipes use a VERP as ingredient.',
+  'Número de hoja en el libro.': 'Sheet number in the workbook.',
+  'Número de insumos externos de esta planta que no tienen arco de abastecimiento en Location Source. Ej: 2 = MAT-A y MAT-B se requieren en P001 pero no hay Location Source que los lleve ahí → 🔴.':
+    'Number of this plant’s external inputs without a supply arc in Location Source. E.g.: 2 = MAT-A and MAT-B are required at P001 but no Location Source brings them there → 🔴.',
+  'Número de nodos origen distintos desde los que este producto puede ser recibido en la red. Ej: 2 = puede llegar desde PROV-01 o desde P002.':
+    'Number of distinct origin nodes from which this product can be received in the network. E.g.: 2 = can arrive from PROV-01 or from P002.',
+  'Número de nodos origen distintos que abastecen este componente hacia esta planta. Ej: 2 = llega desde PROV-01 y PROV-02 (doble fuente, mayor resiliencia).':
+    'Number of distinct origin nodes that supply this component to this plant. E.g.: 2 = arrives from PROV-01 and PROV-02 (dual source, higher resilience).',
+  'Número de plantas consumidoras SIN arco de abastecimiento configurado para este producto. Si > 0: falta configurar Location Source. Ej: P003 consume MAT-A pero no tiene arco desde ningún proveedor → 🔴.':
+    'Number of consuming plants WITHOUT supply arc configured for this product. If > 0: Location Source needs to be set up. E.g.: P003 consumes MAT-A but has no arc from any supplier → 🔴.',
+  'Número de plantas consumidoras que tienen arco de abastecimiento configurado para este producto. Ej: 2 de 3 plantas cubiertas = OK.':
+    'Number of consuming plants with supply arc configured for this product. E.g.: 2 of 3 plants covered = OK.',
+  'Número de plantas destino a las que esta ubicación envía productos. Ej: 2 = abastece a P001 y P002.':
+    'Number of destination plants to which this location ships products. E.g.: 2 = supplies P001 and P002.',
+  'Número de plantas distintas donde este recurso tiene configuración en Resource Location. Ej: 2 = LINEA-01 opera en P001 y P002.':
+    'Number of distinct plants where this resource is configured in Resource Location. E.g.: 2 = LINEA-01 operates at P001 and P002.',
+  'Número de plantas distintas donde se fabrica este producto. Ej: 3 = se produce en P001, P002 y P003.':
+    'Number of distinct plants where this product is manufactured. E.g.: 3 = produced at P001, P002 and P003.',
+  'Número de plantas donde este producto es consumido como ingrediente en algún BOM. Ej: 2 = se usa como componente en P001 y P002.':
+    'Number of plants where this product is consumed as an ingredient in some BOM. E.g.: 2 = used as component at P001 and P002.',
+  'Número de plantas donde este recurso tiene configuración en Resource Location. Ej: 2 = LINEA-01 tiene Resource Location en P001 y P002.':
+    'Number of plants where this resource has configuration in Resource Location. E.g.: 2 = LINEA-01 has Resource Location at P001 and P002.',
+  'Número de productos del maestro que tienen este tipo de material. Ej: 45 = hay 45 productos de tipo VERP.':
+    'Number of master-data products with this material type. E.g.: 45 = there are 45 products of type VERP.',
+  'Número de productos distintos que esta ubicación envía como origen en Location Source hacia plantas que los consumen como PSI. Ej: 3 = PROV-01 abastece MAT-A, MAT-B, MAT-C.':
+    'Number of distinct products this location ships as origin in Location Source to plants that consume them as PSI. E.g.: 3 = PROV-01 supplies MAT-A, MAT-B, MAT-C.',
+  'Número de productos distintos que fabrica a través de sus SOURCEIDs. Ej: 2 = HORNO-A produce PROD-001 y PROD-002.':
+    'Number of distinct products manufactured through its SOURCEIDs. E.g.: 2 = OVEN-A produces PROD-001 and PROD-002.',
+  'Número de productos distintos que se fabrican en esta planta (tienen PSH con este LOCID como planta). Ej: 5 = fabrica PROD-001, PROD-002, PROD-003, SEMI-A, SEMI-B.':
+    'Number of distinct products manufactured at this plant (have a PSH with this LOCID as plant). E.g.: 5 = manufactures PROD-001, PROD-002, PROD-003, SEMI-A, SEMI-B.',
+  'Número de productos que esta ubicación recibe como destino en Location Source. Ej: 4 = recibe PROD-001, PROD-002, MAT-A, MAT-B.':
+    'Number of products this location receives as destination in Location Source. E.g.: 4 = receives PROD-001, PROD-002, MAT-A, MAT-B.',
+  'Número de productos que esta ubicación reenvía vía Location Source sin que sean consumidos como PSI en el destino. Ej: DC-NORTE transfiere PROD-001 a DC-SUR sin que DC-SUR lo use como insumo productivo.':
+    'Number of products this location forwards via Location Source without them being consumed as PSI at the destination. E.g.: DC-NORTH transfers PROD-001 to DC-SOUTH without DC-SOUTH using it as productive input.',
+  'Número de recursos (máquinas/líneas) con Resource Location configurado en esta planta. Ej: 4 = LINEA-01, LINEA-02, HORNO-A, HORNO-B.':
+    'Number of resources (machines/lines) with Resource Location configured at this plant. E.g.: 4 = LINEA-01, LINEA-02, OVEN-A, OVEN-B.',
+  'Número de recursos asignados que aparecen en al menos un PSR activo en esta planta. Ej: 3 de 4 asignados están activos.':
+    'Number of assigned resources that appear in at least one active PSR at this plant. E.g.: 3 of 4 assigned are active.',
+  'Número de recursos productivos (máquinas/líneas) asignados a esta receta vía PSR. 0 = sin capacidad modelada. Ej: 2 = LINEA-01 y HORNO-A.':
+    'Number of production resources (machines/lines) assigned to this recipe via PSR. 0 = no capacity modeled. E.g.: 2 = LINEA-01 and OVEN-A.',
+  'Número de recursos productivos (máquinas/líneas) asignados a sus recetas vía PSR. Ej: 2 = LINEA-01 y HORNO-A.':
+    'Number of production resources (machines/lines) assigned to its recipes via PSR. E.g.: 2 = LINEA-01 and OVEN-A.',
+  'Número de ubicaciones destino hacia las que esta ubicación transfiere productos. Ej: 2 = reenvía a DC-SUR y DC-ESTE.':
+    'Number of destination locations to which this location transfers products. E.g.: 2 = forwards to DC-SOUTH and DC-EAST.',
+  'Número de ubicaciones origen distintas desde las que recibe productos. Ej: 3 = recibe desde P001, P002 y PROV-01.':
+    'Number of distinct origin locations from which it receives products. E.g.: 3 = receives from P001, P002 and PROV-01.',
+  'Número de ubicaciones origen que abastecen este producto como insumo vía Location Source. Ej: 2 = llega desde PROV-01 y PROV-02.':
+    'Number of origin locations that supply this product as input via Location Source. E.g.: 2 = arrives from PROV-01 and PROV-02.',
+  'Planta donde opera esta fuente de producción (LOCID). Ej: P001.':
+    'Plant where this production source operates (LOCID). E.g.: P001.',
+  'Planta donde se fabrica el producto output (LOCID). Ej: P001.':
+    'Plant where the output product is manufactured (LOCID). E.g.: P001.',
+  'Porcentaje de registros OK sobre el total. Fórmula: OK / Total × 100. Ej: 85 de 100 productos OK = 85%.':
+    'Percentage of OK records over total. Formula: OK / Total × 100. E.g.: 85 of 100 products OK = 85%.',
+  'Productos que se envían a una planta destino donde no tienen Location Product habilitado. IBP no puede planificarlos en esa planta. Ej: MAT-Y llega a P002 pero no tiene Location Product en P002 → 🔴.':
+    'Products shipped to a destination plant where they have no Location Product enabled. IBP cannot plan them at that plant. E.g.: MAT-Y arrives at P002 but has no Location Product at P002 → 🔴.',
+  'Productos que se envían desde aquí pero no se consumen como componente PSI en la planta destino. Puede indicar arcos configurados de más o sin uso real. Ej: MAT-X se envía a P001 pero ningún BOM de P001 lo usa → 🟡.':
+    'Products shipped from here but not consumed as PSI component at the destination plant. May indicate over-configured or unused arcs. E.g.: MAT-X is shipped to P001 but no BOM at P001 uses it → 🟡.',
+  'Proporción de producción asignada a esta fuente cuando existen múltiples SOURCEIDs para el mismo PRDID+LOCID. IBP usa PRATIO para distribuir la demanda planificada entre fuentes. Ej: 0.6 = esta fuente cubre el 60% de la demanda. Vacío = fuente única o sin cuota definida.':
+    'Production share assigned to this source when multiple SOURCEIDs exist for the same PRDID+LOCID. IBP uses PRATIO to distribute planned demand across sources. E.g.: 0.6 = this source covers 60% of demand. Empty = single source or no quota defined.',
+  'Recursos que están en Resource Location para esta planta pero no aparecen en ningún PSR. Posible configuración huérfana. Ej: HORNO-B asignado a P001 pero sin ninguna receta que lo use → 🟡.':
+    'Resources that are in Resource Location for this plant but appear in no PSR. Possible orphan configuration. E.g.: OVEN-B assigned to P001 but no recipe uses it → 🟡.',
+  'Registros con dato incompleto o sospechoso que conviene revisar. Ej: recurso sin Resource Location, arco sin consumo PSI en destino.':
+    'Records with incomplete or suspicious data worth reviewing. E.g.: resource without Resource Location, arc without PSI consumption at destination.',
+  'Registros con problema crítico que bloquea o distorsiona la planificación. Ej: producto sin PSH, BOM vacío, PLEADTIME = 0.':
+    'Records with a critical issue that blocks or distorts planning. E.g.: product without PSH, empty BOM, PLEADTIME = 0.',
+  'Registros sin hallazgos — todas las validaciones aplicables pasaron correctamente.':
+    'Records with no findings — all applicable validations passed correctly.',
+  'Rol(es) inferidos del comportamiento real en los datos (independiente del LOCTYPE). Posibles: Planta de producción = tiene PSH | Proveedor = abastece componentes PSI en destino | Nodo de transferencia = envía productos sin consumo PSI en destino | Nodo receptor = solo recibe vía Location Source | Nodo de recursos = tiene Resource Location pero sin producción ni transferencias | Sin actividad = existe en el maestro pero no aparece en ningún otro dato.':
+    'Role(s) inferred from actual data behavior (independent of LOCTYPE). Possible: Production plant = has PSH | Supplier = supplies PSI components at destination | Transfer node = ships products without PSI consumption at destination | Receiver node = only receives via Location Source | Resource node = has Resource Location but no production or transfers | No activity = exists in master but does not appear in any other data.',
+  'Semielaborado = el componente tiene PSH propio en esta planta y se fabrica antes de usarse (trazabilidad en PSH). Insumo = no se fabrica aquí, debe llegar desde un proveedor u otra planta vía Location Source. Ej: SEMI-B = Semielaborado | MAT-A = Insumo.':
+    'Semi-finished = the component has its own PSH at this plant and is manufactured before use (traceable in PSH). Input = not manufactured here, must arrive from a supplier or another plant via Location Source. E.g.: SEMI-B = Semi-finished | MAT-A = Input.',
+  'Si / No — ¿El componente está habilitado en Location Product para esta planta? Si No, IBP no puede planificar su consumo en esa planta. Ej: MAT-A en P001 = No → componente desconocido para IBP en esa planta → 🔴.':
+    'Yes / No — Is the component enabled in Location Product for this plant? If No, IBP cannot plan its consumption at that plant. E.g.: MAT-A at P001 = No → component unknown to IBP at that plant → 🔴.',
+  'Si / No — ¿El producto aparece como output principal (SOURCETYPE=P) en alguna fuente de producción (PSH)? Sin PSH no hay instrucciones de fabricación. Ej: PROD-001 con PSH en planta P001.':
+    'Yes / No — Does the product appear as primary output (SOURCETYPE=P) in some production source (PSH)? Without PSH there are no manufacturing instructions. E.g.: PROD-001 with PSH at plant P001.',
+  'Si / No — ¿El producto está registrado en al menos una ubicación en Location Product? Sin esto, IBP ignora el producto en la planificación. Ej: PROD-001 sin Location Product → no entra a ningún plan.':
+    'Yes / No — Is the product registered in at least one location in Location Product? Without this, IBP ignores the product in planning. E.g.: PROD-001 without Location Product → does not enter any plan.',
+  'Si / No — ¿Esta combinación RESID+LOCID aparece en al menos un PSR? Si No, el recurso está en el maestro de esa planta pero no participa en ninguna receta. Ej: HORNO-B en P002 = No → 🟡 configuración sin uso productivo.':
+    'Yes / No — Does this RESID+LOCID combination appear in at least one PSR? If No, the resource is in that plant’s master but participates in no recipe. E.g.: OVEN-B at P002 = No → 🟡 configuration without productive use.',
+  'Si / No — ¿Esta fuente tiene al menos un recurso asignado en Prod Source Resource? Si No, IBP no puede planificar la capacidad de esta receta. Ej: SRC-003 = No → sin restricción de capacidad modelada → 🔴.':
+    'Yes / No — Does this source have at least one resource assigned in Prod Source Resource? If No, IBP cannot plan this recipe’s capacity. E.g.: SRC-003 = No → no capacity constraint modeled → 🔴.',
+  'Si / No — ¿Este producto es usado como ingrediente en el BOM de algún otro producto (PSI)? Ej: MAT-A = Sí porque es componente en el BOM de PROD-001.':
+    'Yes / No — Is this product used as an ingredient in another product’s BOM (PSI)? E.g.: MAT-A = Yes because it is a component in PROD-001’s BOM.',
+  'Si / No — ¿Este producto tiene al menos un arco de transferencia configurado en Location Source? Ej: MAT-A = Sí porque se transfiere de PROV-01 a P001.':
+    'Yes / No — Does this product have at least one transfer arc configured in Location Source? E.g.: MAT-A = Yes because it is transferred from PROV-01 to P001.',
+  'Si / No — ¿Este recurso está asignado a al menos una fuente de producción en PSR? Si No, IBP no lo usa para planificar capacidad. Ej: HORNO-B = No → nunca se considera en ninguna receta.':
+    'Yes / No — Is this resource assigned to at least one production source in PSR? If No, IBP does not use it to plan capacity. E.g.: OVEN-B = No → never considered in any recipe.',
+  'Si / No — ¿Este recurso tiene al menos una planta configurada en Resource Location? Si No, IBP no sabe dónde opera físicamente. Ej: LINEA-01 = No → recurso sin ubicación conocida → 🟡.':
+    'Yes / No — Does this resource have at least one plant configured in Resource Location? If No, IBP does not know where it physically operates. E.g.: LINEA-01 = No → resource without known location → 🟡.',
+  'Si / No — ¿Hay al menos un arco en Location Source que traiga este insumo a esta planta? Muestra N/A para semielaborados (se producen localmente, no se transfieren). Ej: MAT-A en P001 = No → no hay ruta de abastecimiento configurada → 🔴.':
+    'Yes / No — Is there at least one arc in Location Source bringing this input to this plant? Shows N/A for semi-finished items (produced locally, not transferred). E.g.: MAT-A at P001 = No → no supply route configured → 🔴.',
+  'Si / No — ¿La combinación PRDID+LOCID está habilitada en Location Product? Sin esto, IBP no planifica este producto en esta planta aunque exista la receta. Ej: PROD-001 en P001 = No → receta sin efecto.':
+    'Yes / No — Is the PRDID+LOCID combination enabled in Location Product? Without this, IBP does not plan this product at this plant even if the recipe exists. E.g.: PROD-001 at P001 = No → recipe with no effect.',
+  'Si / No — ¿La combinación RESID+LOCID aparece en Resource Location? Si No, el recurso está en la receta pero IBP no lo reconoce como ubicado en esa planta. Ej: LINEA-01 en P001 = No → 🟡 inconsistencia entre PSR y Resource Location.':
+    'Yes / No — Does the RESID+LOCID combination appear in Resource Location? If No, the resource is in the recipe but IBP does not recognize it as located at that plant. E.g.: LINEA-01 at P001 = No → 🟡 inconsistency between PSR and Resource Location.',
+  'Tipo de material SAP asignado a este producto (MATTYPEID). Determina qué validaciones aplican. Ej: FERT = producto terminado, HALB = semielaborado, ROH = materia prima.':
+    'SAP material type assigned to this product (MATTYPEID). Determines which validations apply. E.g.: FERT = finished product, HALB = semi-finished, ROH = raw material.',
+  'Tipo de material del componente. Ej: ROH = materia prima, HALB = semielaborado.':
+    'Component material type. E.g.: ROH = raw material, HALB = semi-finished.',
+  'Tipo de material del producto output. Ej: FERT = terminado, HALB = semielaborado.':
+    'Output product material type. E.g.: FERT = finished, HALB = semi-finished.',
+  'Tipo de material del producto output. Ej: FERT.':
+    'Output product material type. E.g.: FERT.',
+  'Tipo de ubicación según el campo LOCTYPE de SAP IBP. Ej: 1010 = planta, 1020 = centro distribución. Campo informativo, el rol real se infiere del comportamiento en los datos.':
+    'Location type per SAP IBP’s LOCTYPE field. E.g.: 1010 = plant, 1020 = distribution center. Informational field; the real role is inferred from data behavior.',
+  'Tipo(s) de fuente en esta receta: P = producción primaria (el output principal) | C = co-producto (se obtiene en el mismo proceso). Ej: P/C = esta receta produce PROD-001 como primario y SEMI-X como co-producto.':
+    'Source type(s) in this recipe: P = primary production (the main output) | C = co-product (obtained in the same process). E.g.: P/C = this recipe produces PROD-001 as primary and SEMI-X as co-product.',
+  'Total de componentes PSI definidos en todos sus BOMs. Ej: 5 = la suma de ingredientes en todas sus recetas de producción es 5.':
+    'Total PSI components defined across all its BOMs. E.g.: 5 = the sum of ingredients across all its production recipes is 5.',
+  'Total de componentes de tipo insumo (no semielaborados) requeridos por los BOMs de esta planta. Ej: 8 = suma de ingredientes externos en todas las recetas de P001.':
+    'Total input-type components (not semi-finished) required by this plant’s BOMs. E.g.: 8 = sum of external ingredients across all P001 recipes.',
+  'Total de filas procesadas en esa hoja. Ej: 350 = se analizaron 350 productos.':
+    'Total rows processed in that sheet. E.g.: 350 = 350 products were analyzed.',
+  'Unidades del componente consumidas por cada unidad del producto terminado. Si = 0, IBP no planifica la compra de este insumo. Ej: 2.5 = se consumen 2.5 kg de MAT-A por cada unidad de PROD-001 fabricada.':
+    'Component units consumed per unit of finished product. If = 0, IBP does not plan the purchase of this input. E.g.: 2.5 = 2.5 kg of MAT-A are consumed per unit of PROD-001 manufactured.',
+  'Unidades del producto terminado que se obtienen por corrida de producción. Afecta directamente el cálculo de cuántas corridas se necesitan. Ej: 100 = cada corrida produce 100 unidades.':
+    'Units of finished product obtained per production run. Directly affects the calculation of how many runs are needed. E.g.: 100 = each run produces 100 units.',
+  'X = este componente es un material de reemplazo alternativo (ISALTITEM=X). Vacío = componente principal. Ej: MAT-A-PREMIUM con X = puede sustituir a MAT-A cuando no hay stock.':
+    'X = this component is an alternative replacement material (ISALTITEM=X). Empty = primary component. E.g.: MAT-A-PREMIUM with X = can substitute MAT-A when out of stock.'
+};
+function _xnPA(s) {
+  return (window.I18n && I18n.getLang() === 'en' && _XLS_PA_NOTES_EN[s]) ? _XLS_PA_NOTES_EN[s] : s;
+}
+
 async function doProductionAnalysis() {
   var logEl   = document.getElementById('logPA');
   var progEl  = document.getElementById('progFillPA');
@@ -773,13 +1074,13 @@ async function paAnalyzeAndExport(
   var S0 = makeSheet(I18n.t('xls.sheet.summary'), 'FF34D399',
     ['#', I18n.t('xls.col.sheet'), I18n.t('xls.col.totalRecords'), I18n.t('xls.col.alerts'), I18n.t('xls.col.warnings'), I18n.t('xls.col.ok'), I18n.t('xls.col.consistencyPct')],
     [
-      'Número de hoja en el libro.',
-      'Nombre de la hoja analizada.',
-      'Total de filas procesadas en esa hoja. Ej: 350 = se analizaron 350 productos.',
-      'Registros con problema crítico que bloquea o distorsiona la planificación. Ej: producto sin PSH, BOM vacío, PLEADTIME = 0.',
-      'Registros con dato incompleto o sospechoso que conviene revisar. Ej: recurso sin Resource Location, arco sin consumo PSI en destino.',
-      'Registros sin hallazgos — todas las validaciones aplicables pasaron correctamente.',
-      'Porcentaje de registros OK sobre el total. Fórmula: OK / Total × 100. Ej: 85 de 100 productos OK = 85%.'
+      _xnPA('Número de hoja en el libro.'),
+      _xnPA('Nombre de la hoja analizada.'),
+      _xnPA('Total de filas procesadas en esa hoja. Ej: 350 = se analizaron 350 productos.'),
+      _xnPA('Registros con problema crítico que bloquea o distorsiona la planificación. Ej: producto sin PSH, BOM vacío, PLEADTIME = 0.'),
+      _xnPA('Registros con dato incompleto o sospechoso que conviene revisar. Ej: recurso sin Resource Location, arco sin consumo PSI en destino.'),
+      _xnPA('Registros sin hallazgos — todas las validaciones aplicables pasaron correctamente.'),
+      _xnPA('Porcentaje de registros OK sobre el total. Fórmula: OK / Total × 100. Ej: 85 de 100 productos OK = 85%.')
     ],
     ['control','control','metric','metric','metric','metric','metric']);
 
@@ -804,33 +1105,33 @@ async function paAnalyzeAndExport(
       I18n.t('xls.col.numConsumerPlants'), I18n.t('xls.col.consumerPlants')
     ];
     var _s1Notes = [
-      'Color de alerta: 🔴 Alerta = problema crítico que bloquea la planificación | 🟡 Advertencia = dato incompleto o sospechoso | ✅ OK = sin hallazgos.',
-      'Detalle de cada validación. Si hay hallazgos, describe el problema concreto. Si el estado es OK, lista las validaciones que pasaron. Ej OK: "Habilitado en Location Product | Con PSH, PSI y PSR | Lead time definido en todos los SOURCEIDs".',
-      'Código único del producto en SAP IBP (PRDID). Ej: PROD-001, MAT-A.',
-      'Descripción del producto según el maestro de materiales. Ej: "Aceite refinado 1L".',
-      'Tipo de material SAP asignado a este producto (MATTYPEID). Determina qué validaciones aplican. Ej: FERT = producto terminado, HALB = semielaborado, ROH = materia prima.',
-      'Si / No — ¿El producto está registrado en al menos una ubicación en Location Product? Sin esto, IBP ignora el producto en la planificación. Ej: PROD-001 sin Location Product → no entra a ningún plan.',
-      'Si / No — ¿El producto aparece como output principal (SOURCETYPE=P) en alguna fuente de producción (PSH)? Sin PSH no hay instrucciones de fabricación. Ej: PROD-001 con PSH en planta P001.',
-      'Si / No — ¿Este producto es usado como ingrediente en el BOM de algún otro producto (PSI)? Ej: MAT-A = Sí porque es componente en el BOM de PROD-001.',
-      'Si / No — ¿Este producto tiene al menos un arco de transferencia configurado en Location Source? Ej: MAT-A = Sí porque se transfiere de PROV-01 a P001.',
-      'Cuántas recetas de producción distintas (SOURCEIDs) tienen a este producto como output principal. Ej: 2 = puede fabricarse de dos maneras diferentes.',
-      'Códigos de las fuentes de producción (SOURCEIDs) donde este producto es el output. Ej: SRC-001, SRC-002.',
-      'Número de plantas distintas donde se fabrica este producto. Ej: 3 = se produce en P001, P002 y P003.',
-      'Códigos de las plantas de producción (LOCID) donde tiene PSH asociado. Ej: P001, P002.',
-      'Total de componentes PSI definidos en todos sus BOMs. Ej: 5 = la suma de ingredientes en todas sus recetas de producción es 5.',
-      'Número de recursos productivos (máquinas/líneas) asignados a sus recetas vía PSR. Ej: 2 = LINEA-01 y HORNO-A.',
-      'Códigos de los recursos (RESID) asignados a sus fuentes de producción. Ej: LINEA-01, HORNO-A.',
-      'Número de ubicaciones origen que abastecen este producto como insumo vía Location Source. Ej: 2 = llega desde PROV-01 y PROV-02.',
-      'Códigos de las ubicaciones origen (LOCFR) que proveen este producto. Ej: PROV-01, PROV-02.',
-      'Número de plantas consumidoras que tienen arco de abastecimiento configurado para este producto. Ej: 2 de 3 plantas cubiertas = OK.',
-      'Códigos de las plantas que sí tienen arco de abastecimiento para este producto. Ej: P001, P002.',
-      'Número de plantas consumidoras SIN arco de abastecimiento configurado para este producto. Si > 0: falta configurar Location Source. Ej: P003 consume MAT-A pero no tiene arco desde ningún proveedor → 🔴.',
-      'Códigos de las plantas sin cobertura de abastecimiento. Ej: P003.',
-      'Cuántos otros productos distintos requieren este material como componente en sus BOMs. Ej: 3 = MAT-A es ingrediente en PROD-001, PROD-002 y PROD-003.',
-      'Número de nodos origen distintos desde los que este producto puede ser recibido en la red. Ej: 2 = puede llegar desde PROV-01 o desde P002.',
-      'Códigos de los nodos origen del producto en la red. Ej: PROV-01, P002.',
-      'Número de plantas donde este producto es consumido como ingrediente en algún BOM. Ej: 2 = se usa como componente en P001 y P002.',
-      'Códigos de las plantas donde este producto aparece como componente PSI. Ej: P001, P002.'
+      _xnPA('Color de alerta: 🔴 Alerta = problema crítico que bloquea la planificación | 🟡 Advertencia = dato incompleto o sospechoso | ✅ OK = sin hallazgos.'),
+      _xnPA('Detalle de cada validación. Si hay hallazgos, describe el problema concreto. Si el estado es OK, lista las validaciones que pasaron. Ej OK: "Habilitado en Location Product | Con PSH, PSI y PSR | Lead time definido en todos los SOURCEIDs".'),
+      _xnPA('Código único del producto en SAP IBP (PRDID). Ej: PROD-001, MAT-A.'),
+      _xnPA('Descripción del producto según el maestro de materiales. Ej: "Aceite refinado 1L".'),
+      _xnPA('Tipo de material SAP asignado a este producto (MATTYPEID). Determina qué validaciones aplican. Ej: FERT = producto terminado, HALB = semielaborado, ROH = materia prima.'),
+      _xnPA('Si / No — ¿El producto está registrado en al menos una ubicación en Location Product? Sin esto, IBP ignora el producto en la planificación. Ej: PROD-001 sin Location Product → no entra a ningún plan.'),
+      _xnPA('Si / No — ¿El producto aparece como output principal (SOURCETYPE=P) en alguna fuente de producción (PSH)? Sin PSH no hay instrucciones de fabricación. Ej: PROD-001 con PSH en planta P001.'),
+      _xnPA('Si / No — ¿Este producto es usado como ingrediente en el BOM de algún otro producto (PSI)? Ej: MAT-A = Sí porque es componente en el BOM de PROD-001.'),
+      _xnPA('Si / No — ¿Este producto tiene al menos un arco de transferencia configurado en Location Source? Ej: MAT-A = Sí porque se transfiere de PROV-01 a P001.'),
+      _xnPA('Cuántas recetas de producción distintas (SOURCEIDs) tienen a este producto como output principal. Ej: 2 = puede fabricarse de dos maneras diferentes.'),
+      _xnPA('Códigos de las fuentes de producción (SOURCEIDs) donde este producto es el output. Ej: SRC-001, SRC-002.'),
+      _xnPA('Número de plantas distintas donde se fabrica este producto. Ej: 3 = se produce en P001, P002 y P003.'),
+      _xnPA('Códigos de las plantas de producción (LOCID) donde tiene PSH asociado. Ej: P001, P002.'),
+      _xnPA('Total de componentes PSI definidos en todos sus BOMs. Ej: 5 = la suma de ingredientes en todas sus recetas de producción es 5.'),
+      _xnPA('Número de recursos productivos (máquinas/líneas) asignados a sus recetas vía PSR. Ej: 2 = LINEA-01 y HORNO-A.'),
+      _xnPA('Códigos de los recursos (RESID) asignados a sus fuentes de producción. Ej: LINEA-01, HORNO-A.'),
+      _xnPA('Número de ubicaciones origen que abastecen este producto como insumo vía Location Source. Ej: 2 = llega desde PROV-01 y PROV-02.'),
+      _xnPA('Códigos de las ubicaciones origen (LOCFR) que proveen este producto. Ej: PROV-01, PROV-02.'),
+      _xnPA('Número de plantas consumidoras que tienen arco de abastecimiento configurado para este producto. Ej: 2 de 3 plantas cubiertas = OK.'),
+      _xnPA('Códigos de las plantas que sí tienen arco de abastecimiento para este producto. Ej: P001, P002.'),
+      _xnPA('Número de plantas consumidoras SIN arco de abastecimiento configurado para este producto. Si > 0: falta configurar Location Source. Ej: P003 consume MAT-A pero no tiene arco desde ningún proveedor → 🔴.'),
+      _xnPA('Códigos de las plantas sin cobertura de abastecimiento. Ej: P003.'),
+      _xnPA('Cuántos otros productos distintos requieren este material como componente en sus BOMs. Ej: 3 = MAT-A es ingrediente en PROD-001, PROD-002 y PROD-003.'),
+      _xnPA('Número de nodos origen distintos desde los que este producto puede ser recibido en la red. Ej: 2 = puede llegar desde PROV-01 o desde P002.'),
+      _xnPA('Códigos de los nodos origen del producto en la red. Ej: PROV-01, P002.'),
+      _xnPA('Número de plantas donde este producto es consumido como ingrediente en algún BOM. Ej: 2 = se usa como componente en P001 y P002.'),
+      _xnPA('Códigos de las plantas donde este producto aparece como componente PSI. Ej: P001, P002.')
     ];
     var _s1Groups = [
       'control','control',
@@ -1125,51 +1426,51 @@ async function paAnalyzeAndExport(
       '# Orígenes desde los que recibe','Orígenes (códigos)'
     ];
     var _s9Notes = [
-      'Color de alerta: 🔴 Alerta = problema crítico que bloquea la planificación | 🟡 Advertencia = dato incompleto o sospechoso | ✅ OK = sin hallazgos.',
-      'Detalle de cada validación. Ej 🔴: "2 SOURCEID(s) sin PSI | 1 componente sin arco de abastecimiento". Ej ✅: "BOMs con PSI, PSR y lead time | Sin componentes descubiertos".',
-      'Código único de la ubicación en SAP IBP (LOCID). Ej: P001, DC-NORTE, PROV-05.',
-      'Descripción de la ubicación del maestro de ubicaciones. Ej: "Planta Santiago", "Centro Distribución Norte".',
-      'Tipo de ubicación según el campo LOCTYPE de SAP IBP. Ej: 1010 = planta, 1020 = centro distribución. Campo informativo, el rol real se infiere del comportamiento en los datos.',
-      'Rol(es) inferidos del comportamiento real en los datos (independiente del LOCTYPE). Posibles: Planta de producción = tiene PSH | Proveedor = abastece componentes PSI en destino | Nodo de transferencia = envía productos sin consumo PSI en destino | Nodo receptor = solo recibe vía Location Source | Nodo de recursos = tiene Resource Location pero sin producción ni transferencias | Sin actividad = existe en el maestro pero no aparece en ningún otro dato.',
+      _xnPA('Color de alerta: 🔴 Alerta = problema crítico que bloquea la planificación | 🟡 Advertencia = dato incompleto o sospechoso | ✅ OK = sin hallazgos.'),
+      _xnPA('Detalle de cada validación. Ej 🔴: "2 SOURCEID(s) sin PSI | 1 componente sin arco de abastecimiento". Ej ✅: "BOMs con PSI, PSR y lead time | Sin componentes descubiertos".'),
+      _xnPA('Código único de la ubicación en SAP IBP (LOCID). Ej: P001, DC-NORTE, PROV-05.'),
+      _xnPA('Descripción de la ubicación del maestro de ubicaciones. Ej: "Planta Santiago", "Centro Distribución Norte".'),
+      _xnPA('Tipo de ubicación según el campo LOCTYPE de SAP IBP. Ej: 1010 = planta, 1020 = centro distribución. Campo informativo, el rol real se infiere del comportamiento en los datos.'),
+      _xnPA('Rol(es) inferidos del comportamiento real en los datos (independiente del LOCTYPE). Posibles: Planta de producción = tiene PSH | Proveedor = abastece componentes PSI en destino | Nodo de transferencia = envía productos sin consumo PSI en destino | Nodo receptor = solo recibe vía Location Source | Nodo de recursos = tiene Resource Location pero sin producción ni transferencias | Sin actividad = existe en el maestro pero no aparece en ningún otro dato.'),
       /* Planta */
-      'Número de productos distintos que se fabrican en esta planta (tienen PSH con este LOCID como planta). Ej: 5 = fabrica PROD-001, PROD-002, PROD-003, SEMI-A, SEMI-B.',
-      'Códigos de los productos fabricados en esta planta. Ej: PROD-001, PROD-002.',
-      'Número de fuentes de producción (SOURCEIDs) asociadas a esta planta. Ej: 3 = SRC-001, SRC-002, SRC-003.',
-      'Códigos de los SOURCEIDs de producción de esta planta. Ej: SRC-001, SRC-002.',
-      'Número de recursos (máquinas/líneas) con Resource Location configurado en esta planta. Ej: 4 = LINEA-01, LINEA-02, HORNO-A, HORNO-B.',
-      'Códigos de los recursos asignados a esta planta en Resource Location. Ej: LINEA-01, HORNO-A.',
-      'Número de recursos asignados que aparecen en al menos un PSR activo en esta planta. Ej: 3 de 4 asignados están activos.',
-      'Códigos de los recursos activos en algún PSR de esta planta. Ej: LINEA-01, LINEA-02, HORNO-A.',
-      'Recursos que están en Resource Location para esta planta pero no aparecen en ningún PSR. Posible configuración huérfana. Ej: HORNO-B asignado a P001 pero sin ninguna receta que lo use → 🟡.',
-      'Códigos de los recursos ociosos (en Resource Location sin uso en PSR). Ej: HORNO-B.',
-      'Número de SOURCEIDs de esta planta que no tienen ningún componente PSI definido (BOMs vacíos). Un BOM vacío impide planificar la compra de insumos. Ej: SRC-003 sin PSI → 🔴.',
-      'Códigos de los SOURCEIDs con BOM vacío (sin PSI). Ej: SRC-003.',
-      'Número de SOURCEIDs de esta planta que no tienen ningún recurso PSR asignado. Sin recurso, IBP no puede planificar capacidad. Ej: SRC-002 sin PSR → 🔴.',
-      'Códigos de los SOURCEIDs sin recursos PSR asignados. Ej: SRC-002.',
-      'Total de componentes de tipo insumo (no semielaborados) requeridos por los BOMs de esta planta. Ej: 8 = suma de ingredientes externos en todas las recetas de P001.',
-      'Número de insumos externos de esta planta que no tienen arco de abastecimiento en Location Source. Ej: 2 = MAT-A y MAT-B se requieren en P001 pero no hay Location Source que los lleve ahí → 🔴.',
-      'Códigos de los insumos externos sin cobertura de abastecimiento hacia esta planta. Ej: MAT-A, MAT-B.',
-      'Número de SOURCEIDs de esta planta con PLEADTIME = 0 o no definido. Un lead time cero hace que IBP planifique como si la producción fuera instantánea. Ej: SRC-001 con PLEADTIME=0 → 🔴.',
-      'Códigos de los SOURCEIDs con PLEADTIME faltante o cero en esta planta. Ej: SRC-001.',
+      _xnPA('Número de productos distintos que se fabrican en esta planta (tienen PSH con este LOCID como planta). Ej: 5 = fabrica PROD-001, PROD-002, PROD-003, SEMI-A, SEMI-B.'),
+      _xnPA('Códigos de los productos fabricados en esta planta. Ej: PROD-001, PROD-002.'),
+      _xnPA('Número de fuentes de producción (SOURCEIDs) asociadas a esta planta. Ej: 3 = SRC-001, SRC-002, SRC-003.'),
+      _xnPA('Códigos de los SOURCEIDs de producción de esta planta. Ej: SRC-001, SRC-002.'),
+      _xnPA('Número de recursos (máquinas/líneas) con Resource Location configurado en esta planta. Ej: 4 = LINEA-01, LINEA-02, HORNO-A, HORNO-B.'),
+      _xnPA('Códigos de los recursos asignados a esta planta en Resource Location. Ej: LINEA-01, HORNO-A.'),
+      _xnPA('Número de recursos asignados que aparecen en al menos un PSR activo en esta planta. Ej: 3 de 4 asignados están activos.'),
+      _xnPA('Códigos de los recursos activos en algún PSR de esta planta. Ej: LINEA-01, LINEA-02, HORNO-A.'),
+      _xnPA('Recursos que están en Resource Location para esta planta pero no aparecen en ningún PSR. Posible configuración huérfana. Ej: HORNO-B asignado a P001 pero sin ninguna receta que lo use → 🟡.'),
+      _xnPA('Códigos de los recursos ociosos (en Resource Location sin uso en PSR). Ej: HORNO-B.'),
+      _xnPA('Número de SOURCEIDs de esta planta que no tienen ningún componente PSI definido (BOMs vacíos). Un BOM vacío impide planificar la compra de insumos. Ej: SRC-003 sin PSI → 🔴.'),
+      _xnPA('Códigos de los SOURCEIDs con BOM vacío (sin PSI). Ej: SRC-003.'),
+      _xnPA('Número de SOURCEIDs de esta planta que no tienen ningún recurso PSR asignado. Sin recurso, IBP no puede planificar capacidad. Ej: SRC-002 sin PSR → 🔴.'),
+      _xnPA('Códigos de los SOURCEIDs sin recursos PSR asignados. Ej: SRC-002.'),
+      _xnPA('Total de componentes de tipo insumo (no semielaborados) requeridos por los BOMs de esta planta. Ej: 8 = suma de ingredientes externos en todas las recetas de P001.'),
+      _xnPA('Número de insumos externos de esta planta que no tienen arco de abastecimiento en Location Source. Ej: 2 = MAT-A y MAT-B se requieren en P001 pero no hay Location Source que los lleve ahí → 🔴.'),
+      _xnPA('Códigos de los insumos externos sin cobertura de abastecimiento hacia esta planta. Ej: MAT-A, MAT-B.'),
+      _xnPA('Número de SOURCEIDs de esta planta con PLEADTIME = 0 o no definido. Un lead time cero hace que IBP planifique como si la producción fuera instantánea. Ej: SRC-001 con PLEADTIME=0 → 🔴.'),
+      _xnPA('Códigos de los SOURCEIDs con PLEADTIME faltante o cero en esta planta. Ej: SRC-001.'),
       /* Proveedor */
-      'Número de productos distintos que esta ubicación envía como origen en Location Source hacia plantas que los consumen como PSI. Ej: 3 = PROV-01 abastece MAT-A, MAT-B, MAT-C.',
-      'Códigos de los productos abastecidos desde esta ubicación. Ej: MAT-A, MAT-B.',
-      'Número de plantas destino a las que esta ubicación envía productos. Ej: 2 = abastece a P001 y P002.',
-      'Códigos de las plantas destino abastecidas. Ej: P001, P002.',
-      'Productos que se envían desde aquí pero no se consumen como componente PSI en la planta destino. Puede indicar arcos configurados de más o sin uso real. Ej: MAT-X se envía a P001 pero ningún BOM de P001 lo usa → 🟡.',
-      'Códigos de los productos enviados sin consumo PSI en la planta destino. Ej: MAT-X.',
-      'Productos que se envían a una planta destino donde no tienen Location Product habilitado. IBP no puede planificarlos en esa planta. Ej: MAT-Y llega a P002 pero no tiene Location Product en P002 → 🔴.',
-      'Códigos de los productos sin Location Product en la planta destino. Ej: MAT-Y.',
+      _xnPA('Número de productos distintos que esta ubicación envía como origen en Location Source hacia plantas que los consumen como PSI. Ej: 3 = PROV-01 abastece MAT-A, MAT-B, MAT-C.'),
+      _xnPA('Códigos de los productos abastecidos desde esta ubicación. Ej: MAT-A, MAT-B.'),
+      _xnPA('Número de plantas destino a las que esta ubicación envía productos. Ej: 2 = abastece a P001 y P002.'),
+      _xnPA('Códigos de las plantas destino abastecidas. Ej: P001, P002.'),
+      _xnPA('Productos que se envían desde aquí pero no se consumen como componente PSI en la planta destino. Puede indicar arcos configurados de más o sin uso real. Ej: MAT-X se envía a P001 pero ningún BOM de P001 lo usa → 🟡.'),
+      _xnPA('Códigos de los productos enviados sin consumo PSI en la planta destino. Ej: MAT-X.'),
+      _xnPA('Productos que se envían a una planta destino donde no tienen Location Product habilitado. IBP no puede planificarlos en esa planta. Ej: MAT-Y llega a P002 pero no tiene Location Product en P002 → 🔴.'),
+      _xnPA('Códigos de los productos sin Location Product en la planta destino. Ej: MAT-Y.'),
       /* Nodo transferencia */
-      'Número de productos que esta ubicación reenvía vía Location Source sin que sean consumidos como PSI en el destino. Ej: DC-NORTE transfiere PROD-001 a DC-SUR sin que DC-SUR lo use como insumo productivo.',
-      'Códigos de los productos transferidos sin consumo productivo en destino. Ej: PROD-001.',
-      'Número de ubicaciones destino hacia las que esta ubicación transfiere productos. Ej: 2 = reenvía a DC-SUR y DC-ESTE.',
-      'Códigos de las ubicaciones destino de transferencia. Ej: DC-SUR, DC-ESTE.',
+      _xnPA('Número de productos que esta ubicación reenvía vía Location Source sin que sean consumidos como PSI en el destino. Ej: DC-NORTE transfiere PROD-001 a DC-SUR sin que DC-SUR lo use como insumo productivo.'),
+      _xnPA('Códigos de los productos transferidos sin consumo productivo en destino. Ej: PROD-001.'),
+      _xnPA('Número de ubicaciones destino hacia las que esta ubicación transfiere productos. Ej: 2 = reenvía a DC-SUR y DC-ESTE.'),
+      _xnPA('Códigos de las ubicaciones destino de transferencia. Ej: DC-SUR, DC-ESTE.'),
       /* Nodo receptor */
-      'Número de productos que esta ubicación recibe como destino en Location Source. Ej: 4 = recibe PROD-001, PROD-002, MAT-A, MAT-B.',
-      'Códigos de los productos recibidos en esta ubicación. Ej: PROD-001, MAT-A.',
-      'Número de ubicaciones origen distintas desde las que recibe productos. Ej: 3 = recibe desde P001, P002 y PROV-01.',
-      'Códigos de las ubicaciones origen que abastecen a esta ubicación. Ej: P001, PROV-01.'
+      _xnPA('Número de productos que esta ubicación recibe como destino en Location Source. Ej: 4 = recibe PROD-001, PROD-002, MAT-A, MAT-B.'),
+      _xnPA('Códigos de los productos recibidos en esta ubicación. Ej: PROD-001, MAT-A.'),
+      _xnPA('Número de ubicaciones origen distintas desde las que recibe productos. Ej: 3 = recibe desde P001, P002 y PROV-01.'),
+      _xnPA('Códigos de las ubicaciones origen que abastecen a esta ubicación. Ej: P001, PROV-01.')
     ];
     var _s9Groups = [
       'control','control',
@@ -1464,18 +1765,18 @@ async function paAnalyzeAndExport(
       '# Productos que fabrica','Productos que fabrica (códigos)'
     ];
     var _s2Notes = [
-      'Color de alerta: 🔴 Alerta = recurso completamente huérfano (sin PSR ni Resource Location) | 🟡 Advertencia = dato incompleto | ✅ OK = recurso activo y con planta asignada.',
-      'Detalle de la validación. Ej 🔴: "Recurso huérfano: sin uso en producción ni planta asignada". Ej 🟡: "Sin uso en producción (no aparece en PSR)". Ej ✅: "En uso en PSR y con planta asignada en Resource Location".',
-      'Código único del recurso productivo en SAP IBP (RESID). Ej: LINEA-01, HORNO-A, MAQUINA-03.',
-      'Descripción del recurso del maestro de recursos. Ej: "Línea de envasado 1", "Horno túnel A".',
-      'Si / No — ¿Este recurso está asignado a al menos una fuente de producción en PSR? Si No, IBP no lo usa para planificar capacidad. Ej: HORNO-B = No → nunca se considera en ninguna receta.',
-      'Si / No — ¿Este recurso tiene al menos una planta configurada en Resource Location? Si No, IBP no sabe dónde opera físicamente. Ej: LINEA-01 = No → recurso sin ubicación conocida → 🟡.',
-      'Número de plantas distintas donde este recurso tiene configuración en Resource Location. Ej: 2 = LINEA-01 opera en P001 y P002.',
-      'Códigos de las plantas (LOCID) donde este recurso está configurado en Resource Location. Ej: P001, P002.',
-      'Número de fuentes de producción (SOURCEIDs) a las que está asignado vía PSR. Ej: 3 = participa en SRC-001, SRC-002, SRC-003.',
-      'Códigos de los SOURCEIDs a los que está asignado este recurso. Ej: SRC-001, SRC-002.',
-      'Número de productos distintos que fabrica a través de sus SOURCEIDs. Ej: 2 = HORNO-A produce PROD-001 y PROD-002.',
-      'Códigos de los productos fabricados por las fuentes donde participa este recurso. Ej: PROD-001, PROD-002.'
+      _xnPA('Color de alerta: 🔴 Alerta = recurso completamente huérfano (sin PSR ni Resource Location) | 🟡 Advertencia = dato incompleto | ✅ OK = recurso activo y con planta asignada.'),
+      _xnPA('Detalle de la validación. Ej 🔴: "Recurso huérfano: sin uso en producción ni planta asignada". Ej 🟡: "Sin uso en producción (no aparece en PSR)". Ej ✅: "En uso en PSR y con planta asignada en Resource Location".'),
+      _xnPA('Código único del recurso productivo en SAP IBP (RESID). Ej: LINEA-01, HORNO-A, MAQUINA-03.'),
+      _xnPA('Descripción del recurso del maestro de recursos. Ej: "Línea de envasado 1", "Horno túnel A".'),
+      _xnPA('Si / No — ¿Este recurso está asignado a al menos una fuente de producción en PSR? Si No, IBP no lo usa para planificar capacidad. Ej: HORNO-B = No → nunca se considera en ninguna receta.'),
+      _xnPA('Si / No — ¿Este recurso tiene al menos una planta configurada en Resource Location? Si No, IBP no sabe dónde opera físicamente. Ej: LINEA-01 = No → recurso sin ubicación conocida → 🟡.'),
+      _xnPA('Número de plantas distintas donde este recurso tiene configuración en Resource Location. Ej: 2 = LINEA-01 opera en P001 y P002.'),
+      _xnPA('Códigos de las plantas (LOCID) donde este recurso está configurado en Resource Location. Ej: P001, P002.'),
+      _xnPA('Número de fuentes de producción (SOURCEIDs) a las que está asignado vía PSR. Ej: 3 = participa en SRC-001, SRC-002, SRC-003.'),
+      _xnPA('Códigos de los SOURCEIDs a los que está asignado este recurso. Ej: SRC-001, SRC-002.'),
+      _xnPA('Número de productos distintos que fabrica a través de sus SOURCEIDs. Ej: 2 = HORNO-A produce PROD-001 y PROD-002.'),
+      _xnPA('Códigos de los productos fabricados por las fuentes donde participa este recurso. Ej: PROD-001, PROD-002.')
     ];
     var _s2Groups = [
       'control','control',
@@ -1555,13 +1856,13 @@ async function paAnalyzeAndExport(
       'RESID+LOCID usado en PSR'
     ];
     var _s3Notes = [
-      'Color de alerta: 🟡 Advertencia = recurso asignado a planta pero sin uso en ninguna receta | ✅ OK = recurso activo en PSR para esta planta.',
-      'Detalle de la validación. Ej ✅: "Recurso activo en PSR para esta planta". Ej 🟡: "Recurso asignado a planta pero sin uso en PSR para esta planta" — significa que está en el maestro pero IBP nunca lo considera en esa planta.',
-      'Código del recurso productivo (RESID). Ej: LINEA-01.',
-      'Descripción del recurso del maestro de recursos. Ej: "Línea de envasado 1".',
-      'Código de la planta donde está configurado este recurso (LOCID). Ej: P001.',
-      'Descripción de la planta del maestro de ubicaciones. Ej: "Planta Santiago".',
-      'Si / No — ¿Esta combinación RESID+LOCID aparece en al menos un PSR? Si No, el recurso está en el maestro de esa planta pero no participa en ninguna receta. Ej: HORNO-B en P002 = No → 🟡 configuración sin uso productivo.'
+      _xnPA('Color de alerta: 🟡 Advertencia = recurso asignado a planta pero sin uso en ninguna receta | ✅ OK = recurso activo en PSR para esta planta.'),
+      _xnPA('Detalle de la validación. Ej ✅: "Recurso activo en PSR para esta planta". Ej 🟡: "Recurso asignado a planta pero sin uso en PSR para esta planta" — significa que está en el maestro pero IBP nunca lo considera en esa planta.'),
+      _xnPA('Código del recurso productivo (RESID). Ej: LINEA-01.'),
+      _xnPA('Descripción del recurso del maestro de recursos. Ej: "Línea de envasado 1".'),
+      _xnPA('Código de la planta donde está configurado este recurso (LOCID). Ej: P001.'),
+      _xnPA('Descripción de la planta del maestro de ubicaciones. Ej: "Planta Santiago".'),
+      _xnPA('Si / No — ¿Esta combinación RESID+LOCID aparece en al menos un PSR? Si No, el recurso está en el maestro de esa planta pero no participa en ninguna receta. Ej: HORNO-B en P002 = No → 🟡 configuración sin uso productivo.')
     ];
     var _s3Groups = [
       'control','control',
@@ -1604,24 +1905,24 @@ async function paAnalyzeAndExport(
       'Tiene PSR'
     ];
     var _s6Notes = [
-      'Color de alerta: 🔴 Alerta = BOM vacío, PLEADTIME=0, sin Location Product o sin PSR | 🟡 Advertencia = sin SOURCETYPE=P o múltiples fuentes sin cuota | ✅ OK = receta completa.',
-      'Detalle de hallazgos. Ej 🔴: "BOM vacío: sin componentes PSI | PLEADTIME = 0 o no definido". Ej 🟡: "Múltiples SOURCEIDs para mismo PRDID+LOCID — verificar cuotas". Ej ✅: "BOM con PSI | Lead time definido | Habilitado en LP | SOURCETYPE=P presente | Recursos PSR asignados".',
-      'Identificador único de la fuente de producción (SOURCEID) en SAP IBP. Ej: SRC-001.',
-      'Código del producto terminado que produce esta receta (output). Ej: PROD-001.',
-      'Descripción del producto output. Ej: "Aceite refinado 1L".',
-      'Tipo de material del producto output. Ej: FERT = terminado, HALB = semielaborado.',
-      'Código de la planta donde se ejecuta esta producción (LOCID). Ej: P001.',
-      'Descripción de la planta de producción. Ej: "Planta Santiago".',
-      'Tipo(s) de fuente en esta receta: P = producción primaria (el output principal) | C = co-producto (se obtiene en el mismo proceso). Ej: P/C = esta receta produce PROD-001 como primario y SEMI-X como co-producto.',
-      'Lead time de producción en días. Indica cuánto tarda el proceso desde que se lanza la orden hasta tener el producto listo. PLEADTIME = 0 o vacío hace que IBP planifique como producción instantánea → 🔴. Ej: 5 = 5 días de fabricación.',
-      'Unidades del producto terminado que se obtienen por corrida de producción. Afecta directamente el cálculo de cuántas corridas se necesitan. Ej: 100 = cada corrida produce 100 unidades.',
-      'Proporción de producción asignada a esta fuente cuando existen múltiples SOURCEIDs para el mismo PRDID+LOCID. IBP usa PRATIO para distribuir la demanda planificada entre fuentes. Ej: 0.6 = esta fuente cubre el 60% de la demanda. Vacío = fuente única o sin cuota definida.',
-      'Si / No — ¿La combinación PRDID+LOCID está habilitada en Location Product? Sin esto, IBP no planifica este producto en esta planta aunque exista la receta. Ej: PROD-001 en P001 = No → receta sin efecto.',
-      'Número de componentes (PSI) definidos en el BOM de esta receta. 0 = BOM vacío → IBP no planifica compra de insumos. Ej: 4 = esta receta requiere 4 ingredientes.',
-      'Número de recursos productivos (máquinas/líneas) asignados a esta receta vía PSR. 0 = sin capacidad modelada. Ej: 2 = LINEA-01 y HORNO-A.',
-      'Códigos de los recursos (RESID) asignados a esta fuente de producción. Ej: LINEA-01, HORNO-A.',
-      'Número de componentes PSI marcados como material de reemplazo alternativo (ISALTITEM=X). Ej: 1 = MAT-A-PREMIUM puede reemplazar a MAT-A en esta receta.',
-      'Si / No — ¿Esta fuente tiene al menos un recurso asignado en Prod Source Resource? Si No, IBP no puede planificar la capacidad de esta receta. Ej: SRC-003 = No → sin restricción de capacidad modelada → 🔴.'
+      _xnPA('Color de alerta: 🔴 Alerta = BOM vacío, PLEADTIME=0, sin Location Product o sin PSR | 🟡 Advertencia = sin SOURCETYPE=P o múltiples fuentes sin cuota | ✅ OK = receta completa.'),
+      _xnPA('Detalle de hallazgos. Ej 🔴: "BOM vacío: sin componentes PSI | PLEADTIME = 0 o no definido". Ej 🟡: "Múltiples SOURCEIDs para mismo PRDID+LOCID — verificar cuotas". Ej ✅: "BOM con PSI | Lead time definido | Habilitado en LP | SOURCETYPE=P presente | Recursos PSR asignados".'),
+      _xnPA('Identificador único de la fuente de producción (SOURCEID) en SAP IBP. Ej: SRC-001.'),
+      _xnPA('Código del producto terminado que produce esta receta (output). Ej: PROD-001.'),
+      _xnPA('Descripción del producto output. Ej: "Aceite refinado 1L".'),
+      _xnPA('Tipo de material del producto output. Ej: FERT = terminado, HALB = semielaborado.'),
+      _xnPA('Código de la planta donde se ejecuta esta producción (LOCID). Ej: P001.'),
+      _xnPA('Descripción de la planta de producción. Ej: "Planta Santiago".'),
+      _xnPA('Tipo(s) de fuente en esta receta: P = producción primaria (el output principal) | C = co-producto (se obtiene en el mismo proceso). Ej: P/C = esta receta produce PROD-001 como primario y SEMI-X como co-producto.'),
+      _xnPA('Lead time de producción en días. Indica cuánto tarda el proceso desde que se lanza la orden hasta tener el producto listo. PLEADTIME = 0 o vacío hace que IBP planifique como producción instantánea → 🔴. Ej: 5 = 5 días de fabricación.'),
+      _xnPA('Unidades del producto terminado que se obtienen por corrida de producción. Afecta directamente el cálculo de cuántas corridas se necesitan. Ej: 100 = cada corrida produce 100 unidades.'),
+      _xnPA('Proporción de producción asignada a esta fuente cuando existen múltiples SOURCEIDs para el mismo PRDID+LOCID. IBP usa PRATIO para distribuir la demanda planificada entre fuentes. Ej: 0.6 = esta fuente cubre el 60% de la demanda. Vacío = fuente única o sin cuota definida.'),
+      _xnPA('Si / No — ¿La combinación PRDID+LOCID está habilitada en Location Product? Sin esto, IBP no planifica este producto en esta planta aunque exista la receta. Ej: PROD-001 en P001 = No → receta sin efecto.'),
+      _xnPA('Número de componentes (PSI) definidos en el BOM de esta receta. 0 = BOM vacío → IBP no planifica compra de insumos. Ej: 4 = esta receta requiere 4 ingredientes.'),
+      _xnPA('Número de recursos productivos (máquinas/líneas) asignados a esta receta vía PSR. 0 = sin capacidad modelada. Ej: 2 = LINEA-01 y HORNO-A.'),
+      _xnPA('Códigos de los recursos (RESID) asignados a esta fuente de producción. Ej: LINEA-01, HORNO-A.'),
+      _xnPA('Número de componentes PSI marcados como material de reemplazo alternativo (ISALTITEM=X). Ej: 1 = MAT-A-PREMIUM puede reemplazar a MAT-A en esta receta.'),
+      _xnPA('Si / No — ¿Esta fuente tiene al menos un recurso asignado en Prod Source Resource? Si No, IBP no puede planificar la capacidad de esta receta. Ej: SRC-003 = No → sin restricción de capacidad modelada → 🔴.')
     ];
     var _s6Groups = [
       'control','control',
@@ -1705,27 +2006,27 @@ async function paAnalyzeAndExport(
       'Material de reemplazo (ISALTITEM)','Reemplaza a'
     ];
     var _s7Notes = [
-      'Color de alerta: 🔴 Alerta = coeficiente cero, insumo sin arco de abastecimiento o componente sin Location Product | 🟡 Advertencia = SOURCEID no encontrado o sustituto sin registro Item Sub | ✅ OK = componente bien configurado.',
-      'Detalle de hallazgos. Ej 🔴: "Coeficiente = 0 o no definido | Insumo sin arco de abastecimiento en Location Source". Ej ✅: "SOURCEID válido | Coeficiente definido | Con arco de abastecimiento | Habilitado en Location Product".',
-      'Fuente de producción (SOURCEID) a la que pertenece este componente. Ej: SRC-001 = este componente es ingrediente de la receta SRC-001.',
-      'Código del producto terminado que se fabrica en esta receta (output). Ej: PROD-001.',
-      'Descripción del producto output. Ej: "Aceite refinado 1L".',
-      'Tipo de material del producto output. Ej: FERT.',
-      'Planta donde se fabrica el producto output (LOCID). Ej: P001.',
-      'Descripción de la planta de fabricación. Ej: "Planta Santiago".',
-      'Código del material que se consume como ingrediente en esta receta (PRDID componente). Ej: MAT-A.',
-      'Descripción del componente del maestro de materiales. Ej: "Aceite crudo a granel".',
-      'Tipo de material del componente. Ej: ROH = materia prima, HALB = semielaborado.',
-      'Unidades del componente consumidas por cada unidad del producto terminado. Si = 0, IBP no planifica la compra de este insumo. Ej: 2.5 = se consumen 2.5 kg de MAT-A por cada unidad de PROD-001 fabricada.',
-      'Semielaborado = el componente tiene PSH propio en esta planta y se fabrica antes de usarse (trazabilidad en PSH). Insumo = no se fabrica aquí, debe llegar desde un proveedor u otra planta vía Location Source. Ej: SEMI-B = Semielaborado | MAT-A = Insumo.',
-      'Si / No — ¿El componente está habilitado en Location Product para esta planta? Si No, IBP no puede planificar su consumo en esa planta. Ej: MAT-A en P001 = No → componente desconocido para IBP en esa planta → 🔴.',
-      'Si / No — ¿Hay al menos un arco en Location Source que traiga este insumo a esta planta? Muestra N/A para semielaborados (se producen localmente, no se transfieren). Ej: MAT-A en P001 = No → no hay ruta de abastecimiento configurada → 🔴.',
-      'Código(s) de la(s) ubicación(es) desde donde se transfiere este componente hacia la planta (LOCFR). Ej: PROV-01, PROV-02 si llega desde dos orígenes distintos.',
-      'Descripción(es) de la(s) ubicación(es) origen del componente. Ej: "Proveedor Nacional 01".',
-      'Número de nodos origen distintos que abastecen este componente hacia esta planta. Ej: 2 = llega desde PROV-01 y PROV-02 (doble fuente, mayor resiliencia).',
-      'Códigos de los nodos origen del componente hacia esta planta. Ej: PROV-01, PROV-02.',
-      'X = este componente es un material de reemplazo alternativo (ISALTITEM=X). Vacío = componente principal. Ej: MAT-A-PREMIUM con X = puede sustituir a MAT-A cuando no hay stock.',
-      'Código del componente principal al que reemplaza este sustituto. Solo aplica cuando ISALTITEM=X. Ej: MAT-A = este sustituto reemplaza a MAT-A.'
+      _xnPA('Color de alerta: 🔴 Alerta = coeficiente cero, insumo sin arco de abastecimiento o componente sin Location Product | 🟡 Advertencia = SOURCEID no encontrado o sustituto sin registro Item Sub | ✅ OK = componente bien configurado.'),
+      _xnPA('Detalle de hallazgos. Ej 🔴: "Coeficiente = 0 o no definido | Insumo sin arco de abastecimiento en Location Source". Ej ✅: "SOURCEID válido | Coeficiente definido | Con arco de abastecimiento | Habilitado en Location Product".'),
+      _xnPA('Fuente de producción (SOURCEID) a la que pertenece este componente. Ej: SRC-001 = este componente es ingrediente de la receta SRC-001.'),
+      _xnPA('Código del producto terminado que se fabrica en esta receta (output). Ej: PROD-001.'),
+      _xnPA('Descripción del producto output. Ej: "Aceite refinado 1L".'),
+      _xnPA('Tipo de material del producto output. Ej: FERT.'),
+      _xnPA('Planta donde se fabrica el producto output (LOCID). Ej: P001.'),
+      _xnPA('Descripción de la planta de fabricación. Ej: "Planta Santiago".'),
+      _xnPA('Código del material que se consume como ingrediente en esta receta (PRDID componente). Ej: MAT-A.'),
+      _xnPA('Descripción del componente del maestro de materiales. Ej: "Aceite crudo a granel".'),
+      _xnPA('Tipo de material del componente. Ej: ROH = materia prima, HALB = semielaborado.'),
+      _xnPA('Unidades del componente consumidas por cada unidad del producto terminado. Si = 0, IBP no planifica la compra de este insumo. Ej: 2.5 = se consumen 2.5 kg de MAT-A por cada unidad de PROD-001 fabricada.'),
+      _xnPA('Semielaborado = el componente tiene PSH propio en esta planta y se fabrica antes de usarse (trazabilidad en PSH). Insumo = no se fabrica aquí, debe llegar desde un proveedor u otra planta vía Location Source. Ej: SEMI-B = Semielaborado | MAT-A = Insumo.'),
+      _xnPA('Si / No — ¿El componente está habilitado en Location Product para esta planta? Si No, IBP no puede planificar su consumo en esa planta. Ej: MAT-A en P001 = No → componente desconocido para IBP en esa planta → 🔴.'),
+      _xnPA('Si / No — ¿Hay al menos un arco en Location Source que traiga este insumo a esta planta? Muestra N/A para semielaborados (se producen localmente, no se transfieren). Ej: MAT-A en P001 = No → no hay ruta de abastecimiento configurada → 🔴.'),
+      _xnPA('Código(s) de la(s) ubicación(es) desde donde se transfiere este componente hacia la planta (LOCFR). Ej: PROV-01, PROV-02 si llega desde dos orígenes distintos.'),
+      _xnPA('Descripción(es) de la(s) ubicación(es) origen del componente. Ej: "Proveedor Nacional 01".'),
+      _xnPA('Número de nodos origen distintos que abastecen este componente hacia esta planta. Ej: 2 = llega desde PROV-01 y PROV-02 (doble fuente, mayor resiliencia).'),
+      _xnPA('Códigos de los nodos origen del componente hacia esta planta. Ej: PROV-01, PROV-02.'),
+      _xnPA('X = este componente es un material de reemplazo alternativo (ISALTITEM=X). Vacío = componente principal. Ej: MAT-A-PREMIUM con X = puede sustituir a MAT-A cuando no hay stock.'),
+      _xnPA('Código del componente principal al que reemplaza este sustituto. Solo aplica cuando ISALTITEM=X. Ej: MAT-A = este sustituto reemplaza a MAT-A.')
     ];
     var _s7Groups = [
       'control','control',
@@ -1870,19 +2171,19 @@ async function paAnalyzeAndExport(
       '# Plantas con este recurso asignado','Plantas recurso (códigos)'
     ];
     var _s8Notes = [
-      'Color de alerta: 🟡 Advertencia = recurso asignado a una receta pero sin Resource Location en esa planta | ✅ OK = asignación válida y consistente.',
-      'Detalle de la validación. Ej ✅: "Recurso LINEA-01 asignado en Resource Location para planta P001 | Asociado a SOURCEID SRC-001". Ej 🟡: "Recurso en producción sin asignación en Resource Location para planta P001" — el recurso opera en una receta de P001 pero no figura en el maestro de esa planta.',
-      'Fuente de producción (SOURCEID) a la que está asignado este recurso. Ej: SRC-001.',
-      'Código del producto que fabrica esta fuente. Ej: PROD-001.',
-      'Descripción del producto output. Ej: "Aceite refinado 1L".',
-      'Tipo de material del producto output. Ej: FERT.',
-      'Planta donde opera esta fuente de producción (LOCID). Ej: P001.',
-      'Descripción de la planta. Ej: "Planta Santiago".',
-      'Código del recurso asignado a esta fuente de producción (RESID). Ej: LINEA-01.',
-      'Descripción del recurso del maestro de recursos. Ej: "Línea de envasado 1".',
-      'Si / No — ¿La combinación RESID+LOCID aparece en Resource Location? Si No, el recurso está en la receta pero IBP no lo reconoce como ubicado en esa planta. Ej: LINEA-01 en P001 = No → 🟡 inconsistencia entre PSR y Resource Location.',
-      'Número de plantas donde este recurso tiene configuración en Resource Location. Ej: 2 = LINEA-01 tiene Resource Location en P001 y P002.',
-      'Códigos de las plantas donde este recurso tiene Resource Location configurado. Ej: P001, P002.'
+      _xnPA('Color de alerta: 🟡 Advertencia = recurso asignado a una receta pero sin Resource Location en esa planta | ✅ OK = asignación válida y consistente.'),
+      _xnPA('Detalle de la validación. Ej ✅: "Recurso LINEA-01 asignado en Resource Location para planta P001 | Asociado a SOURCEID SRC-001". Ej 🟡: "Recurso en producción sin asignación en Resource Location para planta P001" — el recurso opera en una receta de P001 pero no figura en el maestro de esa planta.'),
+      _xnPA('Fuente de producción (SOURCEID) a la que está asignado este recurso. Ej: SRC-001.'),
+      _xnPA('Código del producto que fabrica esta fuente. Ej: PROD-001.'),
+      _xnPA('Descripción del producto output. Ej: "Aceite refinado 1L".'),
+      _xnPA('Tipo de material del producto output. Ej: FERT.'),
+      _xnPA('Planta donde opera esta fuente de producción (LOCID). Ej: P001.'),
+      _xnPA('Descripción de la planta. Ej: "Planta Santiago".'),
+      _xnPA('Código del recurso asignado a esta fuente de producción (RESID). Ej: LINEA-01.'),
+      _xnPA('Descripción del recurso del maestro de recursos. Ej: "Línea de envasado 1".'),
+      _xnPA('Si / No — ¿La combinación RESID+LOCID aparece en Resource Location? Si No, el recurso está en la receta pero IBP no lo reconoce como ubicado en esa planta. Ej: LINEA-01 en P001 = No → 🟡 inconsistencia entre PSR y Resource Location.'),
+      _xnPA('Número de plantas donde este recurso tiene configuración en Resource Location. Ej: 2 = LINEA-01 tiene Resource Location en P001 y P002.'),
+      _xnPA('Códigos de las plantas donde este recurso tiene Resource Location configurado. Ej: P001, P002.')
     ];
     var _s8Groups = [
       'control','control',
@@ -1946,13 +2247,13 @@ async function paAnalyzeAndExport(
       'Componentes con cobertura LocSrc','Componentes sin cobertura LocSrc',
       'Observacion'
     ], [
-      'Código del tipo de material excluido del análisis principal por configuración del usuario. Ej: VERP = embalajes, NLAG = no planificados.',
-      'Número de productos del maestro que tienen este tipo de material. Ej: 45 = hay 45 productos de tipo VERP.',
-      'Número de fuentes de producción (SOURCEIDs) que usan productos de este tipo como componente PSI. Aunque estén excluidos del análisis principal, se valida su presencia como insumo. Ej: 12 = 12 recetas distintas usan un VERP como ingrediente.',
-      'Códigos de los SOURCEIDs donde productos de este tipo excluido aparecen como componente en un BOM. Ej: SRC-001, SRC-005.',
-      'Número de combinaciones componente-planta (de este tipo excluido) con arco de abastecimiento configurado en Location Source. Ej: 8 = 8 pares producto-planta tienen ruta de abastecimiento.',
-      'Número de combinaciones componente-planta SIN arco de abastecimiento. Si > 0, hay insumos de tipo excluido sin ruta de llegada a la planta que los consume. Ej: 3 = 3 pares sin cobertura → 🟡 aunque el tipo esté excluido del análisis principal.',
-      'Detalle: indica si el tipo aparece como componente en BOMs activos y si hay gaps de abastecimiento detectados. Ej: "Excluido del análisis principal. Validado como componente en 12 fuente(s). ⚠️ 3 combinación(es) componente-planta sin arco de abastecimiento".'
+      _xnPA('Código del tipo de material excluido del análisis principal por configuración del usuario. Ej: VERP = embalajes, NLAG = no planificados.'),
+      _xnPA('Número de productos del maestro que tienen este tipo de material. Ej: 45 = hay 45 productos de tipo VERP.'),
+      _xnPA('Número de fuentes de producción (SOURCEIDs) que usan productos de este tipo como componente PSI. Aunque estén excluidos del análisis principal, se valida su presencia como insumo. Ej: 12 = 12 recetas distintas usan un VERP como ingrediente.'),
+      _xnPA('Códigos de los SOURCEIDs donde productos de este tipo excluido aparecen como componente en un BOM. Ej: SRC-001, SRC-005.'),
+      _xnPA('Número de combinaciones componente-planta (de este tipo excluido) con arco de abastecimiento configurado en Location Source. Ej: 8 = 8 pares producto-planta tienen ruta de abastecimiento.'),
+      _xnPA('Número de combinaciones componente-planta SIN arco de abastecimiento. Si > 0, hay insumos de tipo excluido sin ruta de llegada a la planta que los consume. Ej: 3 = 3 pares sin cobertura → 🟡 aunque el tipo esté excluido del análisis principal.'),
+      _xnPA('Detalle: indica si el tipo aparece como componente en BOMs activos y si hay gaps de abastecimiento detectados. Ej: "Excluido del análisis principal. Validado como componente en 12 fuente(s). ⚠️ 3 combinación(es) componente-planta sin arco de abastecimiento".')
     ], [
       'ibp',
       'metric',
