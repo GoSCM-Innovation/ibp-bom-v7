@@ -723,13 +723,14 @@ function _paUpdateRunSummary() {
     .reduce(function(s,k){ return s + (MATTYPE_CFG[k].count||0); }, 0);
   var exclPrds = excl.reduce(function(s,k){ return s + (MATTYPE_CFG[k].count||0); }, 0);
 
+  var isEn = window.I18n && I18n.getLang() === 'en';
   if (!excl.length && !catted.length) {
-    el.textContent = 'Configuración por defecto — análisis estándar para todos los tipos';
+    el.textContent = I18n.t('run.paDefault');
   } else {
     var parts = [];
-    parts.push(inclPrds + ' productos incluidos en ' + (Object.keys(MATTYPE_CFG).length - excl.length) + ' tipo(s)');
-    if (excl.length) parts.push(exclPrds + ' productos excluidos (' + excl.join(', ') + ')');
-    if (catted.length) parts.push(catted.length + ' tipo(s) categorizados');
+    parts.push(inclPrds + (isEn ? ' products included in ' : ' productos incluidos en ') + (Object.keys(MATTYPE_CFG).length - excl.length) + (isEn ? ' type(s)' : ' tipo(s)'));
+    if (excl.length) parts.push(exclPrds + (isEn ? ' products excluded (' : ' productos excluidos (') + excl.join(', ') + ')');
+    if (catted.length) parts.push(catted.length + (isEn ? ' type(s) categorized' : ' tipo(s) categorizados'));
     el.textContent = parts.join(' · ');
   }
 }

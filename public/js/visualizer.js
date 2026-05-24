@@ -1432,4 +1432,17 @@
       URL.revokeObjectURL(a.href);
     }
 
+    // Re-render del grafo al cambiar idioma: si hay red cargada, reconstruir
+    // tooltips de nodos (Planta/Ubicación/Cliente/Proveedor) en el idioma nuevo
+    document.addEventListener('i18n:change', function () {
+      try {
+        if (VIZ_DATA && vizCurrentPrd) {
+          var graph = vizBuildGraph(vizCurrentPrd, VIZ_DATA);
+          vizRender(graph.nodes, graph.edges);
+          if (typeof vizRenderRutas === 'function') {
+            try { vizRenderRutas(); } catch (e) { /* ignore */ }
+          }
+        }
+      } catch (e) { console.warn('[viz i18n re-render]', e); }
+    });
 

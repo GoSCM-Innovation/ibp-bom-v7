@@ -161,7 +161,32 @@
       'Si/No — existe una ruta completa de produccion hasta esta entrega al cliente.':
         'Yes/No — there is a full production route up to this customer delivery.',
       'OK = lead time > 0 | Zero = CLEADTIME = 0 | Missing = sin valor.':
-        'OK = lead time > 0 | Zero = CLEADTIME = 0 | Missing = no value.'
+        'OK = lead time > 0 | Zero = CLEADTIME = 0 | Missing = no value.',
+      // networkStatus values (cell content)
+      'Huérfano': 'Orphan',
+      'Sin Producción': 'No Production',
+      'Sin Consumo PSI': 'No PSI Consumption',
+      'Sin Abastecimiento': 'No Supply',
+      'Sin Distribución': 'No Distribution',
+      'Sin Entrega a Cliente': 'No Customer Delivery',
+      'Sin arcos de red': 'No network arcs',
+      'Red Completa': 'Full Network',
+      'Distribución sin ruta completa': 'Distribution without full route',
+      'Semiterminado Local': 'Local Semi-finished',
+      'Semiterminado sin Transferencia': 'Semi-finished without Transfer',
+      'Semiterminado Local con Transferencia': 'Local Semi-finished with Transfer',
+      'Semiterminado con Transferencia': 'Semi-finished with Transfer',
+      'Abastecimiento Completo': 'Full Supply',
+      'Abastecimiento Parcial': 'Partial Supply',
+      'Abastecimiento sin Consumo PSI': 'Supply without PSI Consumption',
+      'Solo Distribución + Entrega': 'Distribution + Delivery only',
+      'Solo Distribución': 'Distribution only',
+      'Solo Entrega': 'Delivery only',
+      // Summary labels (Resumen sheet)
+      'Total productos analizados': 'Total products analyzed',
+      'Productos con red completa': 'Products with full network',
+      'Ghost nodes detectados': 'Ghost nodes detected',
+      'Health Score promedio': 'Average Health Score'
     };
     function _xn(s) {
       return (window.I18n && I18n.getLang() === 'en' && _XLS_NOTES_EN[s]) ? _XLS_NOTES_EN[s] : s;
@@ -366,13 +391,14 @@
       var inclPrds = Object.keys(MATTYPE_CFG).filter(function(k) { return !MATTYPE_CFG[k].excluded; })
         .reduce(function(s,k){ return s + (MATTYPE_CFG[k].count||0); }, 0);
       var exclPrds = excl.reduce(function(s,k){ return s + (MATTYPE_CFG[k].count||0); }, 0);
+      var isEn = window.I18n && I18n.getLang() === 'en';
       if (!excl.length && !catted.length) {
-        el.textContent = 'Configuración por defecto — análisis estándar para todos los tipos';
+        el.textContent = I18n.t('run.snDefault');
       } else {
         var parts = [];
-        parts.push(inclPrds + ' productos incluidos en ' + (Object.keys(MATTYPE_CFG).length - excl.length) + ' tipo(s)');
-        if (excl.length)  parts.push(exclPrds + ' productos excluidos (' + excl.join(', ') + ')');
-        if (catted.length) parts.push(catted.length + ' tipo(s) categorizados');
+        parts.push(inclPrds + (isEn ? ' products included in ' : ' productos incluidos en ') + (Object.keys(MATTYPE_CFG).length - excl.length) + (isEn ? ' type(s)' : ' tipo(s)'));
+        if (excl.length)  parts.push(exclPrds + (isEn ? ' products excluded (' : ' productos excluidos (') + excl.join(', ') + ')');
+        if (catted.length) parts.push(catted.length + (isEn ? ' type(s) categorized' : ' tipo(s) categorizados'));
         el.textContent = parts.join(' · ');
       }
     }
@@ -1692,7 +1718,7 @@
             stLabel(pFill), pObs,
             prdid, pd(prdid), pm(prdid),
             yn(inPSH), yn(inPSI), yn(inLS), yn(inCS), yn(inLP), yn(inCP), yn(onlyMaster),
-            networkStatus, metrics.plants, metrics.dcs, metrics.customers,
+            _xn(networkStatus), metrics.plants, metrics.dcs, metrics.customers,
             metrics.paths, metrics.longestPath, metrics.ghosts, metrics.deadEnds,
             health.score, health.category, health.detail,
             _numOrigins || NA_DASH, _origCodes, _numDests || NA_DASH, _destCodes,
@@ -1995,12 +2021,19 @@
          ════════════════════════════════════════════════════════════════ */
       if (onStatus) onStatus(I18n.t('xls.log.genSummary'));
 
+      var _sheetKeyMap = {
+        'Product': I18n.t('xls.sheet.product'),
+        'Location': I18n.t('xls.sheet.location'),
+        'Customer': I18n.t('xls.sheet.customer'),
+        'Location Source': I18n.t('xls.sheet.locationSource'),
+        'Customer Source': I18n.t('xls.sheet.customerSource')
+      };
       [{ key: 'Product', num: 1 }, { key: 'Location', num: 2 }, { key: 'Customer', num: 3 },
        { key: 'Location Source', num: 4 }, { key: 'Customer Source', num: 5 }
       ].forEach(function (d) {
         var s = STATS[d.key]; if (!s) return;
         var pct  = s.total > 0 ? Math.round((s.ok / s.total) * 100) : 100;
-        var row  = [d.num, d.key, s.total, s.red, s.yel, s.ok, pct + '%'];
+        var row  = [d.num, _sheetKeyMap[d.key] || d.key, s.total, s.red, s.yel, s.ok, pct + '%'];
         var fill  = s.red > 0 ? C_RED : s.yel > 0 ? C_YEL : null;
         var exRow = s0ws.addRow(row);
         if (fill) exRow.eachCell(function (cell) { cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: fill } }; });
@@ -2021,11 +2054,11 @@
           entities: execMeta.entities,
           mattypeCfg: MATTYPE_CFG,
           kpis: [
-            { label: 'Total productos analizados',       value: n.toLocaleString('es-CL') },
-            { label: 'Productos con red completa',       value: completeCount.toLocaleString('es-CL') },
-            { label: 'Total rutas planta → cliente',     value: totalPaths.toLocaleString('es-CL') },
-            { label: 'Ghost nodes detectados',           value: ghostCount.toLocaleString('es-CL') },
-            { label: 'Health Score promedio',            value: (n > 0 ? Math.round(healthSum / n) : 0) + ' / 100' }
+            { label: _xn('Total productos analizados'),       value: n.toLocaleString('es-CL') },
+            { label: _xn('Productos con red completa'),       value: completeCount.toLocaleString('es-CL') },
+            { label: I18n.getLang() === 'en' ? 'Total plant → customer routes' : 'Total rutas planta → cliente',     value: totalPaths.toLocaleString('es-CL') },
+            { label: _xn('Ghost nodes detectados'),           value: ghostCount.toLocaleString('es-CL') },
+            { label: _xn('Health Score promedio'),            value: (n > 0 ? Math.round(healthSum / n) : 0) + ' / 100' }
           ]
         });
       }

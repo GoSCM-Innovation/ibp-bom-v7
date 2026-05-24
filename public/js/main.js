@@ -427,7 +427,7 @@
       document.getElementById('connInfoUrl').textContent  = CFG.url  || '-';
       document.getElementById('connInfoUser').textContent = CFG.user || '-';
       document.getElementById('connInfoPA').textContent   = CFG.pa   || '-';
-      document.getElementById('connInfoPver').textContent = CFG.pver || 'Baseline';
+      document.getElementById('connInfoPver').textContent = CFG.pver || I18n.t('connDlg.baseline');
       showConnStep(0);
     }
 
@@ -1180,8 +1180,8 @@
       var desc = document.getElementById('fbDesc').value.trim();
       var btn = document.getElementById('fbSendBtn');
       var msg = document.getElementById('fbMsg');
-      if (!name || !desc) { msg.style.color = '#EF4444'; msg.textContent = 'Nombre y descripción son obligatorios.'; return; }
-      btn.disabled = true; btn.textContent = 'Enviando…'; msg.textContent = '';
+      if (!name || !desc) { msg.style.color = '#EF4444'; msg.textContent = I18n.t('feedback.validation.required'); return; }
+      btn.disabled = true; btn.textContent = I18n.t('feedback.btn.sending'); msg.textContent = '';
       fetch('/api/send-feedback', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -1191,8 +1191,8 @@
         .then(function (data) {
           if (data.ok) {
             msg.style.color = '#10B981';
-            msg.textContent = '✓ Enviado correctamente. ¡Gracias!';
-            btn.textContent = 'Enviar';
+            msg.textContent = I18n.t('feedback.sent.ok');
+            btn.textContent = I18n.t('common.send');
             btn.disabled = false;
             document.getElementById('fbName').value = '';
             document.getElementById('fbDesc').value = '';
@@ -1203,8 +1203,8 @@
         })
         .catch(function () {
           msg.style.color = '#EF4444';
-          msg.textContent = '✕ Error al enviar. Intenta de nuevo.';
-          btn.textContent = 'Enviar';
+          msg.textContent = '✕ ' + I18n.t('feedback.sent.error');
+          btn.textContent = I18n.t('common.send');
           btn.disabled = false;
         });
     }

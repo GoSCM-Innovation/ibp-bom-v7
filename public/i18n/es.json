@@ -593,5 +593,12 @@
   "viz.empty.noRoutesProduct": "No hay rutas configuradas para este producto.",
   "viz.rutas.label.withCust": "Con llegada a cliente",
   "viz.rutas.label.noCust": "Sin llegada a cliente",
-  "ex.label.noPA": "Sin PA"
+  "ex.label.noPA": "Sin PA",
+
+  "feedback.validation.required": "Nombre y descripción son obligatorios.",
+  "feedback.sent.ok": "✓ Enviado correctamente. ¡Gracias!",
+  "feedback.sent.error": "Error al enviar. Intenta de nuevo.",
+  "feedback.btn.sending": "Enviando…",
+
+  "connDlg.baseline": "Baseline"
 }

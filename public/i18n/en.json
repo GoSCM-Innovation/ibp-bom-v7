@@ -593,5 +593,12 @@
   "viz.empty.noRoutesProduct": "No routes configured for this product.",
   "viz.rutas.label.withCust": "Reaches customer",
   "viz.rutas.label.noCust": "Does not reach customer",
-  "ex.label.noPA": "No PA"
+  "ex.label.noPA": "No PA",
+
+  "feedback.validation.required": "Name and description are required.",
+  "feedback.sent.ok": "✓ Sent successfully. Thanks!",
+  "feedback.sent.error": "Send error. Try again.",
+  "feedback.btn.sending": "Sending…",
+
+  "connDlg.baseline": "Baseline"
 }
