@@ -294,7 +294,7 @@
         excl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
       }
       var wrap = document.getElementById('snmattypeExcludeWrap');
-      if (wrap) wrap.innerHTML = '<p style="color:var(--text2);font-size:12px;margin:8px 0;">&#9203; Cargando tipos de material desde SAP IBP\u2026</p>';
+      if (wrap) wrap.innerHTML = '<p style="color:var(--text2);font-size:12px;margin:8px 0;">' + escH(I18n.t('mattype.status.loading')) + '</p>';
       snFetchMattypes().then(function() {
         mattyeRenderExclude('sn');
         _mattyeUpdateExcludeSummary();
@@ -1176,30 +1176,30 @@
       var _prdHdrs = [
         I18n.t('xls.col.status'), I18n.t('xls.col.obs'),
         'PRDID','PRDDESCR','MATTYPEID',
-        I18n.t('xls.col.inPSHQ'), (I18n.getLang()==='en'?'In PSI?':'En PSI?'),
+        I18n.t('xls.col.inPSHQ'), I18n.t('xls.col.inPSIQ'),
         I18n.t('xls.col.inLocSourceQ'), I18n.t('xls.col.inCustSourceQ'),
         I18n.t('xls.col.inLocProductQ'), I18n.t('xls.col.inCustProdQ'),
         I18n.t('xls.col.onlyMasterQ'),
-        (I18n.getLang()==='en'?'Network Status':'Estado de la Red'),
-        (I18n.getLang()==='en'?'# Plants':'# Plantas'),
+        I18n.t('xls.col.networkStatus'),
+        I18n.t('xls.col.numPlants'),
         '# DCs',
-        (I18n.getLang()==='en'?'# Customers':'# Clientes'),
-        (I18n.getLang()==='en'?'# Full routes':'# Rutas completas'),
-        (I18n.getLang()==='en'?'Longest route':'Ruta más larga'),
+        I18n.t('xls.col.numCustomers'),
+        I18n.t('xls.col.numFullRoutes'),
+        I18n.t('xls.col.longestRoute'),
         '# Ghost Nodes','# Dead Ends',
         'Health Score',
-        (I18n.getLang()==='en'?'Health category':'Categoría de salud'),
-        (I18n.getLang()==='en'?'Health Score breakdown':'Detalle cálculo Health Score'),
-        (I18n.getLang()==='en'?'# Origins (LOCFR)':'# Orígenes (LOCFR)'),
-        (I18n.getLang()==='en'?'Origins (codes)':'Orígenes (códigos)'),
-        (I18n.getLang()==='en'?'# Destinations (LOCID)':'# Destinos (LOCID)'),
-        (I18n.getLang()==='en'?'Destinations (codes)':'Destinos (códigos)'),
-        (I18n.getLang()==='en'?'# Customers in CustSrc':'# Clientes en CustSrc'),
-        (I18n.getLang()==='en'?'Customers (codes)':'Clientes (códigos)'),
+        I18n.t('xls.col.healthCategory'),
+        I18n.t('xls.col.healthScoreBreakdown'),
+        I18n.t('xls.col.numOriginsLOCFR'),
+        I18n.t('xls.col.originsCodes'),
+        I18n.t('xls.col.numDestsLOCID'),
+        I18n.t('xls.col.destsCodes'),
+        I18n.t('xls.col.numCustomersInCustSrc'),
+        I18n.t('xls.col.customersCodes'),
         'Multi-sourced?',
-        (I18n.getLang()==='en'?'Avg TLT (days)':'TLT promedio (días)'),
-        (I18n.getLang()==='en'?'Avg CLT (days)':'CLT promedio (días)'),
-        (I18n.getLang()==='en'?'# Isolated plants':'# Plantas aisladas')
+        I18n.t('xls.col.avgTLT'),
+        I18n.t('xls.col.avgCLT'),
+        I18n.t('xls.col.numIsolatedPlants')
       ];
       var _prdNotes = [
         _xn('Color: \u26d4 Alerta = problema critico | \u26a0 Advertencia = dato incompleto | \u2705 OK = sin hallazgos.'),

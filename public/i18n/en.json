@@ -600,5 +600,25 @@
   "feedback.sent.error": "Send error. Try again.",
   "feedback.btn.sending": "Sending…",
 
-  "connDlg.baseline": "Baseline"
+  "connDlg.baseline": "Baseline",
+
+  "mattype.status.loading": "⏳ Loading material types from SAP IBP…",
+
+  "xls.col.inPSIQ": "In PSI?",
+  "xls.col.networkStatus": "Network Status",
+  "xls.col.numPlants": "# Plants",
+  "xls.col.numCustomers": "# Customers",
+  "xls.col.numFullRoutes": "# Full routes",
+  "xls.col.longestRoute": "Longest route",
+  "xls.col.healthCategory": "Health category",
+  "xls.col.healthScoreBreakdown": "Health Score breakdown",
+  "xls.col.numOriginsLOCFR": "# Origins (LOCFR)",
+  "xls.col.originsCodes": "Origins (codes)",
+  "xls.col.numDestsLOCID": "# Destinations (LOCID)",
+  "xls.col.destsCodes": "Destinations (codes)",
+  "xls.col.numCustomersInCustSrc": "# Customers in CustSrc",
+  "xls.col.customersCodes": "Customers (codes)",
+  "xls.col.avgTLT": "Avg TLT (days)",
+  "xls.col.avgCLT": "Avg CLT (days)",
+  "xls.col.numIsolatedPlants": "# Isolated plants"
 }

@@ -639,7 +639,7 @@ async function paConfirmMapping() {
 
   // Fetch ligero de tipos de material
   var wrap = document.getElementById('mattypeExcludeWrap');
-  if (wrap) wrap.innerHTML = '<p style="color:var(--text2);font-size:12px;margin:8px 0;">⏳ Cargando tipos de material desde SAP IBP…</p>';
+  if (wrap) wrap.innerHTML = '<p style="color:var(--text2);font-size:12px;margin:8px 0;">' + escH(I18n.t('mattype.status.loading')) + '</p>';
   paFetchMattypes().then(function() {
     mattyeRenderExclude('');
     _mattyeUpdateExcludeSummary();
