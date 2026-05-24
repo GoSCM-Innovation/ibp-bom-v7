@@ -620,5 +620,22 @@
   "xls.col.customersCodes": "Customers (codes)",
   "xls.col.avgTLT": "Avg TLT (days)",
   "xls.col.avgCLT": "Avg CLT (days)",
-  "xls.col.numIsolatedPlants": "# Isolated plants"
+  "xls.col.numIsolatedPlants": "# Isolated plants",
+
+  "bom.empty.promptHint": "All SourceIDs of the product at each plant and production option will be shown.",
+  "bom.tab.newSearch": "New search",
+  "analyzer.progress.analyzing": "Analyzing {done}/{n} products...",
+  "analyzer.summary.totalPlantCustRoutes": "Total plant → customer routes",
+  "docs.log.generatingSheet": "📋 Generating {sheet}…",
+  "docs.log.assemblingExcel": "📦 Assembling Excel file…",
+  "main.scenario.baselineEmpty": "Baseline (empty)",
+  "viz.label.input": "Input",
+
+  "glosario.pdf.headerTitle": "GoSCM  |  Glossary {mod}",
+  "glosario.pdf.coverTitle": "Glossary",
+  "glosario.pdf.generatedOn": "Generated on {date}",
+  "glosario.pdf.pageFooter": "Page {n} of {total}",
+  "glosario.btn.exportPdf": "↓ Export PDF",
+  "glosario.btn.generating": "Generating...",
+  "glosario.pdf.coverSubtitle": "Reference guide for reading the exported analysis"
 }

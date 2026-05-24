@@ -455,7 +455,7 @@
         '<div class="empty-state bom-prompt" style="display:block">' +
           '<div class="icon">🔍</div>' +
           escH(I18n.t('bom.empty.prompt')) + '<br>' +
-          '<span style="font-size:11px;color:var(--text3)">' + (I18n.getLang() === 'en' ? 'All SourceIDs of the product at each plant and production option will be shown.' : 'Se mostrarán todos los SourceID del producto en cada planta y opción de producción.') + '</span>' +
+          '<span style="font-size:11px;color:var(--text3)">' + escH(I18n.t('bom.empty.promptHint')) + '</span>' +
         '</div>' +
         '<div class="bom-loading hidden">' +
           '<div class="bom-loading-spinner"></div>' +
@@ -577,7 +577,7 @@
       BOM_TABS.forEach(function (tab) {
         var btn = document.createElement('button');
         btn.className = 'bom-tab-btn' + (BOM_ACTIVE_TAB === tab.id ? ' active' : '');
-        var label = tab.prdid || (I18n.getLang() === 'en' ? 'New search' : 'Nueva búsqueda');
+        var label = tab.prdid || I18n.t('bom.tab.newSearch');
         btn.innerHTML = '<span style="overflow:hidden;text-overflow:ellipsis;">' + escH(label) + '</span>';
         if (BOM_TABS.length > 1) {
           var closeBtn = document.createElement('span');

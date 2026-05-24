@@ -460,7 +460,7 @@
           (_lblMap[typeTo] || I18n.t('viz.node.locationTitle')) + ': ' + to   + (dt ? '\n' + dt : ''));
         if (typeFrom === 'supplier') {
           var prd = str(r.PRDID || '');
-          var _inputLbl = I18n.getLang() === 'en' ? 'Input' : 'Insumo';
+          var _inputLbl = I18n.t('viz.label.input');
           _vizAddSupplierEdge(edgesArr, from, to,
             (prd ? _inputLbl + ': ' + prd : '') + (tlt ? (prd ? ' ' : '') + '[LT:' + tlt + ']' : ''));
         } else {

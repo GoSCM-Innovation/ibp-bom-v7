@@ -620,5 +620,22 @@
   "xls.col.customersCodes": "Clientes (códigos)",
   "xls.col.avgTLT": "TLT promedio (días)",
   "xls.col.avgCLT": "CLT promedio (días)",
-  "xls.col.numIsolatedPlants": "# Plantas aisladas"
+  "xls.col.numIsolatedPlants": "# Plantas aisladas",
+
+  "bom.empty.promptHint": "Se mostrarán todos los SourceID del producto en cada planta y opción de producción.",
+  "bom.tab.newSearch": "Nueva búsqueda",
+  "analyzer.progress.analyzing": "Analizando {done}/{n} productos...",
+  "analyzer.summary.totalPlantCustRoutes": "Total rutas planta → cliente",
+  "docs.log.generatingSheet": "📋 Generando hoja {sheet}…",
+  "docs.log.assemblingExcel": "📦 Ensamblando archivo Excel…",
+  "main.scenario.baselineEmpty": "Baseline (vacío)",
+  "viz.label.input": "Insumo",
+
+  "glosario.pdf.headerTitle": "GoSCM  |  Glosario {mod}",
+  "glosario.pdf.coverTitle": "Glosario",
+  "glosario.pdf.generatedOn": "Generado el {date}",
+  "glosario.pdf.pageFooter": "Página {n} de {total}",
+  "glosario.btn.exportPdf": "↓ Exportar PDF",
+  "glosario.btn.generating": "Generando...",
+  "glosario.pdf.coverSubtitle": "Guía de referencia para la lectura del análisis exportado"
 }

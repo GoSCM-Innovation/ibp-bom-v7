@@ -1783,7 +1783,7 @@
         await new Promise(function (r) { setTimeout(r, 0); });
         var done = Math.min(i + CHUNK, n);
         if (onProgress) onProgress(57 + Math.round((done / n) * 28));
-        if (onStatus)   onStatus((I18n.getLang()==='en'?'Analyzing ':'Analizando ') + done + '/' + n + (I18n.getLang()==='en'?' products...':' productos...'));
+        if (onStatus)   onStatus(I18n.t('analyzer.progress.analyzing', { done: done, n: n }));
         if (logEl && i > 0 && i % 500 === 0)
           log(logEl, 'info', timer.fmt() + ' Analizados ' + done + '/' + n + '...');
       }
@@ -2056,7 +2056,7 @@
           kpis: [
             { label: _xn('Total productos analizados'),       value: n.toLocaleString('es-CL') },
             { label: _xn('Productos con red completa'),       value: completeCount.toLocaleString('es-CL') },
-            { label: I18n.getLang() === 'en' ? 'Total plant → customer routes' : 'Total rutas planta → cliente',     value: totalPaths.toLocaleString('es-CL') },
+            { label: I18n.t('analyzer.summary.totalPlantCustRoutes'),     value: totalPaths.toLocaleString('es-CL') },
             { label: _xn('Ghost nodes detectados'),           value: ghostCount.toLocaleString('es-CL') },
             { label: _xn('Health Score promedio'),            value: (n > 0 ? Math.round(healthSum / n) : 0) + ' / 100' }
           ]

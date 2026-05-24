@@ -1406,11 +1406,11 @@ async function buildExcel() {
     sheets.push({ name: paramRow.sheetName, sb });
   }
 
-  docsLog((I18n.getLang() === 'en' ? '📋 Generating ' : '📋 Generando hoja ') + I18n.t('xls.sheet.parameters') + '…', 'l-info');
+  docsLog(I18n.t('docs.log.generatingSheet', { sheet: I18n.t('xls.sheet.parameters') }), 'l-info');
   const paramSb = buildParamSheet(paramRows, docsMode === 'zipjobs');
   sheets.unshift({ name: I18n.t('xls.sheet.parameters'), sb: paramSb });
 
-  docsLog((I18n.getLang() === 'en' ? '📦 Assembling Excel file…' : '📦 Ensamblando archivo Excel…'), 'l-info');
+  docsLog(I18n.t('docs.log.assemblingExcel'), 'l-info');
   xlsBuf = await assembleXlsx(sheets);
   setP(100);
   docsLog(`✅ Listo — ${totalJobs} jobs · ${totalMaps} mapeos · ${totalFilts} filtros`, 'l-ok');
@@ -2455,11 +2455,11 @@ async function generateFromJobs() {
     }
   }
 
-  docsLog((I18n.getLang() === 'en' ? '📋 Generating ' : '📋 Generando hoja ') + I18n.t('xls.sheet.parameters') + '…', 'l-info');
+  docsLog(I18n.t('docs.log.generatingSheet', { sheet: I18n.t('xls.sheet.parameters') }), 'l-info');
   const paramSb = buildParamSheet(paramRows, true);
   sheets.unshift({ name: I18n.t('xls.sheet.parameters'), sb: paramSb });
 
-  docsLog((I18n.getLang() === 'en' ? '📦 Assembling Excel file…' : '📦 Ensamblando archivo Excel…'), 'l-info');
+  docsLog(I18n.t('docs.log.assemblingExcel'), 'l-info');
   xlsBuf = await assembleXlsx(sheets);
   setP(100);
   docsLog(`✅ Listo — ${totalJobs} integraciones · ${totalMaps} mapeos · ${totalFilts} filtros`, 'l-ok');

@@ -533,7 +533,7 @@
       versions.sort();
 
       var sel = document.getElementById('selPver');
-      var opts = '<option value="">' + (I18n.getLang() === 'en' ? 'Baseline (empty)' : 'Baseline (vacío)') + '</option>';
+      var opts = '<option value="">' + escH(I18n.t('main.scenario.baselineEmpty')) + '</option>';
       opts += versions.map(function (v) {
         return '<option value="' + escH(v) + '">' + escH(v) + '</option>';
       }).join('');
