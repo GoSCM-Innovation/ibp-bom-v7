@@ -1524,7 +1524,7 @@ const Explorer = (function () {
   // ── Init ─────────────────────────────────────────────────
   function init() {
     initDropZone();
-    renderCidsBar();
+    I18n.ready.then(() => renderCidsBar());
   }
 
   // ── API pública ──────────────────────────────────────────
