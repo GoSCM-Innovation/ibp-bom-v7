@@ -986,5 +986,22 @@
   "Necesita arco de abastecimiento": "Needs supply arc",
   "Arcos LS + CS conectados": "LS + CS arcs connected",
   "Tipo de material del producto output.": "Output product material type.",
-  "Agregar el semiterminado como componente PSI en el BOM de la planta destino, o eliminar el arco de transferencia si es un error.": "Add the semi-finished as a PSI component in the destination plant BOM, or remove the transfer arc if it is an error."
+  "Agregar el semiterminado como componente PSI en el BOM de la planta destino, o eliminar el arco de transferencia si es un error.": "Add the semi-finished as a PSI component in the destination plant BOM, or remove the transfer arc if it is an error.",
+  "<div class=\"glos-legend-item\"><span class=\"glos-badge glos-dash\">—</span><span>El dato no aplica para este registro (N/A). Celda con fondo gris claro e itálica. No indica error sino ausencia de dato para ese campo.</span></div>": "<div class=\"glos-legend-item\"><span class=\"glos-badge glos-dash\">—</span><span>The data does not apply to this record (N/A). Cell with light gray background and italic. Does not indicate an error but the absence of data for that field.</span></div>",
+  "Número de plantas donde el recurso tiene Resource Location configurado.": "Number of plants where the resource has Resource Location configured.",
+  "<p>Producto fabricado internamente. Requiere configuración completa para planificación de producción y distribución.</p>": "<p>Internally manufactured product. Requires complete configuration for production and distribution planning.</p>",
+  "<li>No aplica detección de Ghost Nodes ni Dead-ends (no necesita llegar a cliente)</li>": "<li>Ghost Nodes / Dead-ends detection does not apply (does not need to reach a customer)</li>",
+  "<p>Ítem adquirido externamente. No se fabrica ni transforma internamente.</p>": "<p>Externally acquired item. Not manufactured or transformed internally.</p>",
+  "<li>No se evalúa PLEADTIME ni ruta a cliente</li>": "<li>PLEADTIME and route to customer are not evaluated</li>",
+  "<li>Tener PSH es inusual → ⚠ Advertencia de categorización</li>": "<li>Having PSH is unusual → ⚠ Categorization warning</li>",
+  " Mercadería</div>": " Goods</div>",
+  "<p>Producto comprado y revendido sin transformación interna.</p>": "<p>Product purchased and resold without internal transformation.</p>",
+  "<li>PLEADTIME no se evalúa</li>": "<li>PLEADTIME is not evaluated</li>",
+  "<div class=\"glos-table-wrap\"><table class=\"glos-col-table\"><thead><tr><th>Categoría</th><th>Bonificaciones</th><th>Penalizaciones</th></tr></thead><tbody>": "<div class=\"glos-table-wrap\"><table class=\"glos-col-table\"><thead><tr><th>Category</th><th>Bonuses</th><th>Penalties</th></tr></thead><tbody>",
+  " Terminado / Sin cat.</td><td>+50 si hay rutas completas; +15 si múltiples clientes; +15 si múltiples rutas; +20 si múltiples plantas.</td><td>-20 por ghost nodes; -15 por dead-ends; -20 por clientes con ruta única; -15 por fuente única de producción.</td></tr>": " Finished / Uncat.</td><td>+50 if full routes exist; +15 if multiple customers; +15 if multiple routes; +20 if multiple plants.</td><td>-20 for ghost nodes; -15 for dead-ends; -20 for customers with single route; -15 for single production source.</td></tr>",
+  " Semiterminado</td><td>+30 si tiene PSH; +40 si tiene consumo PSI; +20 si múltiples plantas; +10 si tiene Location Source.</td><td>Sin penalizaciones.</td></tr>": " Semi-finished</td><td>+30 if it has PSH; +40 if it has PSI consumption; +20 if multiple plants; +10 if it has Location Source.</td><td>No penalties.</td></tr>",
+  " Mercadería</td><td>+40 si tiene Location Source; +40 si tiene Customer Source; +20 si múltiples clientes.</td><td>Sin penalizaciones.</td></tr>": " Goods</td><td>+40 if it has Location Source; +40 if it has Customer Source; +20 if multiple customers.</td><td>No penalties.</td></tr>",
+  "<div class=\"glos-table-wrap\"><table class=\"glos-col-table\"><thead><tr><th>Regla de análisis</th>": "<div class=\"glos-table-wrap\"><table class=\"glos-col-table\"><thead><tr><th>Analysis rule</th>",
+  "<th style=\"color:var(--purple)\">Mercadería</th>": "<th style=\"color:var(--purple)\">Goods</th>",
+  "Librería PDF no disponible. Recarga la página.": "PDF library unavailable. Please reload the page."
 }

@@ -302,7 +302,117 @@ var _XLS_PA_NOTES_EN = {
   'Unidades del producto terminado que se obtienen por corrida de producción. Afecta directamente el cálculo de cuántas corridas se necesitan. Ej: 100 = cada corrida produce 100 unidades.':
     'Units of finished product obtained per production run. Directly affects the calculation of how many runs are needed. E.g.: 100 = each run produces 100 units.',
   'X = este componente es un material de reemplazo alternativo (ISALTITEM=X). Vacío = componente principal. Ej: MAT-A-PREMIUM con X = puede sustituir a MAT-A cuando no hay stock.':
-    'X = this component is an alternative replacement material (ISALTITEM=X). Empty = primary component. E.g.: MAT-A-PREMIUM with X = can substitute MAT-A when out of stock.'
+    'X = this component is an alternative replacement material (ISALTITEM=X). Empty = primary component. E.g.: MAT-A-PREMIUM with X = can substitute MAT-A when out of stock.',
+  // ── Observaciones hoja Product ──
+  'Sin fuente de producción propia (PSH)': 'No own production source (PSH)',
+  'PSH sin componentes PSI': 'PSH without PSI components',
+  'PSH sin recursos PSR asignados': 'PSH without assigned PSR resources',
+  'Planta productora no es origen en Location Source': 'Producing plant is not origin in Location Source',
+  'Sin arco de abastecimiento hacia:': 'No supply arc to:',
+  'Sin arco de abastecimiento (no registrado en Location Source)':
+    'No supply arc (not registered in Location Source)',
+  'Sin arcos en Location Source': 'No arcs in Location Source',
+  'Semiterminado sin consumo PSI en planta productora ni transferencia configurada':
+    'Semi-finished without PSI consumption at the producing plant or configured transfer',
+  'Transfiere a {n} destino(s) sin consumo PSI en ningún punto: {list}':
+    'Transfers to {n} destination(s) without PSI consumption anywhere: {list}',
+  'Transfiere a {n} destino(s) sin consumo PSI (sí consume en planta origen): {list}':
+    'Transfers to {n} destination(s) without PSI consumption (does consume at origin plant): {list}',
+  'PLEADTIME ausente o cero en {n} SOURCEID(s)': 'PLEADTIME missing or zero in {n} SOURCEID(s)',
+  'OUTPUTCOEFFICIENT ausente o cero en {n} SOURCEID(s)': 'OUTPUTCOEFFICIENT missing or zero in {n} SOURCEID(s)',
+  'Configurado solo como co-producto (SOURCETYPE=C) — falta PSH primario':
+    'Configured only as co-product (SOURCETYPE=C) — missing primary PSH',
+  'Tiene BOM de fabricación (PSH) — verificar categorización':
+    'Has manufacturing BOM (PSH) — verify categorization',
+  'No consumido como componente en ningún BOM': 'Not consumed as a component in any BOM',
+  'TLEADTIME = 0 en todos los arcos de Location Source':
+    'TLEADTIME = 0 in all Location Source arcs',
+  'Sin categoría [{mt}]': 'Uncategorized [{mt}]',
+  'sin MATTYPEID': 'no MATTYPEID',
+  '{label} — sin hallazgos en modo permisivo': '{label} — no findings in permissive mode',
+  // okParts hoja Product
+  'Habilitado en Location Product': 'Enabled in Location Product',
+  'Con PSH, PSI y PSR': 'With PSH, PSI and PSR',
+  'Planta es origen en Location Source': 'Plant is origin in Location Source',
+  'Arcos de abastecimiento completos': 'Complete supply arcs',
+  'Con arcos en Location Source': 'With arcs in Location Source',
+  'Consume en planta productora': 'Consumes at the producing plant',
+  'Consumo en destino de transferencia verificado': 'Consumption at transfer destination verified',
+  'PLEADTIME definido en todos los SOURCEIDs': 'PLEADTIME defined in all SOURCEIDs',
+  'Coeficiente de salida definido': 'Output coefficient defined',
+  'PSH con SOURCETYPE=P presente': 'PSH with SOURCETYPE=P present',
+  'Sin BOM de fabricación': 'No manufacturing BOM',
+  'Consumido como componente en BOM': 'Consumed as a component in a BOM',
+  'TLEADTIME definido en Location Source': 'TLEADTIME defined in Location Source',
+  // ── Observaciones hoja Location ──
+  '{n} SOURCEID(s) sin PSI': '{n} SOURCEID(s) without PSI',
+  '{n} SOURCEID(s) sin PSR': '{n} SOURCEID(s) without PSR',
+  '{n} componente(s) sin arco de abastecimiento': '{n} component(s) without supply arc',
+  '{n} SOURCEID(s) con PLEADTIME = 0': '{n} SOURCEID(s) with PLEADTIME = 0',
+  '{n} recurso(s) asignados sin uso en PSR': '{n} resource(s) assigned without use in PSR',
+  '{n} producto(s) Mat. Prima/Mercadería con BOM de fabricación en esta planta — verificar categorización':
+    '{n} Raw Material/Goods product(s) with manufacturing BOM at this plant — verify categorization',
+  '{n} producto(s) abastecidos sin consumo PSI en destino':
+    '{n} supplied product(s) without PSI consumption at destination',
+  '{n} producto(s) sin Location Product en planta destino':
+    '{n} product(s) without Location Product at destination plant',
+  '{n} componente(s) Mat. Prima/Semiterminado transferido(s) a planta sin consumo PSI — verificar BOM':
+    '{n} Raw Material/Semi-finished component(s) transferred to plant without PSI consumption — verify BOM',
+  '{n} componente(s) Mat. Prima/Semiterminado transferido(s) a nodo sin producción':
+    '{n} Raw Material/Semi-finished component(s) transferred to node without production',
+  '{n} producto(s) sin categoría transferidos sin consumo PSI en destino':
+    '{n} uncategorized product(s) transferred without PSI consumption at destination',
+  '{n} producto(s) recibidos sin cobertura en Location Product':
+    '{n} received product(s) without coverage in Location Product',
+  '{n} componente(s) Mat. Prima/Semiterminado recibidos en ubicación sin producción asociada':
+    '{n} Raw Material/Semi-finished component(s) received at location without associated production',
+  'Ubicación en maestro sin actividad en otros datos': 'Master-only location, no activity in other data',
+  // okParts hoja Location
+  'BOMs con PSI, PSR y lead time | Sin componentes sin cobertura | Sin recursos ociosos':
+    'BOMs with PSI, PSR and lead time | No uncovered components | No idle resources',
+  'Abastecimiento con consumo PSI y cobertura LP en destino':
+    'Supply with PSI consumption and LP coverage at destination',
+  'Distribuye {n} producto(s) terminado(s)/mercadería sin hallazgos':
+    'Distributes {n} finished product(s)/goods without findings',
+  'Nodo de transferencia sin hallazgos': 'Transfer node without findings',
+  'Recibe {n} producto(s) | Location Product OK | Sin componentes sin producción':
+    'Receives {n} product(s) | Location Product OK | No components without production',
+  'Nodo receptor sin hallazgos': 'Receiving node without findings',
+  'Ubicación activa sin hallazgos': 'Active location without findings',
+  // ── Observaciones hoja PSH (Prod Source Header) ──
+  'BOM vacío: sin componentes PSI': 'Empty BOM: no PSI components',
+  'PLEADTIME = 0 o no definido': 'PLEADTIME = 0 or not defined',
+  'PRDID+LOCID sin cobertura en Location Product': 'PRDID+LOCID without coverage in Location Product',
+  'Sin registro SOURCETYPE=P': 'No SOURCETYPE=P record',
+  'Sin recursos PSR asignados': 'No assigned PSR resources',
+  'Múltiples SOURCEIDs para mismo PRDID+LOCID — verificar cuotas':
+    'Multiple SOURCEIDs for same PRDID+LOCID — verify quotas',
+  'BOM con componentes PSI | Lead time definido | Habilitado en LP | SOURCETYPE=P presente | Recursos PSR asignados':
+    'BOM with PSI components | Lead time defined | Enabled in LP | SOURCETYPE=P present | PSR resources assigned',
+  // ── Observaciones hoja PSR (Prod Source Resource) ──
+  'SOURCEID no encontrado en PSH': 'SOURCEID not found in PSH',
+  'Recurso {resid} asignado en Resource Location para planta {locid} | Asociado a SOURCEID {sid}':
+    'Resource {resid} assigned in Resource Location for plant {locid} | Linked to SOURCEID {sid}',
+  'Recurso en producción sin asignación en Resource Location para planta {locid}':
+    'Resource in production without Resource Location assignment for plant {locid}',
+  // ── Observaciones hoja Tipos Excluidos ──
+  'Excluido del análisis principal. Validado como componente en {n} fuente(s) de producción.':
+    'Excluded from main analysis. Validated as component in {n} production source(s).',
+  'Excluido del análisis principal. No aparece como componente en ninguna fuente de producción.':
+    'Excluded from main analysis. Does not appear as component in any production source.',
+  ' ⚠️ {n} combinación(es) componente-planta sin arco de abastecimiento.':
+    ' ⚠️ {n} component-plant combination(s) without supply arc.',
+  'Recurso huérfano: sin uso en producción ni planta asignada':
+    'Orphan resource: no use in production or assigned plant',
+  'Sin uso en producción (no aparece en PSR)':
+    'No use in production (not in PSR)',
+  // Resource roles (inferred location roles in PA Location sheet)
+  'Planta de producción': 'Production plant',
+  'Proveedor': 'Vendor',
+  'Nodo de transferencia': 'Transfer node',
+  'Nodo receptor': 'Receiving node',
+  'Nodo de recursos': 'Resource node',
+  'Sin actividad': 'No activity'
 };
 function _xnPA(s) {
   return (window.I18n && I18n.getLang() === 'en' && _XLS_PA_NOTES_EN[s]) ? _XLS_PA_NOTES_EN[s] : s;
@@ -1191,14 +1301,14 @@ async function paAnalyzeAndExport(
       var reqPSH = rules.requiresPSH;
       if (reqPSH !== 'none') {
         if (!inPSH) {
-          obs.push('Sin fuente de producción propia (PSH)');
+          obs.push(_xnPA('Sin fuente de producción propia (PSH)'));
           fills.push(reqPSH);
         } else {
           // Si tiene PSH, PSI y PSR son obligatorios al mismo nivel
           var hasPSI = inPSI || compCount > 0;
           var hasPSR = resSet.size > 0;
-          if (!hasPSI) { obs.push('PSH sin componentes PSI'); fills.push(reqPSH); }
-          if (!hasPSR) { obs.push('PSH sin recursos PSR asignados'); fills.push(reqPSH); }
+          if (!hasPSI) { obs.push(_xnPA('PSH sin componentes PSI')); fills.push(reqPSH); }
+          if (!hasPSR) { obs.push(_xnPA('PSH sin recursos PSR asignados')); fills.push(reqPSH); }
         }
       }
 
@@ -1209,7 +1319,7 @@ async function paAnalyzeAndExport(
           return locSrcByPrdLocfr.has(prdid + '|' + loc);
         });
         if (!hasPlantAsOrigin) {
-          obs.push('Planta productora no es origen en Location Source');
+          obs.push(_xnPA('Planta productora no es origen en Location Source'));
           fills.push(rules.requiresPlantAsOrigin);
         }
       }
@@ -1217,17 +1327,17 @@ async function paAnalyzeAndExport(
       // LocSrc: arco de compra llega a planta consumidora
       if (rules.requiresVendorArc !== 'none') {
         if (covData.uncovered.size > 0) {
-          obs.push('Sin arco de abastecimiento hacia: ' + codes(covData.uncovered));
+          obs.push(_xnPA('Sin arco de abastecimiento hacia:') + ' ' + codes(covData.uncovered));
           fills.push(rules.requiresVendorArc);
         } else if (!inLS) {
-          obs.push('Sin arco de abastecimiento (no registrado en Location Source)');
+          obs.push(_xnPA('Sin arco de abastecimiento (no registrado en Location Source)'));
           fills.push(rules.requiresVendorArc);
         }
       }
 
       // LocSrc: algún origen y destino (trading / finished)
       if (rules.requiresAnyOriginDest !== 'none') {
-        if (!inLS) { obs.push('Sin arcos en Location Source'); fills.push(rules.requiresAnyOriginDest); }
+        if (!inLS) { obs.push(_xnPA('Sin arcos en Location Source')); fills.push(rules.requiresAnyOriginDest); }
       }
 
       // Semiterminado: validación específica de consumo y transferencia (7 casos)
@@ -1250,16 +1360,24 @@ async function paAnalyzeAndExport(
 
         if (!semiHasLocalConsumption && !semiHasTransferOut) {
           // Caso 4: produce sin consumo PSI local ni transferencia
-          obs.push('Semiterminado sin consumo PSI en planta productora ni transferencia configurada');
+          obs.push(_xnPA('Semiterminado sin consumo PSI en planta productora ni transferencia configurada'));
           fills.push('red');
         } else if (semiHasTransferOut && semiDestsNoConsumption.size > 0) {
           if (!semiHasLocalConsumption) {
             // Caso 5: transfiere sin consumo en destino y sin consumo local
-            obs.push('Transfiere a ' + semiDestsNoConsumption.size + ' destino(s) sin consumo PSI en ningún punto: ' + codes(semiDestsNoConsumption));
+            obs.push(
+              _xnPA('Transfiere a {n} destino(s) sin consumo PSI en ningún punto: {list}')
+                .replace('{n}', semiDestsNoConsumption.size)
+                .replace('{list}', codes(semiDestsNoConsumption))
+            );
             fills.push('red');
           } else {
             // Caso 6: consume localmente pero transfiere a destino sin consumo
-            obs.push('Transfiere a ' + semiDestsNoConsumption.size + ' destino(s) sin consumo PSI (sí consume en planta origen): ' + codes(semiDestsNoConsumption));
+            obs.push(
+              _xnPA('Transfiere a {n} destino(s) sin consumo PSI (sí consume en planta origen): {list}')
+                .replace('{n}', semiDestsNoConsumption.size)
+                .replace('{list}', codes(semiDestsNoConsumption))
+            );
             fills.push('yellow');
           }
         }
@@ -1274,7 +1392,7 @@ async function paAnalyzeAndExport(
           return recs.some(function(r) { return !r.PLEADTIME || r.PLEADTIME === '0'; });
         });
         if (sidsMissingPlt.length) {
-          obs.push('PLEADTIME ausente o cero en ' + sidsMissingPlt.length + ' SOURCEID(s)');
+          obs.push(_xnPA('PLEADTIME ausente o cero en {n} SOURCEID(s)').replace('{n}', sidsMissingPlt.length));
           fills.push(rules.pleadtimeZero);
         }
       }
@@ -1286,7 +1404,7 @@ async function paAnalyzeAndExport(
           return recs.some(function(r) { return !r.OUTPUTCOEFFICIENT || r.OUTPUTCOEFFICIENT === '0'; });
         });
         if (sidsMissingCoeff.length) {
-          obs.push('OUTPUTCOEFFICIENT ausente o cero en ' + sidsMissingCoeff.length + ' SOURCEID(s)');
+          obs.push(_xnPA('OUTPUTCOEFFICIENT ausente o cero en {n} SOURCEID(s)').replace('{n}', sidsMissingCoeff.length));
           fills.push(rules.outputCoeffZero);
         }
       }
@@ -1294,7 +1412,7 @@ async function paAnalyzeAndExport(
       // Solo co-producto: aparece en PSH pero nunca como SOURCETYPE=P
       if (rules.isCoproductOnly !== 'none') {
         if (pshPrdSet[prdid] && !inPSH) {
-          obs.push('Configurado solo como co-producto (SOURCETYPE=C) — falta PSH primario');
+          obs.push(_xnPA('Configurado solo como co-producto (SOURCETYPE=C) — falta PSH primario'));
           fills.push(rules.isCoproductOnly);
         }
       }
@@ -1302,7 +1420,7 @@ async function paAnalyzeAndExport(
       // Tiene PSH cuando no debería (rawmat / trading)
       if (rules.hasPSHUnexpected !== 'none') {
         if (pshPrdSet[prdid]) {
-          obs.push('Tiene BOM de fabricación (PSH) — verificar categorización');
+          obs.push(_xnPA('Tiene BOM de fabricación (PSH) — verificar categorización'));
           fills.push(rules.hasPSHUnexpected);
         }
       }
@@ -1310,7 +1428,7 @@ async function paAnalyzeAndExport(
       // No consumido como componente en ningún BOM
       if (rules.notConsumedInBOM !== 'none') {
         if (consLocs.size === 0) {
-          obs.push('No consumido como componente en ningún BOM');
+          obs.push(_xnPA('No consumido como componente en ningún BOM'));
           fills.push(rules.notConsumedInBOM);
         }
       }
@@ -1323,35 +1441,35 @@ async function paAnalyzeAndExport(
             return !r.TLEADTIME || str(r.TLEADTIME) === '0';
           });
           if (allZeroTlt) {
-            obs.push('TLEADTIME = 0 en todos los arcos de Location Source');
+            obs.push(_xnPA('TLEADTIME = 0 en todos los arcos de Location Source'));
             fills.push(rules.tleadtimeZero);
           }
         }
       }
 
       var uncatLabel = isUncategorized
-        ? 'Sin categoría [' + (mattypeid || 'sin MATTYPEID') + ']'
+        ? _xnPA('Sin categoría [{mt}]').replace('{mt}', (mattypeid || _xnPA('sin MATTYPEID')))
         : null;
 
       if (!obs.length) {
         if (isUncategorized) {
-          obs.push(uncatLabel + ' — sin hallazgos en modo permisivo');
+          obs.push(_xnPA('{label} — sin hallazgos en modo permisivo').replace('{label}', uncatLabel));
         } else {
-          var okParts = ['Habilitado en Location Product'];
-          if (reqPSH !== 'none' && inPSH)                      okParts.push('Con PSH, PSI y PSR');
-          if (rules.requiresPlantAsOrigin !== 'none' && inPSH) okParts.push('Planta es origen en Location Source');
-          if (rules.requiresVendorArc !== 'none')               okParts.push('Arcos de abastecimiento completos');
-          if (rules.requiresAnyOriginDest !== 'none')           okParts.push('Con arcos en Location Source');
+          var okParts = [_xnPA('Habilitado en Location Product')];
+          if (reqPSH !== 'none' && inPSH)                      okParts.push(_xnPA('Con PSH, PSI y PSR'));
+          if (rules.requiresPlantAsOrigin !== 'none' && inPSH) okParts.push(_xnPA('Planta es origen en Location Source'));
+          if (rules.requiresVendorArc !== 'none')               okParts.push(_xnPA('Arcos de abastecimiento completos'));
+          if (rules.requiresAnyOriginDest !== 'none')           okParts.push(_xnPA('Con arcos en Location Source'));
           if (cats.indexOf('semi') >= 0 && inPSH) {
             var _semiLocalOk = Array.from(plantsSet).some(function(loc) { return !!psiCompByLocPrd[loc + '|' + prdid]; });
-            okParts.push(_semiLocalOk ? 'Consume en planta productora' : 'Consumo en destino de transferencia verificado');
+            okParts.push(_semiLocalOk ? _xnPA('Consume en planta productora') : _xnPA('Consumo en destino de transferencia verificado'));
           }
-          if (rules.pleadtimeZero !== 'none' && inPSH)          okParts.push('PLEADTIME definido en todos los SOURCEIDs');
-          if (rules.outputCoeffZero !== 'none' && inPSH)        okParts.push('Coeficiente de salida definido');
-          if (rules.isCoproductOnly !== 'none' && inPSH)        okParts.push('PSH con SOURCETYPE=P presente');
-          if (rules.hasPSHUnexpected !== 'none')                okParts.push('Sin BOM de fabricación');
-          if (rules.notConsumedInBOM !== 'none')                okParts.push('Consumido como componente en BOM');
-          if (rules.tleadtimeZero !== 'none' && inLS)           okParts.push('TLEADTIME definido en Location Source');
+          if (rules.pleadtimeZero !== 'none' && inPSH)          okParts.push(_xnPA('PLEADTIME definido en todos los SOURCEIDs'));
+          if (rules.outputCoeffZero !== 'none' && inPSH)        okParts.push(_xnPA('Coeficiente de salida definido'));
+          if (rules.isCoproductOnly !== 'none' && inPSH)        okParts.push(_xnPA('PSH con SOURCETYPE=P presente'));
+          if (rules.hasPSHUnexpected !== 'none')                okParts.push(_xnPA('Sin BOM de fabricación'));
+          if (rules.notConsumedInBOM !== 'none')                okParts.push(_xnPA('Consumido como componente en BOM'));
+          if (rules.tleadtimeZero !== 'none' && inLS)           okParts.push(_xnPA('TLEADTIME definido en Location Source'));
           obs.push(okParts.join(' | '));
         }
       } else if (isUncategorized) {
@@ -1542,7 +1660,7 @@ async function paAnalyzeAndExport(
 
       if (!roles.length) roles.push('Sin actividad');
 
-      var rolStr = roles.join(' | ');
+      var rolStr = roles.map(_xnPA).join(' | ');
 
       /* ── Métricas Planta ── */
       var plantaPrds    = new Set();
@@ -1663,53 +1781,53 @@ async function paAnalyzeAndExport(
       var fills = [];
 
       if (isPlanta) {
-        if (bomssinPSI.size)         { obs.push(bomssinPSI.size + ' SOURCEID(s) sin PSI');  fills.push('red');    }
-        if (bomssinPSR.size)         { obs.push(bomssinPSR.size + ' SOURCEID(s) sin PSR');  fills.push('red');    }
-        if (compSinCov.size)         { obs.push(compSinCov.size + ' componente(s) sin arco de abastecimiento'); fills.push('red'); }
-        if (sidsSinPlt.size)         { obs.push(sidsSinPlt.size + ' SOURCEID(s) con PLEADTIME = 0'); fills.push('red'); }
-        if (resOciosos.size)         { obs.push(resOciosos.size + ' recurso(s) asignados sin uso en PSR'); fills.push('yellow'); }
-        if (plantaPrdsWrongCat.size) { obs.push(plantaPrdsWrongCat.size + ' producto(s) Mat. Prima/Mercadería con BOM de fabricación en esta planta — verificar categorización'); fills.push('yellow'); }
+        if (bomssinPSI.size)         { obs.push(_xnPA('{n} SOURCEID(s) sin PSI').replace('{n}', bomssinPSI.size));  fills.push('red');    }
+        if (bomssinPSR.size)         { obs.push(_xnPA('{n} SOURCEID(s) sin PSR').replace('{n}', bomssinPSR.size));  fills.push('red');    }
+        if (compSinCov.size)         { obs.push(_xnPA('{n} componente(s) sin arco de abastecimiento').replace('{n}', compSinCov.size)); fills.push('red'); }
+        if (sidsSinPlt.size)         { obs.push(_xnPA('{n} SOURCEID(s) con PLEADTIME = 0').replace('{n}', sidsSinPlt.size)); fills.push('red'); }
+        if (resOciosos.size)         { obs.push(_xnPA('{n} recurso(s) asignados sin uso en PSR').replace('{n}', resOciosos.size)); fills.push('yellow'); }
+        if (plantaPrdsWrongCat.size) { obs.push(_xnPA('{n} producto(s) Mat. Prima/Mercadería con BOM de fabricación en esta planta — verificar categorización').replace('{n}', plantaPrdsWrongCat.size)); fills.push('yellow'); }
       }
       if (isProveedor) {
-        if (sinConsumoPSI.size) { obs.push(sinConsumoPSI.size + ' producto(s) abastecidos sin consumo PSI en destino'); fills.push('yellow'); }
-        if (sinLocProd.size)    { obs.push(sinLocProd.size + ' producto(s) sin Location Product en planta destino'); fills.push('red'); }
+        if (sinConsumoPSI.size) { obs.push(_xnPA('{n} producto(s) abastecidos sin consumo PSI en destino').replace('{n}', sinConsumoPSI.size)); fills.push('yellow'); }
+        if (sinLocProd.size)    { obs.push(_xnPA('{n} producto(s) sin Location Product en planta destino').replace('{n}', sinLocProd.size)); fills.push('red'); }
       }
       if (isTransferencia) {
         if (transfCompPlanta.size) {
-          obs.push(transfCompPlanta.size + ' componente(s) Mat. Prima/Semiterminado transferido(s) a planta sin consumo PSI — verificar BOM');
+          obs.push(_xnPA('{n} componente(s) Mat. Prima/Semiterminado transferido(s) a planta sin consumo PSI — verificar BOM').replace('{n}', transfCompPlanta.size));
           fills.push('red');
         }
         if (transfCompNoPl.size) {
-          obs.push(transfCompNoPl.size + ' componente(s) Mat. Prima/Semiterminado transferido(s) a nodo sin producción');
+          obs.push(_xnPA('{n} componente(s) Mat. Prima/Semiterminado transferido(s) a nodo sin producción').replace('{n}', transfCompNoPl.size));
           fills.push('yellow');
         }
         if (transfUncatSet.size && hasSomeCategorized) {
-          obs.push(transfUncatSet.size + ' producto(s) sin categoría transferidos sin consumo PSI en destino');
+          obs.push(_xnPA('{n} producto(s) sin categoría transferidos sin consumo PSI en destino').replace('{n}', transfUncatSet.size));
           fills.push('yellow');
         }
       }
       if (isReceptor) {
         if (receptorSinLP.size) {
-          obs.push(receptorSinLP.size + ' producto(s) recibidos sin cobertura en Location Product');
+          obs.push(_xnPA('{n} producto(s) recibidos sin cobertura en Location Product').replace('{n}', receptorSinLP.size));
           fills.push('red');
         }
         if (receptorComp.size) {
-          obs.push(receptorComp.size + ' componente(s) Mat. Prima/Semiterminado recibidos en ubicación sin producción asociada');
+          obs.push(_xnPA('{n} componente(s) Mat. Prima/Semiterminado recibidos en ubicación sin producción asociada').replace('{n}', receptorComp.size));
           fills.push('yellow');
         }
       }
-      if (roles[0] === 'Sin actividad') { obs.push('Ubicación en maestro sin actividad en otros datos'); fills.push('info'); }
+      if (roles[0] === 'Sin actividad') { obs.push(_xnPA('Ubicación en maestro sin actividad en otros datos')); fills.push('info'); }
       if (!obs.length) {
         var okParts = [];
-        if (isPlanta)        okParts.push('BOMs con PSI, PSR y lead time | Sin componentes sin cobertura | Sin recursos ociosos');
-        if (isProveedor)     okParts.push('Abastecimiento con consumo PSI y cobertura LP en destino');
+        if (isPlanta)        okParts.push(_xnPA('BOMs con PSI, PSR y lead time | Sin componentes sin cobertura | Sin recursos ociosos'));
+        if (isProveedor)     okParts.push(_xnPA('Abastecimiento con consumo PSI y cobertura LP en destino'));
         if (isTransferencia) okParts.push(transfDistrib.size > 0
-          ? 'Distribuye ' + transfDistrib.size + ' producto(s) terminado(s)/mercadería sin hallazgos'
-          : 'Nodo de transferencia sin hallazgos');
+          ? _xnPA('Distribuye {n} producto(s) terminado(s)/mercadería sin hallazgos').replace('{n}', transfDistrib.size)
+          : _xnPA('Nodo de transferencia sin hallazgos'));
         if (isReceptor)      okParts.push(prdRecibidos.size > 0
-          ? 'Recibe ' + prdRecibidos.size + ' producto(s) | Location Product OK | Sin componentes sin producción'
-          : 'Nodo receptor sin hallazgos');
-        if (!okParts.length) okParts.push('Ubicación activa sin hallazgos');
+          ? _xnPA('Recibe {n} producto(s) | Location Product OK | Sin componentes sin producción').replace('{n}', prdRecibidos.size)
+          : _xnPA('Nodo receptor sin hallazgos'));
+        if (!okParts.length) okParts.push(_xnPA('Ubicación activa sin hallazgos'));
         obs.push(okParts.join(' | '));
       }
 
@@ -1824,8 +1942,8 @@ async function paAnalyzeAndExport(
       var sidsSet = resSidsByResid[resid] || new Set();
       var prdsSet = resPrdsByResid[resid] || new Set();
       var obs = [];
-      if (!inPSR && !inRL) obs.push('Recurso huérfano: sin uso en producción ni planta asignada');
-      else if (!inPSR)     obs.push('Sin uso en producción (no aparece en PSR)');
+      if (!inPSR && !inRL) obs.push(_xnPA('Recurso huérfano: sin uso en producción ni planta asignada'));
+      else if (!inPSR)     obs.push(_xnPA('Sin uso en producción (no aparece en PSR)'));
       else if (!inRL)      obs.push('Sin planta asignada en Resource Location');
       if (!obs.length)     obs.push('En uso en PSR y con planta asignada en Resource Location');
       var fill = (!inPSR && !inRL) ? C_RED : (!inPSR || !inRL) ? C_YEL : null;
@@ -1960,13 +2078,13 @@ async function paAnalyzeAndExport(
       var altCount  = psiRows.filter(function(r){ return str(r.ISALTITEM || '') === 'X'; }).length;
 
       var obs = [];
-      if (!hasPSI) obs.push('BOM vacío: sin componentes PSI');
-      if (noLt)    obs.push('PLEADTIME = 0 o no definido');
-      if (!inLP)   obs.push('PRDID+LOCID sin cobertura en Location Product');
-      if (!hasP)   obs.push('Sin registro SOURCETYPE=P');
-      if (!hasPSR) obs.push('Sin recursos PSR asignados');
-      if (multi)   obs.push('Múltiples SOURCEIDs para mismo PRDID+LOCID — verificar cuotas');
-      if (!obs.length) obs.push('BOM con componentes PSI | Lead time definido | Habilitado en LP | SOURCETYPE=P presente | Recursos PSR asignados');
+      if (!hasPSI) obs.push(_xnPA('BOM vacío: sin componentes PSI'));
+      if (noLt)    obs.push(_xnPA('PLEADTIME = 0 o no definido'));
+      if (!inLP)   obs.push(_xnPA('PRDID+LOCID sin cobertura en Location Product'));
+      if (!hasP)   obs.push(_xnPA('Sin registro SOURCETYPE=P'));
+      if (!hasPSR) obs.push(_xnPA('Sin recursos PSR asignados'));
+      if (multi)   obs.push(_xnPA('Múltiples SOURCEIDs para mismo PRDID+LOCID — verificar cuotas'));
+      if (!obs.length) obs.push(_xnPA('BOM con componentes PSI | Lead time definido | Habilitado en LP | SOURCETYPE=P presente | Recursos PSR asignados'));
       var fill = (!hasPSI || noLt || !inLP || !hasPSR) ? C_RED : (!hasP || multi) ? C_YEL : null;
       var _s6Row = [
         statusLabel(fill), obs.join(' | '),
@@ -2214,9 +2332,11 @@ async function paAnalyzeAndExport(
       var inRL   = !!(locid && resid && resLocSet.has(resid + '|' + locid));
       var noSrc  = !locid;
       var resPlants = resLocMapByResid[resid] || new Set();
-      var obs    = noSrc ? 'SOURCEID no encontrado en PSH'
-                 : inRL  ? 'Recurso ' + resid + ' asignado en Resource Location para planta ' + locid + ' | Asociado a SOURCEID ' + sid
-                 :          'Recurso en producción sin asignación en Resource Location para planta ' + locid;
+      var obs    = noSrc ? _xnPA('SOURCEID no encontrado en PSH')
+                 : inRL  ? _xnPA('Recurso {resid} asignado en Resource Location para planta {locid} | Asociado a SOURCEID {sid}')
+                            .replace('{resid}', resid).replace('{locid}', locid).replace('{sid}', sid)
+                 :          _xnPA('Recurso en producción sin asignación en Resource Location para planta {locid}')
+                            .replace('{locid}', locid);
       var fill   = noSrc ? C_YEL : inRL ? null : C_YEL;
       var _s8Row = [
         statusLabel(fill), obs,
@@ -2290,9 +2410,9 @@ async function paAnalyzeAndExport(
       });
 
       var obs = sidsAsComp.size
-        ? 'Excluido del análisis principal. Validado como componente en ' + sidsAsComp.size + ' fuente(s) de producción.'
-        : 'Excluido del análisis principal. No aparece como componente en ninguna fuente de producción.';
-      if (noCovCount > 0) obs += ' ⚠️ ' + noCovCount + ' combinación(es) componente-planta sin arco de abastecimiento.';
+        ? _xnPA('Excluido del análisis principal. Validado como componente en {n} fuente(s) de producción.').replace('{n}', sidsAsComp.size)
+        : _xnPA('Excluido del análisis principal. No aparece como componente en ninguna fuente de producción.');
+      if (noCovCount > 0) obs += _xnPA(' ⚠️ {n} combinación(es) componente-planta sin arco de abastecimiento.').replace('{n}', noCovCount);
 
       SX.addRow([
         mt, cfg.count || 0,

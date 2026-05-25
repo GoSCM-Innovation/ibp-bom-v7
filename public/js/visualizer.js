@@ -1173,18 +1173,18 @@
       var nCycle = _vizRutas.filter(function(r) { return !r.hasCustomer && r.endType === 'cycle'; }).length;
       var nP = nDead + nCycle;
       var orphans = _vizOrphanPlants(_vizRutas);
-      var truncNote = _vizRutas._truncated ? ' (truncadas a 50.000)' : '';
+      var truncNote = _vizRutas._truncated ? I18n.t('viz.routes.truncated') : '';
       var sinPart = '';
       if (nP) {
         var detalles = [];
-        if (nDead)  detalles.push(nDead + ' dead-end');
-        if (nCycle) detalles.push(nCycle + ' ciclo');
-        sinPart = ' · ' + nP + ' sin llegada a cliente (' + detalles.join(', ') + ')';
+        if (nDead)  detalles.push(I18n.t(nDead === 1 ? 'viz.routes.deadendOne' : 'viz.routes.deadendMany', { n: nDead }));
+        if (nCycle) detalles.push(I18n.t(nCycle === 1 ? 'viz.routes.cycleOne' : 'viz.routes.cycleMany', { n: nCycle }));
+        sinPart = I18n.t('viz.routes.withoutCustomer', { n: nP, details: detalles.join(', ') });
       }
       var orphanPart = orphans.length
-        ? ' · ⚠ ' + orphans.length + ' planta' + (orphans.length === 1 ? '' : 's') + ' huérfana' + (orphans.length === 1 ? '' : 's') + ': ' + orphans.join(', ')
+        ? I18n.t(orphans.length === 1 ? 'viz.routes.orphanOne' : 'viz.routes.orphanMany', { n: orphans.length, list: orphans.join(', ') })
         : '';
-      var summText  = nC + ' con llegada a cliente' + sinPart + orphanPart + truncNote;
+      var summText  = I18n.t('viz.routes.withCustomer', { n: nC }) + sinPart + orphanPart + truncNote;
 
       ['vizRutasSummary', 'vizFsRutasSummary'].forEach(function(id) {
         var el = document.getElementById(id); if (el) el.textContent = summText;

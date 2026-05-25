@@ -14,65 +14,30 @@ var MATTYPE_CFG = {};   // mattypeid → { excluded: bool, categories: Set, coun
 /* ── Prefijo de contexto: '' para PA, 'sn' para SN ── */
 var _mattypePfx = '';
 
-/* ── Categorías disponibles ── */
+/* ── Categorías disponibles ──
+   Los labels/desc/rules/example viven en i18n (mattype.cat.{id}.*). Se leen
+   en cada render con _catLabel/_catDesc/_catRules/_catExample para que el
+   toggle ES/EN actualice el panel sin recargar. */
 var MATTYPE_CATS = [
-  {
-    id: 'finished', label: 'Producto Terminado', color: 'var(--accent)',
-    tooltip: {
-      desc: 'Producto fabricado internamente mediante un proceso de producción.',
-      rules: [
-        'Requiere BOM completo (PSH + componentes PSI)',
-        'Requiere recurso productivo (PSR)',
-        'Debe tener ruta desde planta de origen',
-        'Lead time de producción (PLEADTIME) obligatorio — si es 0 se marca 🔴',
-        'Falta de Location Source = 🔴 crítico'
-      ],
-      example: 'FG_BOTELLA_500ML, PT_SHAMPOO_1L'
-    }
-  },
-  {
-    id: 'semi', label: 'Semiterminado', color: 'var(--cyan)',
-    tooltip: {
-      desc: 'Componente fabricado internamente que alimenta otro proceso productivo; no se entrega directamente al cliente.',
-      rules: [
-        'Requiere BOM (PSH + PSI) y recurso (PSR)',
-        'Produce y consume en misma planta = ✅ OK (sin transferencia requerida)',
-        'Produce en planta A, transfiere y consume en planta B = ✅ OK',
-        'Produce sin consumo local ni transferencia = 🔴 problema',
-        'Transfiere a destino sin consumo PSI = 🔴 problema',
-        'Consume localmente pero transfiere a destino sin consumo = 🟡 advertencia',
-        'PLEADTIME = 0 se marca 🟡'
-      ],
-      example: 'SF_TAPA_ROSCA, WIP_MEZCLA_BASE'
-    }
-  },
-  {
-    id: 'rawmat', label: 'Mat. Prima / Insumo', color: 'var(--green)',
-    tooltip: {
-      desc: 'Ítem adquirido externamente; no se fabrica ni transforma internamente.',
-      rules: [
-        'No requiere BOM (PSH/PSI) ni recurso (PSR)',
-        'Debe existir arco de proveedor/origen en la red — si falta = 🔴',
-        'No se evalúa PLEADTIME ni ruta a cliente',
-        'No necesita estar asociado a una planta como origen'
-      ],
-      example: 'RM_RESINA_PET, INS_COLORANTE_AZUL'
-    }
-  },
-  {
-    id: 'trading', label: 'Mercadería', color: 'var(--purple)',
-    tooltip: {
-      desc: 'Producto comprado y revendido sin transformación (trading / reventa).',
-      rules: [
-        'No requiere BOM (PSH/PSI) ni recurso (PSR)',
-        'Debe tener Location Source definida — si falta = 🔴',
-        'Debe existir ruta de abastecimiento completa (origen → destino) — si falta = 🔴',
-        'PLEADTIME no se evalúa'
-      ],
-      example: 'TR_ACCESORIO_VALVULA, MER_FILTRO_REPUESTO'
-    }
-  }
+  { id: 'finished', color: 'var(--accent)', ruleCount: 5 },
+  { id: 'semi',     color: 'var(--cyan)',   ruleCount: 7 },
+  { id: 'rawmat',   color: 'var(--green)',  ruleCount: 4 },
+  { id: 'trading',  color: 'var(--purple)', ruleCount: 4 }
 ];
+
+/* Accessors traducidos para MATTYPE_CATS */
+function _catLabel(cat)   { return I18n.t('mattype.cat.' + cat.id + '.label'); }
+function _catDesc(cat)    { return I18n.t('mattype.cat.' + cat.id + '.desc'); }
+function _catExample(cat) { return I18n.t('mattype.cat.' + cat.id + '.example'); }
+function _catRules(cat) {
+  var rules = [];
+  for (var i = 1; i <= cat.ruleCount; i++) rules.push(I18n.t('mattype.cat.' + cat.id + '.rule' + i));
+  return rules;
+}
+/* Backward-compatible: para consumidores que accedían a cat.label directo */
+MATTYPE_CATS.forEach(function (c) {
+  Object.defineProperty(c, 'label', { get: function () { return _catLabel(c); } });
+});
 
 /* ── Clave de localStorage por planning area ── */
 function _mattypeLsKey() {
@@ -227,21 +192,20 @@ function mattyeRenderCategorize(pfx) {
     '<th class="mattype-matrix-th-type">' + escH(I18n.t('mattype.tbl.type')) + '</th>' +
     '<th class="mattype-matrix-th-count">' + escH(I18n.t('mattype.tbl.products')) + '</th>';
   MATTYPE_CATS.forEach(function(cat) {
-    var tip = cat.tooltip;
-    var rulesHtml = tip.rules.map(function(r) {
+    var rulesHtml = _catRules(cat).map(function(r) {
       return '<li>' + escH(r) + '</li>';
     }).join('');
     var tooltipHtml =
       '<span class="mattype-cat-help">?' +
         '<span class="mattype-cat-tooltip">' +
-          '<div class="mattype-cat-tooltip-title">' + escH(cat.label) + '</div>' +
-          '<div>' + escH(tip.desc) + '</div>' +
+          '<div class="mattype-cat-tooltip-title">' + escH(_catLabel(cat)) + '</div>' +
+          '<div>' + escH(_catDesc(cat)) + '</div>' +
           '<ul class="mattype-cat-tooltip-rules">' + rulesHtml + '</ul>' +
-          '<div class="mattype-cat-tooltip-ex">' + escH(I18n.t('mattype.tip.example', { ex: tip.example })) + '</div>' +
+          '<div class="mattype-cat-tooltip-ex">' + escH(I18n.t('mattype.tip.example', { ex: _catExample(cat) })) + '</div>' +
         '</span>' +
       '</span>';
     html += '<th class="mattype-matrix-th-cat" style="color:' + cat.color + '">' +
-      escH(cat.label) + tooltipHtml + '</th>';
+      escH(_catLabel(cat)) + tooltipHtml + '</th>';
   });
   html += '</tr></thead><tbody>';
 
@@ -458,3 +422,14 @@ function mattypeGetRules(cats) {
     tleadtimeZero:         rule('yellow', 'yellow', 'yellow', 'yellow')
   };
 }
+
+/* Re-render del panel de categorías al cambiar de idioma para refrescar
+   labels/desc/rules en español ↔ inglés sin requerir un click en el toggle. */
+document.addEventListener('i18n:change', function () {
+  try {
+    ['', 'sn'].forEach(function (pfx) {
+      var wrap = document.getElementById(pfx + 'mattypeCatWrap');
+      if (wrap && wrap.children.length > 0) mattyeRenderCategorize(pfx);
+    });
+  } catch (e) { console.warn('[mattype i18n change]', e); }
+});

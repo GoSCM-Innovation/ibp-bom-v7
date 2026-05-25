@@ -186,7 +186,47 @@
       'Total productos analizados': 'Total products analyzed',
       'Productos con red completa': 'Products with full network',
       'Ghost nodes detectados': 'Ghost nodes detected',
-      'Health Score promedio': 'Average Health Score'
+      'Health Score promedio': 'Average Health Score',
+      // ── Observaciones del Network Analyzer (hoja Product) ──
+      'Paths truncados (>50.000, red muy compleja)': 'Paths truncated (>50,000, network too complex)',
+      'Ciclo:': 'Cycle:',
+      'Ghost node:': 'Ghost node:',
+      'Dead-end:': 'Dead-end:',
+      'Planta aislada:': 'Isolated plant:',
+      'PLEADTIME faltante:': 'PLEADTIME missing:',
+      'TLEADTIME faltante:': 'TLEADTIME missing:',
+      'CLEADTIME faltante:': 'CLEADTIME missing:',
+      'Sin Location Product': 'No Location Product',
+      'Sin Customer Product': 'No Customer Product',
+      'Red desconectada: arcos LS y CS no comparten ubicaciones':
+        'Disconnected network: LS and CS arcs do not share locations',
+      'Destino(s) de transferencia sin consumo PSI:':
+        'Transfer destination(s) without PSI consumption:',
+      // okParts (Product OK)
+      'Semiterminado consumido en planta productora con transferencia configurada':
+        'Semi-finished consumed at producing plant with transfer configured',
+      'Semiterminado consumido en destino de transferencia':
+        'Semi-finished consumed at transfer destination',
+      'Semiterminado consumido en planta productora':
+        'Semi-finished consumed at producing plant',
+      'Habilitado en Location Product': 'Enabled in Location Product',
+      'Habilitado en Customer Product': 'Enabled in Customer Product',
+      'Lead times definidos': 'Lead times defined',
+      'Mercadería con arcos de distribución y entrega':
+        'Goods with distribution and delivery arcs',
+      'Red completa sin anomalias': 'Full network without anomalies',
+      'ruta(s) a cliente': 'route(s) to customer',
+      // Observaciones hoja Location
+      'Ghost node (alimentado sin salida util)': 'Ghost node (fed without useful outflow)',
+      'Dead-end (recibe pero no reenvía)': 'Dead-end (receives but does not forward)',
+      'Planta aislada (sin ruta a ningun cliente)': 'Isolated plant (no route to any customer)',
+      'Participa en ciclo:': 'In cycle:',
+      'Nodo critico: {n} prod, {m} clientes': 'Critical node: {n} products, {m} customers',
+      'Solo en maestro de ubicaciones, sin actividad en la red':
+        'Master-only, no network activity',
+      'Sin anomalias topologicas': 'No topological anomalies',
+      'cliente(s) servido(s)': 'customer(s) served',
+      'Activo como origen para {n} producto(s)': 'Active as origin for {n} product(s)'
     };
     function _xn(s) {
       return (window.I18n && I18n.getLang() === 'en' && _XLS_NOTES_EN[s]) ? _XLS_NOTES_EN[s] : s;
@@ -444,7 +484,7 @@
         var _snResult = validateEntityFields(_snChecks);
         if (_snResult.issues.length) {
           document.getElementById('btnFetchSN').disabled = false;
-          log(logEl, 'error', 'Hay correcciones pendientes. Resuélvelas en el paso de mapeo de entidades antes de ejecutar.');
+          log(logEl, 'error', I18n.t('analyzer.error.pendingCorrections'));
           if (typeof toggleMappingBody === 'function') toggleMappingBody('bodySNMDT', 'arrSNMDT', true);
           return;
         }
@@ -632,7 +672,7 @@
         var _dur = fmtDuration(timer.ms());
         var _n   = summary.totalProducts.toLocaleString('es-CL');
         log(logEl, 'ok', timer.fmt() + ' Análisis completado. ' + _n + ' productos analizados · Excel descargado · ' + _dur + '.');
-        setStatusSN('ok', '✓ Análisis completado — Excel descargado | ' + _n + ' productos · ' + _dur);
+        setStatusSN('ok', I18n.t('analyzer.status.complete', { n: _n, dur: _dur }));
         document.getElementById('snSuccessBanner').classList.remove('hidden');
 
       } catch (e) {
@@ -1589,27 +1629,27 @@
             :                   { 'Red Completa': 1 };
           if (!OK_STATUSES[networkStatus]) obs.push(networkStatus);
 
-          if (paths._truncated) obs.push('Paths truncados (>50.000, red muy compleja)');
-          cycles.forEach(function (c) { obs.push('Ciclo: ' + c); });
+          if (paths._truncated) obs.push(_xn('Paths truncados (>50.000, red muy compleja)'));
+          cycles.forEach(function (c) { obs.push(_xn('Ciclo:') + ' ' + c); });
           // Ghost, dead-end, planta aislada solo aplican a terminados (necesitan ruta a cliente)
           if (!useSemiRules && !useRawmatRules) {
-            ghosts.forEach(function (l)   { obs.push('Ghost node: ' + l); });
-            deadEnds.forEach(function (l) { obs.push('Dead-end: ' + l); });
-            isoPlants.forEach(function(l) { obs.push('Planta aislada: ' + l); });
+            ghosts.forEach(function (l)   { obs.push(_xn('Ghost node:') + ' ' + l); });
+            deadEnds.forEach(function (l) { obs.push(_xn('Dead-end:') + ' ' + l); });
+            isoPlants.forEach(function(l) { obs.push(_xn('Planta aislada:') + ' ' + l); });
           }
           ltIssues.forEach(function (lt) {
             if (lt.type === 'plant') {
               // PLEADTIME: aplica a terminados y semiterminados, no a insumos ni mercadería
-              if (!useRawmatRules && !useTradingRules) obs.push('PLEADTIME faltante: ' + lt.loc);
+              if (!useRawmatRules && !useTradingRules) obs.push(_xn('PLEADTIME faltante:') + ' ' + lt.loc);
             } else if (lt.type === 'loc') {
-              obs.push('TLEADTIME faltante: ' + lt.from + '→' + lt.to);
+              obs.push(_xn('TLEADTIME faltante:') + ' ' + lt.from + '→' + lt.to);
             } else {
               // CLEADTIME: solo aplica si el producto llega a clientes (no semi ni insumo)
-              if (!useSemiRules && !useRawmatRules) obs.push('CLEADTIME faltante: ' + lt.from + '→' + lt.to);
+              if (!useSemiRules && !useRawmatRules) obs.push(_xn('CLEADTIME faltante:') + ' ' + lt.from + '→' + lt.to);
             }
           });
-          if (!inLP && (inPSH || inLS)) obs.push('Sin Location Product');
-          if (!inCP && inCS)            obs.push('Sin Customer Product');
+          if (!inLP && (inPSH || inLS)) obs.push(_xn('Sin Location Product'));
+          if (!inCP && inCS)            obs.push(_xn('Sin Customer Product'));
 
           // Trading y sin-categoría: validar que arcos LS y CS compartan al menos una ubicación
           var tradingDisconnected = false;
@@ -1620,7 +1660,7 @@
               graph.locEdges[fr].forEach(function(to) { _lsReachable[to] = true; });
             });
             tradingDisconnected = !Object.keys(graph.custEdges).some(function(loc) { return !!_lsReachable[loc]; });
-            if (tradingDisconnected) obs.push('Red desconectada: arcos LS y CS no comparten ubicaciones');
+            if (tradingDisconnected) obs.push(_xn('Red desconectada: arcos LS y CS no comparten ubicaciones'));
           }
 
           // Semiterminado: validar consumo PSI en cada destino de transferencia
@@ -1635,7 +1675,7 @@
             });
             semiDestsNoPsi = _lsDests.filter(function(loc) { return !_psiLocs[loc]; });
             if (semiDestsNoPsi.length > 0) {
-              obs.push('Destino(s) de transferencia sin consumo PSI: ' + semiDestsNoPsi.join(', '));
+              obs.push(_xn('Destino(s) de transferencia sin consumo PSI:') + ' ' + semiDestsNoPsi.join(', '));
             }
           }
 
@@ -1676,25 +1716,25 @@
             var okParts = [];
             if (useSemiRules) {
               if (networkStatus === 'Semiterminado Local con Transferencia') {
-                okParts.push('Semiterminado consumido en planta productora con transferencia configurada');
+                okParts.push(_xn('Semiterminado consumido en planta productora con transferencia configurada'));
               } else if (networkStatus === 'Semiterminado con Transferencia') {
-                okParts.push('Semiterminado consumido en destino de transferencia');
+                okParts.push(_xn('Semiterminado consumido en destino de transferencia'));
               } else {
-                okParts.push('Semiterminado consumido en planta productora');
+                okParts.push(_xn('Semiterminado consumido en planta productora'));
               }
-              if (inLP) okParts.push('Habilitado en Location Product');
-              if (ltIssues.length === 0) okParts.push('Lead times definidos');
+              if (inLP) okParts.push(_xn('Habilitado en Location Product'));
+              if (ltIssues.length === 0) okParts.push(_xn('Lead times definidos'));
             } else if (useTradingRules) {
-              okParts.push('Mercadería con arcos de distribución y entrega');
-              if (inLP) okParts.push('Habilitado en Location Product');
-              if (inCP && inCS) okParts.push('Habilitado en Customer Product');
-              if (ltIssues.length === 0) okParts.push('Lead times definidos');
+              okParts.push(_xn('Mercadería con arcos de distribución y entrega'));
+              if (inLP) okParts.push(_xn('Habilitado en Location Product'));
+              if (inCP && inCS) okParts.push(_xn('Habilitado en Customer Product'));
+              if (ltIssues.length === 0) okParts.push(_xn('Lead times definidos'));
             } else {
-              okParts.push('Red completa sin anomalias');
-              if (inLP)                  okParts.push('Habilitado en Location Product');
-              if (inCP && inCS)          okParts.push('Habilitado en Customer Product');
-              if (ltIssues.length === 0) okParts.push('Lead times definidos');
-              if (metrics.paths > 0)     okParts.push(metrics.paths + ' ruta(s) a cliente');
+              okParts.push(_xn('Red completa sin anomalias'));
+              if (inLP)                  okParts.push(_xn('Habilitado en Location Product'));
+              if (inCP && inCS)          okParts.push(_xn('Habilitado en Customer Product'));
+              if (ltIssues.length === 0) okParts.push(_xn('Lead times definidos'));
+              if (metrics.paths > 0)     okParts.push(metrics.paths + ' ' + _xn('ruta(s) a cliente'));
             }
             pObs = okParts.join(' | ');
           } else {
@@ -1825,23 +1865,29 @@
         var numCust   = Object.keys(lSrc.custServed).length;
 
         var lobs = [];
-        if (lSt.isGhost)    lobs.push('Ghost node (alimentado sin salida util)');
-        if (lSt.isDeadEnd)  lobs.push('Dead-end (recibe pero no reenvía)');
-        if (lSt.isIsolated) lobs.push('Planta aislada (sin ruta a ningun cliente)');
-        if (lSt.inCycle && lSt.cycleDescs) lobs.push('Participa en ciclo: ' + lSt.cycleDescs[0]);
-        if (!inLPL && (inLSL || inPSHL))   lobs.push('Sin Location Product');
-        if (lSt.isCritical) lobs.push('Nodo critico: ' + lSt.productsImpacted + ' prod, ' + lSt.customersImpacted + ' clientes');
-        if (onlyMstL)       lobs.push('Solo en maestro de ubicaciones, sin actividad en la red');
+        if (lSt.isGhost)    lobs.push(_xn('Ghost node (alimentado sin salida util)'));
+        if (lSt.isDeadEnd)  lobs.push(_xn('Dead-end (recibe pero no reenvía)'));
+        if (lSt.isIsolated) lobs.push(_xn('Planta aislada (sin ruta a ningun cliente)'));
+        if (lSt.inCycle && lSt.cycleDescs) lobs.push(_xn('Participa en ciclo:') + ' ' + lSt.cycleDescs[0]);
+        if (!inLPL && (inLSL || inPSHL))   lobs.push(_xn('Sin Location Product'));
+        if (lSt.isCritical) lobs.push(
+          _xn('Nodo critico: {n} prod, {m} clientes')
+            .replace('{n}', lSt.productsImpacted)
+            .replace('{m}', lSt.customersImpacted)
+        );
+        if (onlyMstL)       lobs.push(_xn('Solo en maestro de ubicaciones, sin actividad en la red'));
 
         var lFill = (lSt.isGhost || lSt.isDeadEnd || lSt.isIsolated || lSt.inCycle || (!inLPL && (inLSL || inPSHL))) ? C_RED
           : (onlyMstL || lSt.isCritical) ? C_YEL : null;
 
         var lObsStr;
         if (!lobs.length) {
-          var lOkParts = ['Sin anomalias topologicas'];
-          if (inLPL)         lOkParts.push('Habilitado en Location Product');
-          if (numCust > 0)   lOkParts.push(numCust + ' cliente(s) servido(s)');
-          if (numOrigin > 0) lOkParts.push('Activo como origen para ' + numOrigin + ' producto(s)');
+          var lOkParts = [_xn('Sin anomalias topologicas')];
+          if (inLPL)         lOkParts.push(_xn('Habilitado en Location Product'));
+          if (numCust > 0)   lOkParts.push(numCust + ' ' + _xn('cliente(s) servido(s)'));
+          if (numOrigin > 0) lOkParts.push(
+            _xn('Activo como origen para {n} producto(s)').replace('{n}', numOrigin)
+          );
           lObsStr = lOkParts.join(' | ');
         } else { lObsStr = lobs.join(' | '); }
 
