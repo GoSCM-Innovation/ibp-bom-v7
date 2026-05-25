@@ -1275,8 +1275,12 @@ const Explorer = (function () {
     const det = document.getElementById('ex-detail');
     if (!det) return;
 
-    const mapKey = DIM_MAP_KEY[dim];
-    const items  = mapKey && indexes[mapKey] ? (indexes[mapKey][key] || []) : [];
+    const mapKey  = DIM_MAP_KEY[dim];
+    const rawItems = mapKey && indexes[mapKey] ? (indexes[mapKey][key] || []) : [];
+    const baseIdxSet = (activePA.size > 0 || (showPromoted && cidsProdTasks))
+      ? new Set(computeBaseFiltered().map(p => p._idx))
+      : null;
+    const items = baseIdxSet ? rawItems.filter(x => baseIdxSet.has(x.intIdx)) : rawItems;
     if (!items.length) { det.innerHTML = `<p class="docs-hint">${escH(I18n.t('ex.empty.noData'))}</p>`; return; }
 
     const isField  = dim === 'dst-field'    || dim === 'src-field'    || dim === 'filter-field';
