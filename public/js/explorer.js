@@ -1193,6 +1193,7 @@ const Explorer = (function () {
     const mapKey = DIM_MAP_KEY[dim];
     if (!mapKey) return;
     renderMasterDimItems(indexes[mapKey], dim, query);
+    if (selectedDimKey !== null) renderDetailDimByKey(selectedDimKey, dim);
   }
 
   // Para dimensiones de filtro, el contador muestra filtros (fIdx) en lugar de mapeos (mIdx)
@@ -1325,10 +1326,10 @@ const Explorer = (function () {
               <span style="display:flex;gap:6px;align-items:center">
                 <span style="color:var(--text2);font-size:11px;">${uniqueFIdx.length} filtro${uniqueFIdx.length !== 1 ? 's' : ''}</span>
                 <span class="ex-chain-pill" onclick="event.stopPropagation();Explorer.goToIntegration(${intIdx})" title="${I18n.t('ex.btn.viewFull')}">${I18n.t('ex.btn.viewFull').split(' ')[0]}</span>
-                <span class="ex-arr">▼</span>
+                <span class="ex-arr">▶</span>
               </span>
             </div>
-            <div class="ex-section-body" id="${secId}">
+            <div class="ex-section-body collapsed" id="${secId}">
               ${uniqueFIdx.map(fIdx => {
                 const f = p.filters[fIdx];
                 if (!f) return '';
@@ -1364,10 +1365,10 @@ const Explorer = (function () {
               <span style="display:flex;gap:6px;align-items:center">
                 <span style="color:var(--text2);font-size:11px;">${mIdxList.length} campo${mIdxList.length !== 1 ? 's' : ''}</span>
                 <span class="ex-chain-pill" onclick="event.stopPropagation();Explorer.goToIntegration(${intIdx})" title="${I18n.t('ex.btn.viewFull')}">${I18n.t('ex.btn.viewFull').split(' ')[0]}</span>
-                <span class="ex-arr">▼</span>
+                <span class="ex-arr">▶</span>
               </span>
             </div>
-            <div class="ex-section-body" id="${secId}">
+            <div class="ex-section-body collapsed" id="${secId}">
               <div style="overflow-x:auto">
                 <table class="ex-mapping-table">
                   <thead><tr>
