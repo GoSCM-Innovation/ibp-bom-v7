@@ -22,8 +22,8 @@
           { role: 'Location Source',          entityName: document.getElementById('selVizLocation').value,   required: true, selectorId: 'selVizLocation',   fields: ['PRDID','LOCFR','LOCID','TLEADTIME','TINVALID'] },
           { role: 'Customer Source',          entityName: document.getElementById('selVizCustomer').value,   required: true, selectorId: 'selVizCustomer',   fields: ['PRDID','LOCID','CUSTID','CLEADTIME','CINVALID'] },
           { role: 'Production Source Header', entityName: document.getElementById('selVizSourceProd').value, required: true, selectorId: 'selVizSourceProd', fields: ['SOURCEID','PRDID','LOCID','PLEADTIME','PINVALID'] },
-          { role: 'Ubicación maestra',        entityName: document.getElementById('selVizLocMaster').value,  required: true, selectorId: 'selVizLocMaster',  fields: ['LOCID','LOCDESCR','LOCTYPE','LOCVALID'] },
-          { role: 'Cliente maestra',          entityName: document.getElementById('selVizCustMaster').value, required: true, selectorId: 'selVizCustMaster', fields: ['CUSTID','CUSTDESCR','CUSTVALID'] },
+          { role: 'Location Master',        entityName: document.getElementById('selVizLocMaster').value,  required: true, selectorId: 'selVizLocMaster',  fields: ['LOCID','LOCDESCR','LOCTYPE','LOCVALID'] },
+          { role: 'Customer Master',          entityName: document.getElementById('selVizCustMaster').value, required: true, selectorId: 'selVizCustMaster', fields: ['CUSTID','CUSTDESCR','CUSTVALID'] },
         ];
         var _vizConfirmResult = validateEntityFields(_vizConfirmChecks);
         if (_vizConfirmResult.issues.length || _vizConfirmResult.applied.length) {
@@ -185,8 +185,8 @@
           { role: 'Location Source',          entityName: cfg.location,   required: true,  selectorId: 'selVizLocation',   fields: ['PRDID','LOCFR','LOCID','TLEADTIME','TINVALID'] },
           { role: 'Customer Source',          entityName: cfg.customer,   required: true,  selectorId: 'selVizCustomer',   fields: ['PRDID','LOCID','CUSTID','CLEADTIME','CINVALID'] },
           { role: 'Production Source Header', entityName: cfg.sourceProd, required: true,  selectorId: 'selVizSourceProd', fields: ['SOURCEID','PRDID','LOCID','PLEADTIME','PINVALID'] },
-          { role: 'Ubicación maestra',        entityName: cfg.locMaster,  required: true,  selectorId: 'selVizLocMaster',  fields: ['LOCID','LOCDESCR','LOCTYPE','LOCVALID'] },
-          { role: 'Cliente maestra',          entityName: cfg.custMaster, required: true,  selectorId: 'selVizCustMaster', fields: ['CUSTID','CUSTDESCR','CUSTVALID'] },
+          { role: 'Location Master',        entityName: cfg.locMaster,  required: true,  selectorId: 'selVizLocMaster',  fields: ['LOCID','LOCDESCR','LOCTYPE','LOCVALID'] },
+          { role: 'Customer Master',          entityName: cfg.custMaster, required: true,  selectorId: 'selVizCustMaster', fields: ['CUSTID','CUSTDESCR','CUSTVALID'] },
         ];
         var _vizResult = validateEntityFields(_vizChecks);
         if (_vizResult.issues.length) {

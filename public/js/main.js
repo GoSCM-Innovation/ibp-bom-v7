@@ -979,8 +979,8 @@
           { role: 'Production Source Item',     entityName: itemEntity,    required: true,  selectorId: 'selItem',         fields: ['SOURCEID','PRDID','COMPONENTCOEFFICIENT','ISALTITEM'] },
           { role: 'Production Source Item Sub', entityName: itemSubEntity, required: true,  selectorId: 'selItemSub',      fields: ['SOURCEID','PRDFR','SPRDFR'] },
           { role: 'Production Source Resource', entityName: resourceEntity, required: true, selectorId: 'selResource',     fields: ['SOURCEID','RESID'] },
-          { role: 'Producto',                   entityName: productEntity, required: true,  selectorId: 'selProduct',      fields: ['PRDID','PRDDESCR','MATTYPEID','UOMID','UOMDESCR'] },
-          { role: 'Ubicación maestra',          entityName: bomLocEntity,  required: true,  selectorId: 'selBomLocMaster', fields: ['LOCID','LOCDESCR','LOCVALID'] },
+          { role: 'Product',                    entityName: productEntity, required: true,  selectorId: 'selProduct',      fields: ['PRDID','PRDDESCR','MATTYPEID','UOMID','UOMDESCR'] },
+          { role: 'Location Master',            entityName: bomLocEntity,  required: true,  selectorId: 'selBomLocMaster', fields: ['LOCID','LOCDESCR','LOCVALID'] },
         ];
         var _bomResult = validateEntityFields(_bomChecks);
         if (_bomResult.issues.length || _bomResult.applied.length) {
@@ -1111,9 +1111,7 @@
         prodSuggestions.sort(function (a, b) { return a.prdid.localeCompare(b.prdid); });
         setProgress(100);
 
-        var summary = (I18n.getLang() === 'en'
-          ? '✓ ' + prodSuggestions.length + ' products in local cache. Pick one to view its BOM.'
-          : '¡Listo! ' + prodSuggestions.length + ' productos en caché local. Selecciona uno para ver su BOM.');
+        var summary = I18n.t('main.bom.loadedSummary', {n: prodSuggestions.length});
         log(logEl, 'ok', summary);
         setStatus('ok', summary);
 

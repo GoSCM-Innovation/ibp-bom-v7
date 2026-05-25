@@ -274,8 +274,8 @@
           { role: 'Customer Source',          entityName: document.getElementById('selSNCustomer').value,   required: true, selectorId: 'selSNCustomer',   fields: ['PRDID','LOCID','CUSTID','CLEADTIME','CINVALID'] },
           { role: 'Production Source Header', entityName: document.getElementById('selSNSourceProd').value, required: true, selectorId: 'selSNSourceProd', fields: ['SOURCEID','PRDID','LOCID','PLEADTIME','PRATIO','PINVALID'] },
           { role: 'Production Source Item',   entityName: document.getElementById('selSNSourceItem').value, required: true, selectorId: 'selSNSourceItem', fields: ['SOURCEID','PRDID','COMPONENTCOEFFICIENT'] },
-          { role: 'Ubicación maestra',        entityName: document.getElementById('selSNLocMaster').value,  required: true, selectorId: 'selSNLocMaster',  fields: ['LOCID','LOCDESCR','LOCTYPE','LOCVALID'] },
-          { role: 'Cliente maestra',          entityName: document.getElementById('selSNCustMaster').value, required: true, selectorId: 'selSNCustMaster', fields: ['CUSTID','CUSTDESCR','CUSTVALID'] },
+          { role: 'Location Master',        entityName: document.getElementById('selSNLocMaster').value,  required: true, selectorId: 'selSNLocMaster',  fields: ['LOCID','LOCDESCR','LOCTYPE','LOCVALID'] },
+          { role: 'Customer Master',          entityName: document.getElementById('selSNCustMaster').value, required: true, selectorId: 'selSNCustMaster', fields: ['CUSTID','CUSTDESCR','CUSTVALID'] },
           { role: 'Location Product',         entityName: document.getElementById('selSNLocProd').value,    required: true, selectorId: 'selSNLocProd',    fields: ['LOCID','PRDID'] },
           { role: 'Customer Product',         entityName: document.getElementById('selSNCustProd').value,   required: true, selectorId: 'selSNCustProd',   fields: ['CUSTID','PRDID'] },
         ];
@@ -436,8 +436,8 @@
           { role: 'Customer Source',          entityName: customerEntity,   required: true,  selectorId: 'selSNCustomer',   fields: ['PRDID','LOCID','CUSTID','CLEADTIME','CINVALID'] },
           { role: 'Production Source Header', entityName: sourceProdEntity, required: true,  selectorId: 'selSNSourceProd', fields: ['SOURCEID','PRDID','LOCID','PLEADTIME','PRATIO','PINVALID'] },
           { role: 'Production Source Item',   entityName: sourceItemEntity, required: true,  selectorId: 'selSNSourceItem', fields: ['SOURCEID','PRDID','COMPONENTCOEFFICIENT'] },
-          { role: 'Ubicación maestra',        entityName: locMasterEntity,  required: true,  selectorId: 'selSNLocMaster',  fields: ['LOCID','LOCDESCR','LOCTYPE','LOCVALID'] },
-          { role: 'Cliente maestra',          entityName: custMasterEntity, required: true,  selectorId: 'selSNCustMaster', fields: ['CUSTID','CUSTDESCR','CUSTVALID'] },
+          { role: 'Location Master',        entityName: locMasterEntity,  required: true,  selectorId: 'selSNLocMaster',  fields: ['LOCID','LOCDESCR','LOCTYPE','LOCVALID'] },
+          { role: 'Customer Master',          entityName: custMasterEntity, required: true,  selectorId: 'selSNCustMaster', fields: ['CUSTID','CUSTDESCR','CUSTVALID'] },
           { role: 'Location Product',         entityName: locProdEntity,    required: true,  selectorId: 'selSNLocProd',    fields: ['LOCID','PRDID'] },
           { role: 'Customer Product',         entityName: custProdEntity,   required: true,  selectorId: 'selSNCustProd',   fields: ['CUSTID','PRDID'] },
         ];
