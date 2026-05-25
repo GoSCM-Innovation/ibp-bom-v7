@@ -1209,7 +1209,7 @@ const Explorer = (function () {
     const isField  = dim === 'dst-field'    || dim === 'src-field'    || dim === 'filter-field';
     const isFilter = dim === 'filter-table' || dim === 'filter-field';
 
-    const paSet = activePA.size > 0
+    const paSet = (activePA.size > 0 || (showPromoted && cidsProdTasks))
       ? new Set(computeBaseFiltered().map(p => p._idx))
       : null;
 
@@ -1315,7 +1315,7 @@ const Explorer = (function () {
             <div class="ex-section-header" onclick="var b=document.getElementById('${secId}');b.classList.toggle('collapsed');this.querySelector('.ex-arr').textContent=b.classList.contains('collapsed')?'▶':'▼';">
               <span>
                 <span class="ex-type-badge ex-type-${p.tipoIntegracion || 'MD'}">${escH(p.tipoIntegracion || 'MD')}</span>
-                ${escH(p.dataflowName || p.jobName)}
+                ${escH(p.jobName)}${p.dataflowName && p.dataflowName !== p.jobName ? ` <span style="color:var(--text2);font-size:11px;">↳ ${escH(p.dataflowName)}</span>` : ''}
                 <span style="color:var(--text2);font-weight:400;font-size:11px;margin-left:6px;">${escH(p._zipName)}</span>
               </span>
               <span style="display:flex;gap:6px;align-items:center">
@@ -1354,7 +1354,7 @@ const Explorer = (function () {
             <div class="ex-section-header" onclick="var b=document.getElementById('${secId}');b.classList.toggle('collapsed');this.querySelector('.ex-arr').textContent=b.classList.contains('collapsed')?'▶':'▼';">
               <span>
                 <span class="ex-type-badge ex-type-${p.tipoIntegracion || 'MD'}">${escH(p.tipoIntegracion || 'MD')}</span>
-                ${escH(p.dataflowName || p.jobName)}
+                ${escH(p.jobName)}${p.dataflowName && p.dataflowName !== p.jobName ? ` <span style="color:var(--text2);font-size:11px;">↳ ${escH(p.dataflowName)}</span>` : ''}
                 <span style="color:var(--text2);font-weight:400;font-size:11px;margin-left:6px;">${escH(p._zipName)}</span>
               </span>
               <span style="display:flex;gap:6px;align-items:center">
@@ -1452,7 +1452,10 @@ const Explorer = (function () {
 
     const typeColors = { MD: '#F7A800', KF: '#29ABE2', FILE: '#E8622A' };
 
-    const nodes = new vis.DataSet(integrations.map(p => {
+    const visibleInts  = computeBaseFiltered();
+    const visibleIdxSet = new Set(visibleInts.map(p => p._idx));
+
+    const nodes = new vis.DataSet(visibleInts.map(p => {
       const rawLabel = p.dataflowName || p.jobName || '';
       // Partir en dos líneas si es largo (vis-network respeta \n en label)
       const label = rawLabel.length > 30
@@ -1482,7 +1485,7 @@ const Explorer = (function () {
       lookup: { color: '#a78bfa', dashes: [2, 3, 8, 3], width: 1.5 },
     };
 
-    const edges = new vis.DataSet(chainEdges.map((e, i) => {
+    const edges = new vis.DataSet(chainEdges.filter(e => visibleIdxSet.has(e.from) && visibleIdxSet.has(e.to)).map((e, i) => {
       const st = edgeStyle[e.via] || edgeStyle.table;
       return {
         id:     i,
