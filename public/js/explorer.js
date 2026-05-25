@@ -518,19 +518,21 @@ const Explorer = (function () {
     const toggle = document.getElementById('ex-cids-toggle');
 
     if (!cidsConn) {
-      if (bar)    bar.innerHTML = `<button class="ex-cids-connect-btn" onclick="Explorer.openCidsModal()">Conectar SAP CI-DS</button>`;
+      if (bar)    bar.innerHTML = `<button class="ex-cids-connect-btn" onclick="Explorer.openCidsModal()">${escH(I18n.t('ex.cids.connectBtn'))}</button>`;
       if (toggle) { toggle.innerHTML = ''; toggle.style.display = 'none'; }
       return;
     }
 
-    const repo    = cidsConn.isProduction ? 'Productivo' : 'Sandbox';
-    const count   = cidsProdTasks ? `${cidsProdTasks.size} tareas` : 'cargando...';
+    const repo    = cidsConn.isProduction ? I18n.t('cids.opt.prod') : I18n.t('cids.opt.sandbox');
+    const count   = cidsProdTasks
+      ? I18n.t(cidsProdTasks.size === 1 ? 'ex.cids.tasksCount.one' : 'ex.cids.tasksCount.many', { n: cidsProdTasks.size })
+      : I18n.t('ex.cids.loading');
     const promCls = showPromoted ? 'ex-toggle-switch on' : 'ex-toggle-switch';
 
     if (bar) {
       bar.innerHTML = `
         <span class="ex-cids-pill">CI-DS: ${escH(cidsConn.orgName)} · ${escH(repo)} · ${escH(count)}</span>
-        <button class="ex-cids-disconnect-btn" onclick="Explorer.cidsDisconnect()">Desconectar</button>`;
+        <button class="ex-cids-disconnect-btn" onclick="Explorer.cidsDisconnect()">${escH(I18n.t('ex.cids.disconnectBtn'))}</button>`;
     }
 
     if (toggle) {
@@ -538,8 +540,8 @@ const Explorer = (function () {
       if (cidsProdTasks) {
         toggle.innerHTML = `
           <label class="ex-promoted-label">
-            <span class="ex-promoted-text">Promovido a produccion</span>
-            <span class="${promCls}" onclick="Explorer.togglePromoted()" title="Mostrar solo integraciones en CI-DS ${escH(repo)}"><span class="ex-toggle-knob"></span></span>
+            <span class="ex-promoted-text">${escH(I18n.t('ex.cids.promotedLabel'))}</span>
+            <span class="${promCls}" onclick="Explorer.togglePromoted()" title="${escH(I18n.t('ex.cids.tooltip.filterRepo', { repo }))}"><span class="ex-toggle-knob"></span></span>
           </label>`;
       }
     }
@@ -566,7 +568,7 @@ const Explorer = (function () {
     el.style.display = '';
     el.innerHTML = '<span class="ex-pa-label">PA:</span>' +
       paValues.map(pa => {
-        const label = pa || 'Sin PA';
+        const label = pa || I18n.t('ex.pa.empty');
         const active = activePA.has(pa);
         return `<button class="ex-pa-chip${active ? ' active' : ''}" onclick='Explorer.togglePA(${JSON.stringify(pa)})'>${escH(label)}</button>`;
       }).join('');
@@ -584,7 +586,7 @@ const Explorer = (function () {
     const el = document.getElementById('ex-master');
     if (!el) return;
     if (!list || list.length === 0) {
-      el.innerHTML = '<p style="padding:12px;color:var(--text2);font-size:13px;">No se encontraron integraciones</p>';
+      el.innerHTML = `<p style="padding:12px;color:var(--text2);font-size:13px;">${escH(I18n.t('ex.empty.noIntegrations'))}</p>`;
       return;
     }
     el.innerHTML = list.map(p => {
@@ -693,9 +695,9 @@ const Explorer = (function () {
       `<div style="overflow-x:auto">
         <table class="ex-mapping-table">
           <thead><tr>
-            <th style="min-width:130px">Campo Destino</th>
-            <th style="min-width:130px">Origen</th>
-            <th style="min-width:180px">Transformación</th>
+            <th style="min-width:130px">${escH(I18n.t('ex.table.dstField'))}</th>
+            <th style="min-width:130px">${escH(I18n.t('ex.table.source'))}</th>
+            <th style="min-width:180px">${escH(I18n.t('ex.table.transform'))}</th>
           </tr></thead>
           <tbody>${p.mappings.map(m => {
             const hasLookup = m.ops && /\blookup\s*\(/i.test(m.ops);
@@ -740,7 +742,7 @@ const Explorer = (function () {
       p.variables.map(v => `
         <div class="ex-var-row">
           <span class="ex-var-name">${escH(v.name)}</span>
-          <span class="ex-var-val">${escH(v.value || '(vacío)')}</span>
+          <span class="ex-var-val">${escH(v.value || I18n.t('ex.var.empty'))}</span>
         </div>`).join('')
     ) : '';
 
@@ -973,7 +975,7 @@ const Explorer = (function () {
       title.innerHTML = `<span class="ex-type-badge ex-type-${p.tipoIntegracion || 'MD'}">${escH(p.tipoIntegracion || 'MD')}</span>
         ${escH(p.jobName || '')}${p.dataflowName && p.dataflowName !== p.jobName ? ` <span class="ex-df-fs-sub">↳ ${escH(p.dataflowName)}</span>` : ''}`;
     }
-    if (det) det.innerHTML = '<div class="ex-df-fs-detail-hint">Click en un nodo del diagrama para ver sus detalles</div>';
+    if (det) det.innerHTML = `<div class="ex-df-fs-detail-hint">${escH(I18n.t('ex.df.fs.hint'))}</div>`;
 
     modal.style.display = 'flex';
     document.body.style.overflow = 'hidden';
@@ -1117,7 +1119,7 @@ const Explorer = (function () {
     renderSidebarList(filtered);
     updateCounter(filtered.length, integrations.length);
     if (selectedIdx !== null && !filtered.find(p => p._idx === selectedIdx)) {
-      document.getElementById('ex-detail').innerHTML = '<p class="docs-hint">Selecciona una integración a la izquierda</p>';
+      document.getElementById('ex-detail').innerHTML = `<p class="docs-hint">${escH(I18n.t('ex.empty.selectIntegration'))}</p>`;
       selectedIdx = null;
     }
   }
@@ -1126,18 +1128,20 @@ const Explorer = (function () {
     const el = document.getElementById('ex-counter');
     if (!el || visible === null) return;
     if (currentDim !== 'integration') {
-      const labels = {
-        'dst-table':    'tablas destino',
-        'src-table':    'tablas origen',
-        'dst-field':    'campos destino',
-        'src-field':    'campos origen',
-        'filter-table': 'tablas filtro/join',
-        'filter-field': 'campos filtro/join',
+      const dimKeyMap = {
+        'dst-table':    'ex.dim.counter.dstTable',
+        'src-table':    'ex.dim.counter.srcTable',
+        'dst-field':    'ex.dim.counter.dstField',
+        'src-field':    'ex.dim.counter.srcField',
+        'filter-table': 'ex.dim.counter.filterTable',
+        'filter-field': 'ex.dim.counter.filterField',
       };
-      const lbl = labels[currentDim] || '';
+      const lbl = dimKeyMap[currentDim] ? I18n.t(dimKeyMap[currentDim]) : '';
       el.textContent = visible === total ? `${total} ${lbl}` : `${visible} / ${total} ${lbl}`;
     } else {
-      el.textContent = visible === total ? `${total} integración${total !== 1 ? 'es' : ''}` : `${visible} / ${total}`;
+      el.textContent = visible === total
+        ? I18n.t(total === 1 ? 'ex.unit.integration.one' : 'ex.unit.integration.many', { n: total })
+        : `${visible} / ${total}`;
     }
   }
 
@@ -1150,14 +1154,17 @@ const Explorer = (function () {
     'filter-table': 'byFilterTable',
     'filter-field': 'byFilterField',
   };
-  const DIM_LABELS = {
-    'dst-table':    'Tabla Destino',
-    'src-table':    'Tabla Origen',
-    'dst-field':    'Campo Destino',
-    'src-field':    'Campo Origen',
-    'filter-table': 'Tabla Filtro/Join',
-    'filter-field': 'Campo Filtro/Join',
+  const DIM_LABEL_KEY = {
+    'dst-table':    'ex.dim.dstTable',
+    'src-table':    'ex.dim.srcTable',
+    'dst-field':    'ex.dim.dstField',
+    'src-field':    'ex.dim.srcField',
+    'filter-table': 'ex.dim.filterTable',
+    'filter-field': 'ex.dim.filterField',
   };
+  function dimLabel(dim) {
+    return DIM_LABEL_KEY[dim] ? I18n.t(DIM_LABEL_KEY[dim]) : '';
+  }
   const ALL_DIMS = ['integration','dst-table','src-table','dst-field','src-field','filter-table','filter-field'];
 
   function switchDimension(dim) {
@@ -1175,7 +1182,7 @@ const Explorer = (function () {
     if (currentView === 'graph' && dim !== 'integration') switchView('list');
 
     const det = document.getElementById('ex-detail');
-    if (det) det.innerHTML = '<p class="docs-hint">Selecciona un elemento a la izquierda</p>';
+    if (det) det.innerHTML = `<p class="docs-hint">${escH(I18n.t('ex.empty.selectElement'))}</p>`;
 
     const q = (document.getElementById('ex-search') || {}).value || '';
     renderMasterForDim(dim, q);
@@ -1222,7 +1229,7 @@ const Explorer = (function () {
     updateCounter(entries.length, Object.keys(dimMap || {}).length);
 
     if (!entries.length) {
-      el.innerHTML = '<p style="padding:12px;color:var(--text2);font-size:13px;">Sin resultados</p>';
+      el.innerHTML = `<p style="padding:12px;color:var(--text2);font-size:13px;">${escH(I18n.t('ex.empty.noResults'))}</p>`;
       return;
     }
 
@@ -1232,15 +1239,15 @@ const Explorer = (function () {
       const intCount = new Set(items.map(x => x.intIdx)).size;
       if (isField) {
         label    = key;
-        const unit = isFilter ? 'filtro' : 'uso';
-        sublabel = `${items.length} ${unit}${items.length !== 1 ? 's' : ''} · ${intCount} integracion${intCount !== 1 ? 'es' : ''}`;
+        const unitKey = isFilter ? 'ex.unit.filter' : 'ex.unit.usage';
+        sublabel = `${_plural(unitKey, items.length)} · ${_plural('ex.unit.integration', intCount)}`;
       } else {
         const parts = key.split('::');
         label = parts[1] || key;
         if (isFilter) {
-          sublabel = `${intCount} integracion${intCount !== 1 ? 'es' : ''} · ${items.length} filtro${items.length !== 1 ? 's' : ''}`;
+          sublabel = `${_plural('ex.unit.integration', intCount)} · ${_plural('ex.unit.filter', items.length)}`;
         } else {
-          sublabel = (parts[0] ? parts[0] + ' · ' : '') + `${intCount} integracion${intCount !== 1 ? 'es' : ''} · ${items.length} mapeo${items.length !== 1 ? 's' : ''}`;
+          sublabel = (parts[0] ? parts[0] + ' · ' : '') + `${_plural('ex.unit.integration', intCount)} · ${_plural('ex.unit.mapping', items.length)}`;
         }
       }
       return `<div class="ex-item${isActive ? ' active' : ''}" data-key="${escH(encodeURIComponent(key))}" onclick="Explorer.handleDimItemClick(this)">
@@ -1248,6 +1255,10 @@ const Explorer = (function () {
         <div class="ex-sub">${escH(sublabel)}</div>
       </div>`;
     }).join('');
+  }
+
+  function _plural(unitKey, n) {
+    return I18n.t(unitKey + (n === 1 ? '.one' : '.many'), { n });
   }
 
   function handleDimItemClick(el) {
@@ -1266,7 +1277,7 @@ const Explorer = (function () {
 
     const mapKey = DIM_MAP_KEY[dim];
     const items  = mapKey && indexes[mapKey] ? (indexes[mapKey][key] || []) : [];
-    if (!items.length) { det.innerHTML = '<p class="docs-hint">Sin datos para esta clave</p>'; return; }
+    if (!items.length) { det.innerHTML = `<p class="docs-hint">${escH(I18n.t('ex.empty.noData'))}</p>`; return; }
 
     const isField  = dim === 'dst-field'    || dim === 'src-field'    || dim === 'filter-field';
     const isDst    = dim === 'dst-table'    || dim === 'dst-field';
@@ -1275,13 +1286,13 @@ const Explorer = (function () {
     const displayName = isField ? key : (parts[1] || key);
     const displayDS   = isField ? '' : (parts[0] || '');
     const intCount    = new Set(items.map(x => x.intIdx)).size;
-    const unitLabel   = isFilter ? 'filtro' : 'mapeo';
+    const unitKey     = isFilter ? 'ex.unit.filter' : 'ex.unit.mapping';
 
     let html = `
       <div class="ex-header-card">
         <div class="ex-h-title">${escH(displayName)}</div>
         ${displayDS ? `<div class="ex-h-flow">Datastore: ${escH(displayDS)}</div>` : ''}
-        <div class="ex-h-sub">${escH(DIM_LABELS[dim] || dim)} · ${items.length} ${unitLabel}${items.length !== 1 ? 's' : ''} en ${intCount} integracion${intCount !== 1 ? 'es' : ''}</div>
+        <div class="ex-h-sub">${escH(dimLabel(dim) || dim)} · ${escH(_plural(unitKey, items.length))} · ${escH(_plural('ex.unit.integration', intCount))}</div>
       </div>`;
 
     if (isFilter) {
@@ -1357,8 +1368,8 @@ const Explorer = (function () {
                 <table class="ex-mapping-table">
                   <thead><tr>
                     ${isDst
-                      ? '<th style="min-width:120px">Campo Destino</th><th style="min-width:130px">Origen</th><th>Transformacion</th>'
-                      : '<th style="min-width:130px">Campo Origen</th><th style="min-width:120px">Campo Destino</th><th>Transformacion</th>'}
+                      ? `<th style="min-width:120px">${escH(I18n.t('ex.table.dstField'))}</th><th style="min-width:130px">${escH(I18n.t('ex.table.source'))}</th><th>${escH(I18n.t('ex.table.transform'))}</th>`
+                      : `<th style="min-width:130px">${escH(I18n.t('ex.table.srcField'))}</th><th style="min-width:120px">${escH(I18n.t('ex.table.dstField'))}</th><th>${escH(I18n.t('ex.table.transform'))}</th>`}
                   </tr></thead>
                   <tbody>${mIdxList.map(mIdx => {
                     const m = p.mappings[mIdx];
@@ -1478,7 +1489,7 @@ const Explorer = (function () {
         from:   e.from,
         to:     e.to,
         label:  e.label && e.label.length > 24 ? e.label.slice(0, 22) + '…' : (e.label || ''),
-        title:  makeTooltip([`Tipo: <b>${escH(e.via)}</b>`, `Vía: ${escH(e.label)}`]),
+        title:  makeTooltip([`${escH(I18n.t('ex.tooltip.type'))} <b>${escH(e.via)}</b>`, `${escH(I18n.t('ex.tooltip.via'))} ${escH(e.label)}`]),
         arrows: 'to',
         dashes: st.dashes,
         color:  { color: st.color, highlight: '#fff' },
@@ -1535,6 +1546,24 @@ const Explorer = (function () {
     closeDataflowFullscreen,
     init
   };
+
+  // Re-render del Integration Explorer al cambiar idioma.
+  // Reconstruye barra CI-DS, filtro PA, lista master/dim, contador y detalle activo.
+  document.addEventListener('i18n:change', function () {
+    try {
+      if (!integrations || !integrations.length) return;
+      renderCidsBar();
+      renderPlanAreaFilter();
+      const q = (document.getElementById('ex-search') || {}).value || '';
+      if (currentDim === 'integration') {
+        applySearch(q);
+        if (selectedIdx !== null) renderDetail(selectedIdx);
+      } else {
+        renderMasterForDim(currentDim, q);
+        if (selectedDimKey !== null) renderDetailDimByKey(selectedDimKey, currentDim);
+      }
+    } catch (e) { console.warn('[explorer i18n re-render]', e); }
+  });
 
 })();
 
