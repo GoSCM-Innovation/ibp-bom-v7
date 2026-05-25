@@ -81,7 +81,7 @@ const Explorer = (function () {
         <span class="size">${(f.data.byteLength / 1024).toFixed(0)} KB</span>
         <button class="rm" onclick="Explorer.removeFile(${i})">✕</button>
       </div>`).join('');
-    if (btn) btn.disabled = exFiles.length === 0;
+    if (btn) btn.disabled = exFiles.length === 0 || cidsLoading;
   }
 
   // ── Análisis principal ───────────────────────────────────
@@ -133,6 +133,9 @@ const Explorer = (function () {
 
     const results = document.getElementById('ex-results');
     if (results) results.style.display = 'block';
+
+    const uploadPanel = document.getElementById('ex-upload-panel');
+    if (uploadPanel) uploadPanel.classList.add('collapsed');
 
     // Log de diagnóstico en consola para ayudar a depurar cadenas
     console.debug(`[Explorer] ${integrations.length} dataflows, ${chainEdges.length} cadenas`);
@@ -457,6 +460,7 @@ const Explorer = (function () {
     if (errEl) errEl.textContent = '';
     if (btnEl) { btnEl.disabled = true; btnEl.textContent = I18n.t('ex.cids.connecting'); }
     cidsLoading = true;
+    renderFiles();
 
     try {
       const res = await fetch('/api/cids-login', {
@@ -485,6 +489,7 @@ const Explorer = (function () {
       }
     } finally {
       cidsLoading = false;
+      renderFiles();
       if (btnEl) { btnEl.disabled = false; btnEl.textContent = I18n.t('cids.btnConnect'); }
     }
   }
@@ -1591,6 +1596,11 @@ const Explorer = (function () {
     resizer.addEventListener('touchstart', (e) => { if (e.touches[0]) { e.preventDefault(); startDrag(e.touches[0].clientX); } }, { passive: false });
   }
 
+  function toggleUploadPanel() {
+    const panel = document.getElementById('ex-upload-panel');
+    if (panel) panel.classList.toggle('collapsed');
+  }
+
   // ── Init ─────────────────────────────────────────────────
   function init() {
     initDropZone();
@@ -1618,6 +1628,7 @@ const Explorer = (function () {
     renderDataflowNodeDetail,
     openDataflowFullscreen,
     closeDataflowFullscreen,
+    toggleUploadPanel,
     init
   };
 

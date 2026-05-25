@@ -162,6 +162,12 @@
       padding-left: 10px;
     }
 
+    .panel-title.collapsible { cursor: pointer; user-select: none; }
+    .panel-title.collapsible::before { content: '\25BC\00A0'; font-size: 9px; vertical-align: middle; }
+    .panel.collapsed .panel-title.collapsible::before { content: '\25BA\00A0'; }
+    .panel.collapsed > *:not(.panel-title) { display: none; }
+    .panel.collapsed .panel-title { margin-bottom: 0; }
+
     /* ── Form ── */
     .form-grid {
       display: grid;

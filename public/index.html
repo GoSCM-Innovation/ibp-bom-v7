@@ -1770,8 +1770,8 @@
     </div>
 
     <!-- Upload -->
-    <div class="panel">
-      <div class="panel-title" data-i18n="ex.panelTitle">📦 ZIPs de integraciones CI-DS</div>
+    <div class="panel" id="ex-upload-panel">
+      <div class="panel-title collapsible" onclick="Explorer.toggleUploadPanel()" data-i18n="ex.panelTitle">📦 ZIPs de integraciones CI-DS</div>
       <div class="drop-zone" id="ex-dz">
         <input type="file" id="ex-fi" accept=".zip" multiple style="display:none">
         <span class="drop-icon">🗂️</span>
