@@ -703,6 +703,9 @@
   "ex.label.noNodeDetail": "Sin detalle adicional disponible para este tipo de nodo.",
   "ex.section.filters": "🔍 Filtros",
   "ex.section.diagram": "🗺️ Diagrama del DataFlow",
+  "ex.ds.src": "Origen",
+  "ex.ds.dst": "Destino",
+  "ex.ds.empty": "(sin DS)",
 
   "feedback.validation.required": "Nombre y descripción son obligatorios.",
   "feedback.sent.ok": "✓ Enviado correctamente. ¡Gracias!",

@@ -2884,6 +2884,19 @@ button[disabled][title]:hover::after {
   font-weight: 600;
 }
 
+.ex-ds-filter {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 4px 0 2px;
+}
+.ex-ds-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
 .ex-chain-section {
   padding: 10px 12px;
   background: var(--bg3);

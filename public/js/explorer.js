@@ -26,6 +26,8 @@ const Explorer = (function () {
   let dfFsIntIdx      = null;   // integración actualmente abierta en fullscreen
   let analyzing       = false;
   let activePA      = new Set(); // PAs seleccionados; vacío = todos
+  let activeSrcDS   = new Set(); // Datastores origen seleccionados; vacío = todos
+  let activeDstDS   = new Set(); // Datastores destino seleccionados; vacío = todos
 
   // ── Estado CI-DS ─────────────────────────────────────────────
   let cidsConn      = null;  // { hciUrl, orgName, isProduction, sessionId }
@@ -125,8 +127,11 @@ const Explorer = (function () {
 
     buildIndexes();
     detectChains();
-    activePA = new Set();
+    activePA    = new Set();
+    activeSrcDS = new Set();
+    activeDstDS = new Set();
     renderPlanAreaFilter();
+    renderDSFilter();
     filtered = integrations.slice();
     renderSidebarList(filtered);
     updateCounter(filtered.length, integrations.length);
@@ -557,6 +562,10 @@ const Explorer = (function () {
     let base = integrations.slice();
     if (activePA.size > 0)
       base = base.filter(p => activePA.has(p.planArea || ''));
+    if (activeSrcDS.size > 0)
+      base = base.filter(p => activeSrcDS.has(p.srcDSName || ''));
+    if (activeDstDS.size > 0)
+      base = base.filter(p => activeDstDS.has(p.dstDSName || ''));
     if (showPromoted && cidsProdTasks)
       base = base.filter(p => cidsProdTasks.has((p.jobName || '').toUpperCase()));
     return base;
@@ -582,6 +591,43 @@ const Explorer = (function () {
   function togglePA(pa) {
     if (activePA.has(pa)) activePA.delete(pa); else activePA.add(pa);
     renderPlanAreaFilter();
+    const q = (document.getElementById('ex-search') || {}).value || '';
+    applySearch(q);
+  }
+
+  // ── Filtro Datastores ────────────────────────────────────
+  function renderDSFilter() {
+    const el = document.getElementById('ex-ds-filter');
+    if (!el) return;
+    const srcValues = [...new Set(integrations.map(p => p.srcDSName || ''))].sort();
+    const dstValues = [...new Set(integrations.map(p => p.dstDSName || ''))].sort();
+    const showSrc = srcValues.length > 1;
+    const showDst = dstValues.length > 1;
+    if (!showSrc && !showDst) { el.style.display = 'none'; return; }
+    el.style.display = '';
+    function rowHtml(values, activeSet, toggleFn, labelKey) {
+      const chips = values.map(v => {
+        const label  = v || I18n.t('ex.ds.empty');
+        const active = activeSet.has(v);
+        return `<button class="ex-pa-chip${active ? ' active' : ''}" onclick='Explorer.${toggleFn}(${JSON.stringify(v)})'>${escH(label)}</button>`;
+      }).join('');
+      return `<div class="ex-ds-row"><span class="ex-pa-label">${escH(I18n.t(labelKey))}:</span>${chips}</div>`;
+    }
+    el.innerHTML =
+      (showSrc ? rowHtml(srcValues, activeSrcDS, 'toggleSrcDS', 'ex.ds.src') : '') +
+      (showDst ? rowHtml(dstValues, activeDstDS, 'toggleDstDS', 'ex.ds.dst') : '');
+  }
+
+  function toggleSrcDS(ds) {
+    if (activeSrcDS.has(ds)) activeSrcDS.delete(ds); else activeSrcDS.add(ds);
+    renderDSFilter();
+    const q = (document.getElementById('ex-search') || {}).value || '';
+    applySearch(q);
+  }
+
+  function toggleDstDS(ds) {
+    if (activeDstDS.has(ds)) activeDstDS.delete(ds); else activeDstDS.add(ds);
+    renderDSFilter();
     const q = (document.getElementById('ex-search') || {}).value || '';
     applySearch(q);
   }
@@ -1619,6 +1665,8 @@ const Explorer = (function () {
     handleDimItemClick,
     goToIntegration,
     togglePA,
+    toggleSrcDS,
+    toggleDstDS,
     openCidsModal,
     closeCidsModal,
     submitCidsConnect,
@@ -1639,6 +1687,7 @@ const Explorer = (function () {
       if (!integrations || !integrations.length) return;
       renderCidsBar();
       renderPlanAreaFilter();
+      renderDSFilter();
       const q = (document.getElementById('ex-search') || {}).value || '';
       if (currentDim === 'integration') {
         applySearch(q);
