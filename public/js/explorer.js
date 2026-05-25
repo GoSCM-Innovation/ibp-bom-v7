@@ -593,8 +593,8 @@ const Explorer = (function () {
     const outEdges   = chainEdges.filter(e => e.from === p._idx);
     const viaColors  = { table: '#34d399', file: '#E8622A', lookup: '#a78bfa' };
     const chainBadges = [
-      ...inEdges.map(e  => `<span style="color:${viaColors[e.via]||'#aaa'};font-size:10px;" title="Alimentado por (${e.via})">⬅</span>`),
-      ...outEdges.map(e => `<span style="color:${viaColors[e.via]||'#aaa'};font-size:10px;" title="Alimenta a (${e.via})">➡</span>`),
+      ...inEdges.map(e  => `<span style="color:${viaColors[e.via]||'#aaa'};font-size:10px;" title="${escH(I18n.t('ex.label.feedBy'))} (${e.via})">⬅</span>`),
+      ...outEdges.map(e => `<span style="color:${viaColors[e.via]||'#aaa'};font-size:10px;" title="${escH(I18n.t('ex.label.feedTo'))} (${e.via})">➡</span>`),
     ].join('');
     return `<div class="ex-item${selectedIdx === p._idx ? ' active' : ''}" data-idx="${p._idx}" onclick="Explorer.renderDetail(${p._idx})">
       <div class="ex-name">
@@ -674,11 +674,11 @@ const Explorer = (function () {
     const chainsHtml = (incoming.length || outgoing.length) ? `
       <div class="ex-chain-section">
         ${incoming.length ? `
-          <div class="ex-chain-label">⬅ Alimentado por</div>
-          <div>${incoming.map(e => chainPill(e, e.from, 'Alimentado por')).join('')}</div>` : ''}
+          <div class="ex-chain-label">⬅ ${escH(I18n.t('ex.label.feedBy'))}</div>
+          <div>${incoming.map(e => chainPill(e, e.from, I18n.t('ex.label.feedBy'))).join('')}</div>` : ''}
         ${outgoing.length ? `
-          <div class="ex-chain-label" style="margin-top:${incoming.length ? 8 : 0}px">➡ Alimenta a</div>
-          <div>${outgoing.map(e => chainPill(e, e.to, 'Alimenta a')).join('')}</div>` : ''}
+          <div class="ex-chain-label" style="margin-top:${incoming.length ? 8 : 0}px">➡ ${escH(I18n.t('ex.label.feedTo'))}</div>
+          <div>${outgoing.map(e => chainPill(e, e.to, I18n.t('ex.label.feedTo'))).join('')}</div>` : ''}
       </div>` : '';
 
     // header card
@@ -688,10 +688,10 @@ const Explorer = (function () {
           <span class="ex-type-badge ex-type-${p.tipoIntegracion || 'MD'}">${escH(p.tipoIntegracion || 'MD')}</span>
           ${escH(p.jobName)}
         </div>
-        ${p.dataflowName && p.dataflowName !== p.jobName ? `<div class="ex-h-sub">↳ Dataflow: ${escH(p.dataflowName)}</div>` : ''}
+        ${p.dataflowName && p.dataflowName !== p.jobName ? `<div class="ex-h-sub">↳ ${escH(I18n.t('ex.label.dataflow'))}: ${escH(p.dataflowName)}</div>` : ''}
         <div class="ex-h-flow">${escH(p.srcDSName || '—')} → ${escH(p.dstDSName || '—')}</div>
-        <div class="ex-h-sub">Target: <b>${escH(p.targetTable)}</b>${p.fileLoaderFileName ? ` · Archivo: <b>${escH(p.fileLoaderFileName)}</b>` : ''}</div>
-        <div class="ex-h-sub" style="margin-top:2px;">ZIP: ${escH(p._zipName)}</div>
+        <div class="ex-h-sub">${escH(I18n.t('ex.label.target'))}: <b>${escH(p.targetTable)}</b>${p.fileLoaderFileName ? ` · ${escH(I18n.t('ex.label.file'))}: <b>${escH(p.fileLoaderFileName)}</b>` : ''}</div>
+        <div class="ex-h-sub" style="margin-top:2px;">${escH(I18n.t('ex.label.zip'))}: ${escH(p._zipName)}</div>
       </div>`;
 
     // diagrama tipo CI-DS (nodos + connections del DataFlow)
@@ -710,7 +710,7 @@ const Explorer = (function () {
           this.querySelector('.ex-arr').textContent = b.classList.contains('collapsed') ? '▶' : '▼';
           if(wasCollapsed){ Explorer.renderDataflowDiagram(${idx}); }
         ">
-          <span>🗺️ Diagrama del DataFlow <span style="color:var(--text2);font-weight:400">(${p.diagram.nodes.length})</span></span>
+          <span>${escH(I18n.t('ex.section.diagram'))} <span style="color:var(--text2);font-weight:400">(${p.diagram.nodes.length})</span></span>
           <span class="ex-arr">▶</span>
         </div>
         <div class="ex-section-body collapsed" id="${dfSecId}">
@@ -724,7 +724,7 @@ const Explorer = (function () {
 
     // mappings
     const mappingsHtml = buildSection('🗂️ Mappings', p.mappings.length,
-      p.mappings.length === 0 ? '<p style="color:var(--text2);font-size:12px;">Sin mappings</p>' :
+      p.mappings.length === 0 ? `<p style="color:var(--text2);font-size:12px;">${escH(I18n.t('ex.label.noMappings'))}</p>` :
       `<div style="overflow-x:auto">
         <table class="ex-mapping-table">
           <thead><tr>
@@ -752,11 +752,11 @@ const Explorer = (function () {
     );
 
     // filtros
-    const filtersHtml = buildSection('🔍 Filtros', p.filters.length,
-      p.filters.length === 0 ? '<p style="color:var(--text2);font-size:12px;">Sin filtros</p>' :
+    const filtersHtml = buildSection(I18n.t('ex.section.filters'), p.filters.length,
+      p.filters.length === 0 ? `<p style="color:var(--text2);font-size:12px;">${escH(I18n.t('ex.label.noFilters'))}</p>` :
       p.filters.map(f => `
         <div class="ex-filter-row">
-          ${f.sourceTable ? `<div class="ex-filter-table">Tabla: ${escH(f.sourceTable)}</div>` : ''}
+          ${f.sourceTable ? `<div class="ex-filter-table">${escH(I18n.t('ex.label.table'))}: ${escH(f.sourceTable)}</div>` : ''}
           <pre class="ex-filter-expr">${escH(f.expression)}</pre>
         </div>`).join('')
     );
@@ -765,7 +765,7 @@ const Explorer = (function () {
     const lookupsHtml = p.lookups.length ? buildSection('🔗 Lookups', p.lookups.length,
       p.lookups.map(l => `
         <div class="ex-lookup-item">
-          ${l.transform ? `<div class="ex-lookup-tf">Transform: ${escH(l.transform)}</div>` : ''}
+          ${l.transform ? `<div class="ex-lookup-tf">${escH(I18n.t('ex.label.transform'))}: ${escH(l.transform)}</div>` : ''}
           <pre class="ex-lookup-fn">${escH(l.func)}</pre>
         </div>`).join('')
     ) : '';
@@ -880,11 +880,11 @@ const Explorer = (function () {
         label: `${st.icon}  ${n.displayName || n.xmiType}`,
         title: makeTooltip([
           `<b>${escH(n.displayName || '')}</b>`,
-          `Tipo: ${escH(n.xmiType)}`,
-          n.tableName ? `Tabla: ${escH(n.tableName)}` : '',
-          n.dsName    ? `Datastore: ${escH(n.dsName)}` : '',
-          n.fileName  ? `Archivo: ${escH(n.fileName)}` : '',
-          n.rowCount  ? `Rows: ${escH(n.rowCount)}` : '',
+          `${escH(I18n.t('ex.tooltip.type'))} ${escH(n.xmiType)}`,
+          n.tableName ? `${escH(I18n.t('ex.label.table'))}: ${escH(n.tableName)}` : '',
+          n.dsName    ? `${escH(I18n.t('ex.label.datastore'))}: ${escH(n.dsName)}` : '',
+          n.fileName  ? `${escH(I18n.t('ex.label.file'))}: ${escH(n.fileName)}` : '',
+          n.rowCount  ? `${escH(I18n.t('ex.label.rowCount'))}: ${escH(n.rowCount)}` : '',
         ].filter(Boolean)),
         shape:           'box',
         margin:          6,
@@ -1058,14 +1058,14 @@ const Explorer = (function () {
     let body = '';
     if (n.xmiType.includes('TableReader') || n.xmiType.includes('TableLoader')) {
       body = `
-        <div class="ex-df-kv">Datastore: <b>${escH(n.dsName || '—')}</b></div>
-        <div class="ex-df-kv">Tabla: <b>${escH(n.tableName || '—')}</b></div>`;
+        <div class="ex-df-kv">${escH(I18n.t('ex.label.datastore'))}: <b>${escH(n.dsName || '—')}</b></div>
+        <div class="ex-df-kv">${escH(I18n.t('ex.label.table'))}: <b>${escH(n.tableName || '—')}</b></div>`;
     } else if (n.xmiType.includes('FileReader') || n.xmiType.includes('FileLoader')) {
       body = `
-        <div class="ex-df-kv">Datastore: <b>${escH(n.dsName || '—')}</b></div>
-        <div class="ex-df-kv">Archivo: <b>${escH(n.fileName || '—')}</b></div>`;
+        <div class="ex-df-kv">${escH(I18n.t('ex.label.datastore'))}: <b>${escH(n.dsName || '—')}</b></div>
+        <div class="ex-df-kv">${escH(I18n.t('ex.label.file'))}: <b>${escH(n.fileName || '—')}</b></div>`;
     } else if (n.xmiType.includes('RowGenerationTransform')) {
-      body = `<div class="ex-df-kv">Row count: <b>${escH(n.rowCount || '—')}</b></div>`;
+      body = `<div class="ex-df-kv">${escH(I18n.t('ex.label.rowCount'))}: <b>${escH(n.rowCount || '—')}</b></div>`;
     } else if (n.xmiType.includes('QueryTransform') || n.xmiType.includes('XMLMapTransform')) {
       const inputs = (n.inputSchemas || []).map(s => `<span class="ex-df-input-chip">${escH(s)}</span>`).join('');
       const joins  = (n.joins || []).map(j => `
@@ -1075,7 +1075,7 @@ const Explorer = (function () {
         </div>`).join('');
       const filterBlock = n.filterExpression ? `
         <div class="ex-df-filter-block">
-          <div class="ex-df-filter-label">WHERE</div>
+          <div class="ex-df-filter-label">${escH(I18n.t('ex.label.where'))}</div>
           <pre class="ex-filter-expr">${escH(n.filterExpression)}</pre>
         </div>` : '';
       // Solo campos con projection (consistente con el tab Mappings)
@@ -1096,10 +1096,10 @@ const Explorer = (function () {
           </table>
         </div>`;
       body =
-        (inputs ? `<div class="ex-df-inputs"><span class="ex-df-section-label">Inputs:</span> ${inputs}</div>` : '') +
+        (inputs ? `<div class="ex-df-inputs"><span class="ex-df-section-label">${escH(I18n.t('ex.label.inputs'))}:</span> ${inputs}</div>` : '') +
         joins + filterBlock + fieldsBody;
     } else {
-      body = `<div style="color:var(--text2);">Sin detalle adicional disponible para este tipo de nodo.</div>`;
+      body = `<div style="color:var(--text2);">${escH(I18n.t('ex.label.noNodeDetail'))}</div>`;
     }
 
     const html = `
@@ -1329,7 +1329,7 @@ const Explorer = (function () {
     let html = `
       <div class="ex-header-card">
         <div class="ex-h-title">${escH(displayName)}</div>
-        ${displayDS ? `<div class="ex-h-flow">Datastore: ${escH(displayDS)}</div>` : ''}
+        ${displayDS ? `<div class="ex-h-flow">${escH(I18n.t('ex.label.datastore'))}: ${escH(displayDS)}</div>` : ''}
         <div class="ex-h-sub">${escH(dimLabel(dim) || dim)} · ${escH(_plural(unitKey, items.length))} · ${escH(_plural('ex.unit.integration', intCount))}</div>
       </div>`;
 
@@ -1357,7 +1357,7 @@ const Explorer = (function () {
                 <span style="color:var(--text2);font-weight:400;font-size:11px;margin-left:6px;">${escH(p._zipName)}</span>
               </span>
               <span style="display:flex;gap:6px;align-items:center">
-                <span style="color:var(--text2);font-size:11px;">${uniqueFIdx.length} filtro${uniqueFIdx.length !== 1 ? 's' : ''}</span>
+                <span style="color:var(--text2);font-size:11px;">${escH(_plural('ex.unit.filter', uniqueFIdx.length))}</span>
                 <span class="ex-chain-pill" onclick="event.stopPropagation();Explorer.goToIntegration(${intIdx})" title="${I18n.t('ex.btn.viewFull')}">${I18n.t('ex.btn.viewFull').split(' ')[0]}</span>
                 <span class="ex-arr">▶</span>
               </span>
@@ -1367,7 +1367,7 @@ const Explorer = (function () {
                 const f = p.filters[fIdx];
                 if (!f) return '';
                 return `<div class="ex-filter-row">
-                  ${f.sourceTable ? `<div class="ex-filter-table">Tabla: ${escH(f.sourceTable)}</div>` : ''}
+                  ${f.sourceTable ? `<div class="ex-filter-table">${escH(I18n.t('ex.label.table'))}: ${escH(f.sourceTable)}</div>` : ''}
                   <pre class="ex-filter-expr">${escH(f.expression)}</pre>
                 </div>`;
               }).join('')}
@@ -1505,10 +1505,10 @@ const Explorer = (function () {
         label,
         title: makeTooltip([
           `<b>${escH(p.dataflowName || p.jobName)}</b>`,
-          p.dataflowName && p.jobName !== p.dataflowName ? `Job: ${escH(p.jobName)}` : '',
+          p.dataflowName && p.jobName !== p.dataflowName ? `${escH(I18n.t('ex.label.job'))}: ${escH(p.jobName)}` : '',
           `${escH(p.srcDSName || '?')} → ${escH(p.dstDSName || '?')}`,
-          `Target: <b>${escH(p.targetTable)}</b>`,
-          `ZIP: ${escH(p._zipName)}`,
+          `${escH(I18n.t('ex.label.target'))}: <b>${escH(p.targetTable)}</b>`,
+          `${escH(I18n.t('ex.label.zip'))}: ${escH(p._zipName)}`,
         ].filter(Boolean)),
         color: { background: col, border: col, highlight: { background: '#fff', border: col } },
         font:  { color: '#000', size: 12, multi: false },
