@@ -129,7 +129,7 @@ function efInjectHeaders(headers, notes, groups, ns, entity, afterIdx) {
   var insertAt = afterIdx + 1;
   extra.forEach(function (f, i) {
     headers.splice(insertAt + i, 0, f);
-    if (notes)  notes.splice(insertAt + i,  0, 'Campo adicional: ' + f);
+    if (notes)  notes.splice(insertAt + i,  0, (window.I18n ? I18n.t('xls.col.extraField', { f: f }) : 'Campo adicional: ' + f));
     if (groups) groups.splice(insertAt + i, 0, 'ibp');
   });
 }

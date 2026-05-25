@@ -741,6 +741,7 @@
   "xls.resumen.excludedTypes": "Tipos excluidos del analisis principal",
   "xls.resumen.omittedProds": "Productos omitidos",
   "xls.resumen.globalMetrics": "METRICAS GLOBALES DE LA EJECUCION",
+  "xls.col.extraField": "Campo adicional: {f}",
   "docs.log.generatingSheet": "📋 Generando hoja {sheet}…",
   "docs.log.assemblingExcel": "📦 Ensamblando archivo Excel…",
   "main.scenario.baselineEmpty": "Baseline (vacío)",

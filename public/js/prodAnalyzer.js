@@ -412,7 +412,81 @@ var _XLS_PA_NOTES_EN = {
   'Nodo de transferencia': 'Transfer node',
   'Nodo receptor': 'Receiving node',
   'Nodo de recursos': 'Resource node',
-  'Sin actividad': 'No activity'
+  'Sin actividad': 'No activity',
+  // ── Excel column headers (Location, Resource, PSH, PSI, PSR, Excluded) ──
+  'Rol(es) inferido(s)': 'Inferred role(s)',
+  '# Productos fabricados': '# Manufactured products',
+  'Productos fabricados (códigos)': 'Manufactured products (codes)',
+  '# SOURCEIDs': '# SOURCEIDs',
+  'SOURCEIDs (códigos)': 'SOURCEIDs (codes)',
+  '# Recursos asignados': '# Assigned resources',
+  'Recursos asignados (códigos)': 'Assigned resources (codes)',
+  '# Recursos activos PSR': '# Active PSR resources',
+  'Recursos activos (códigos)': 'Active resources (codes)',
+  '# Recursos ociosos': '# Idle resources',
+  'Recursos ociosos (códigos)': 'Idle resources (codes)',
+  '# BOMs sin PSI': '# BOMs without PSI',
+  'SOURCEIDs sin PSI (códigos)': 'SOURCEIDs without PSI (codes)',
+  '# BOMs sin PSR': '# BOMs without PSR',
+  'SOURCEIDs sin PSR (códigos)': 'SOURCEIDs without PSR (codes)',
+  '# Componentes externos': '# External components',
+  '# Componentes sin cobertura LocSrc': '# Components without LocSrc coverage',
+  'Componentes sin cobertura (códigos)': 'Components without coverage (codes)',
+  '# SOURCEIDs sin PLEADTIME': '# SOURCEIDs without PLEADTIME',
+  'SOURCEIDs sin PLEADTIME (códigos)': 'SOURCEIDs without PLEADTIME (codes)',
+  '# Productos abastecidos (como proveedor)': '# Supplied products (as vendor)',
+  'Productos abastecidos (códigos)': 'Supplied products (codes)',
+  '# Plantas abastecidas': '# Supplied plants',
+  'Plantas abastecidas (códigos)': 'Supplied plants (codes)',
+  '# Arcos sin consumo PSI en destino': '# Arcs without PSI consumption at destination',
+  'Productos sin consumo PSI (códigos)': 'Products without PSI consumption (codes)',
+  '# Productos sin LocProd en destino': '# Products without LocProd at destination',
+  'Productos sin LocProd (códigos)': 'Products without LocProd (codes)',
+  '# Productos transferidos': '# Transferred products',
+  'Productos transferidos (códigos)': 'Transferred products (codes)',
+  '# Destinos transferencia': '# Transfer destinations',
+  'Destinos transferencia (códigos)': 'Transfer destinations (codes)',
+  '# Productos recibidos': '# Received products',
+  'Productos recibidos (códigos)': 'Received products (codes)',
+  '# Orígenes desde los que recibe': '# Origins received from',
+  'Orígenes (códigos)': 'Origins (codes)',
+  '# Plantas asignadas': '# Assigned plants',
+  'Plantas asignadas (códigos)': 'Assigned plants (codes)',
+  '# Fuentes prod.': '# Production sources',
+  'Fuentes prod. (SOURCEIDs)': 'Production sources (SOURCEIDs)',
+  '# Productos que fabrica': '# Products manufactured',
+  'Productos que fabrica (códigos)': 'Products manufactured (codes)',
+  '# Componentes PSI': '# PSI components',
+  '# Recursos PSR': '# PSR resources',
+  'Recursos PSR (códigos)': 'PSR resources (codes)',
+  '# Componentes con alternativa': '# Components with alternative',
+  '# Orígenes comp.': '# Component origins',
+  'Orígenes comp. (códigos)': 'Component origins (codes)',
+  '# Plantas con este recurso asignado': '# Plants with this resource assigned',
+  'Plantas recurso (códigos)': 'Resource plants (codes)',
+  '# Productos': '# Products',
+  'Aparece como componente PSI en # SOURCEIDs': 'Appears as PSI component in # SOURCEIDs',
+  'SOURCEIDs donde es componente (códigos)': 'SOURCEIDs where it is a component (codes)',
+  'Componentes con cobertura LocSrc': 'Components with LocSrc coverage',
+  'Componentes sin cobertura LocSrc': 'Components without LocSrc coverage',
+  'Observacion': 'Observation',
+  // ── Status messages PA ──
+  'Construyendo índices...': 'Building indexes...',
+  'Descarga completa. Iniciando análisis...': 'Download complete. Starting analysis...',
+  '¡Excel descargado! Análisis completado en ': 'Excel downloaded! Analysis complete in ',
+  'Cargando datos desde IndexedDB...': 'Loading data from IndexedDB...',
+  'Inicializando Excel...': 'Initializing Excel...',
+  'Hoja Product lista...': 'Product sheet ready...',
+  'Hoja Location lista...': 'Location sheet ready...',
+  'Hoja Resource lista...': 'Resource sheet ready...',
+  'Hoja Resource Location lista...': 'Resource Location sheet ready...',
+  'Hoja Prod Source Header lista...': 'Prod Source Header sheet ready...',
+  'Hoja Prod Source Item lista...': 'Prod Source Item sheet ready...',
+  'Hoja Prod Source Resource lista...': 'Prod Source Resource sheet ready...',
+  'Hoja Tipos Excluidos lista...': 'Excluded Types sheet ready...',
+  'Generando Resumen...': 'Generating Summary...',
+  'Generando archivo Excel...': 'Generating Excel file...',
+  'Hoja Prod Source Item: {done}/{total}...': 'Prod Source Item sheet: {done}/{total}...'
 };
 function _xnPA(s) {
   return (window.I18n && I18n.getLang() === 'en' && _XLS_PA_NOTES_EN[s]) ? _XLS_PA_NOTES_EN[s] : s;
@@ -864,7 +938,7 @@ async function paAnalyzeAndExport(
   function yn(b)   { return b ? I18n.t('xls.yes') : I18n.t('xls.no'); }
 
   /* ── PHASE A: cargar IDB a memoria ── */
-  setStatusPA('Cargando datos desde IndexedDB...', 75);
+  setStatusPA(_xnPA('Cargando datos desde IndexedDB...'), 75);
   var allLocProd = ent.locPrd  ? (await idbGetAll('pa_loc_prod'))  : [];
   var allLocSrc  = ent.locSrc  ? (await idbGetAll('pa_loc_src'))   : [];
   var allPsi     = ent.psi     ? (await idbGetAll('pa_psi'))       : [];
@@ -874,7 +948,7 @@ async function paAnalyzeAndExport(
     ' LocSrc:' + allLocSrc.length + ' PSI:' + allPsi.length);
 
   /* ── PHASE B: construir índices ── */
-  setStatusPA('Construyendo índices...', 77);
+  setStatusPA(_xnPA('Construyendo índices...'), 77);
 
   /* PSH */
   var pshByPrdLoc  = {};   // "PRDID|LOCID" → [SOURCEID] SOURCETYPE=P
@@ -1089,7 +1163,7 @@ async function paAnalyzeAndExport(
   }
 
   /* ── Workbook setup ── */
-  setStatusPA('Inicializando Excel...', 79);
+  setStatusPA(_xnPA('Inicializando Excel...'), 79);
   var today = new Date().toISOString().slice(0, 10);
   var GOLD  = 'FFF7A800', ORANGE = 'FFE8622A', NAVY = 'FF0B1120';
   var C_RED = 'FFFFCCCC', C_YEL  = 'FFFFFFCC';
@@ -1098,6 +1172,8 @@ async function paAnalyzeAndExport(
   var wb    = new StreamingXlsx();
 
   function makeSheet(name, tabArgb, hdrs, notes, groups) {
+    // Translate Spanish headers to English when lang is 'en' (no-op for keys absent from map)
+    hdrs = hdrs.map(_xnPA);
     var ws = wb.addWorksheet(name, {
       views: [{ state: 'frozen', ySplit: 1 }],
       properties: { tabColor: { argb: tabArgb } }
@@ -1508,7 +1584,7 @@ async function paAnalyzeAndExport(
       track('Product', fill);
     });
     S1.finalize();
-    setStatusPA('Hoja Product lista...', 82);
+    setStatusPA(_xnPA('Hoja Product lista...'), 82);
     await new Promise(function(r){ setTimeout(r, 0); });
   }
 
@@ -1866,7 +1942,7 @@ async function paAnalyzeAndExport(
       track('Location', fill);
     });
     S9.finalize();
-    setStatusPA('Hoja Location lista...', 84);
+    setStatusPA(_xnPA('Hoja Location lista...'), 84);
     await new Promise(function(r){ setTimeout(r, 0); });
   }
 
@@ -1960,7 +2036,7 @@ async function paAnalyzeAndExport(
       track('Resource', fill);
     });
     S2.finalize();
-    setStatusPA('Hoja Resource lista...', 84);
+    setStatusPA(_xnPA('Hoja Resource lista...'), 84);
     await new Promise(function(r){ setTimeout(r, 0); });
   }
 
@@ -2003,7 +2079,7 @@ async function paAnalyzeAndExport(
       });
     });
     S3.finalize();
-    setStatusPA('Hoja Resource Location lista...', 85);
+    setStatusPA(_xnPA('Hoja Resource Location lista...'), 85);
     await new Promise(function(r){ setTimeout(r, 0); });
   }
 
@@ -2102,7 +2178,7 @@ async function paAnalyzeAndExport(
       track('Prod Source Header', fill);
     });
     S6.finalize();
-    setStatusPA('Hoja Prod Source Header lista...', 88);
+    setStatusPA(_xnPA('Hoja Prod Source Header lista...'), 88);
     await new Promise(function(r){ setTimeout(r, 0); });
   }
 
@@ -2267,11 +2343,14 @@ async function paAnalyzeAndExport(
         track('Prod Source Item', fill);
       });
       await new Promise(function(r){ setTimeout(r, 0); });
-      setStatusPA('Hoja Prod Source Item: ' + Math.min(pii + PSI_CHUNK, allPsi.length) + '/' + allPsi.length + '...',
+      setStatusPA(
+        _xnPA('Hoja Prod Source Item: {done}/{total}...')
+          .replace('{done}', Math.min(pii + PSI_CHUNK, allPsi.length))
+          .replace('{total}', allPsi.length),
         88 + Math.round((Math.min(pii + PSI_CHUNK, allPsi.length) / Math.max(allPsi.length, 1)) * 3));
     }
     S7.finalize();
-    setStatusPA('Hoja Prod Source Item lista...', 91);
+    setStatusPA(_xnPA('Hoja Prod Source Item lista...'), 91);
     await new Promise(function(r){ setTimeout(r, 0); });
   }
 
@@ -2352,7 +2431,7 @@ async function paAnalyzeAndExport(
       track('Prod Source Resource', fill);
     });
     S8.finalize();
-    setStatusPA('Hoja Prod Source Resource lista...', 93);
+    setStatusPA(_xnPA('Hoja Prod Source Resource lista...'), 93);
     await new Promise(function(r){ setTimeout(r, 0); });
   }
 
@@ -2423,12 +2502,12 @@ async function paAnalyzeAndExport(
       track('Tipos Excluidos', noCovCount > 0 ? C_YEL : null);
     });
     SX.finalize();
-    setStatusPA('Hoja Tipos Excluidos lista...', 97);
+    setStatusPA(_xnPA('Hoja Tipos Excluidos lista...'), 97);
     await new Promise(function(r){ setTimeout(r, 0); });
   }
 
   /* ── HOJA 0: RESUMEN ── */
-  setStatusPA('Generando Resumen...', 98);
+  setStatusPA(_xnPA('Generando Resumen...'), 98);
   var sheetDefs = [
     { key: 'Product',              num: 1 },
     { key: 'Location',             num: 2 },
@@ -2467,7 +2546,7 @@ async function paAnalyzeAndExport(
   }
 
   /* ── EXPORT ── */
-  setStatusPA('Generando archivo Excel...', 99);
+  setStatusPA(_xnPA('Generando archivo Excel...'), 99);
   var buf  = await wb.xlsx.writeBuffer();
   var blob = new Blob([buf], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
   var url  = URL.createObjectURL(blob);
