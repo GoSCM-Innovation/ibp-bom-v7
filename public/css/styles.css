@@ -2486,7 +2486,7 @@ button[disabled][title]:hover::after {
   background: #0d1828;
   border-top: 1px solid var(--border);
   cursor: pointer;
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 700;
   color: var(--text2);
   letter-spacing: .04em;
@@ -2728,7 +2728,7 @@ button[disabled][title]:hover::after {
   flex: 0 0 auto;
 }
 .ex-df-fs-title {
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 600;
   color: var(--text);
   display: flex;
@@ -2741,7 +2741,7 @@ button[disabled][title]:hover::after {
 .ex-df-fs-sub {
   color: var(--text2);
   font-weight: 400;
-  font-size: 13px;
+  font-size: 11px;
 }
 .ex-df-fs-close {
   background: transparent;
