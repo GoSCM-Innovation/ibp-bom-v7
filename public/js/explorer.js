@@ -582,6 +582,24 @@ const Explorer = (function () {
   }
 
   // ── Sidebar (lista master) ───────────────────────────────
+  function _renderIntegrationItem(p) {
+    const typeClass  = `ex-type-${p.tipoIntegracion || 'MD'}`;
+    const inEdges    = chainEdges.filter(e => e.to   === p._idx);
+    const outEdges   = chainEdges.filter(e => e.from === p._idx);
+    const viaColors  = { table: '#34d399', file: '#E8622A', lookup: '#a78bfa' };
+    const chainBadges = [
+      ...inEdges.map(e  => `<span style="color:${viaColors[e.via]||'#aaa'};font-size:10px;" title="Alimentado por (${e.via})">⬅</span>`),
+      ...outEdges.map(e => `<span style="color:${viaColors[e.via]||'#aaa'};font-size:10px;" title="Alimenta a (${e.via})">➡</span>`),
+    ].join('');
+    return `<div class="ex-item${selectedIdx === p._idx ? ' active' : ''}" data-idx="${p._idx}" onclick="Explorer.renderDetail(${p._idx})">
+      <div class="ex-name">
+        <span class="ex-type-badge ${typeClass}">${escH(p.tipoIntegracion || 'MD')}</span>${escH(p.jobName)}${chainBadges ? `<span style="margin-left:4px;">${chainBadges}</span>` : ''}
+      </div>
+      ${p.dataflowName && p.dataflowName !== p.jobName ? `<div class="ex-sub ex-sub-df">↳ ${escH(p.dataflowName)}</div>` : ''}
+      <div class="ex-sub">${escH(p.targetTable)}</div>
+    </div>`;
+  }
+
   function renderSidebarList(list) {
     const el = document.getElementById('ex-master');
     if (!el) return;
@@ -589,24 +607,34 @@ const Explorer = (function () {
       el.innerHTML = `<p style="padding:12px;color:var(--text2);font-size:13px;">${escH(I18n.t('ex.empty.noIntegrations'))}</p>`;
       return;
     }
-    el.innerHTML = list.map(p => {
-      const typeClass = `ex-type-${p.tipoIntegracion || 'MD'}`;
-      const inEdges  = chainEdges.filter(e => e.to   === p._idx);
-      const outEdges = chainEdges.filter(e => e.from === p._idx);
-      // Iconos de cadena: ⬅ para entradas, ➡ para salidas; color por tipo
-      const viaColors = { table: '#34d399', file: '#E8622A', lookup: '#a78bfa' };
-      const chainBadges = [
-        ...inEdges.map(e  => `<span style="color:${viaColors[e.via]||'#aaa'};font-size:10px;" title="Alimentado por (${e.via})">⬅</span>`),
-        ...outEdges.map(e => `<span style="color:${viaColors[e.via]||'#aaa'};font-size:10px;" title="Alimenta a (${e.via})">➡</span>`),
-      ].join('');
-      return `<div class="ex-item${selectedIdx === p._idx ? ' active' : ''}" data-idx="${p._idx}" onclick="Explorer.renderDetail(${p._idx})">
-        <div class="ex-name">
-          <span class="ex-type-badge ${typeClass}">${escH(p.tipoIntegracion || 'MD')}</span>${escH(p.jobName)}${chainBadges ? `<span style="margin-left:4px;">${chainBadges}</span>` : ''}
+
+    // Agrupar por ZIP; si solo hay uno, lista plana sin header
+    const groups = new Map();
+    list.forEach(p => {
+      if (!groups.has(p._zipName)) groups.set(p._zipName, []);
+      groups.get(p._zipName).push(p);
+    });
+
+    if (groups.size === 1) {
+      el.innerHTML = list.map(p => _renderIntegrationItem(p)).join('');
+      return;
+    }
+
+    let html = '';
+    groups.forEach((items, zipName) => {
+      const projName  = zipName.replace(/\.zip$/i, '');
+      const secId     = 'ex-proj-' + projName.replace(/[^a-zA-Z0-9]/g, '_');
+      const hasActive = items.some(p => p._idx === selectedIdx);
+      html += `
+        <div class="ex-proj-header" onclick="var b=document.getElementById('${secId}');b.classList.toggle('collapsed');this.querySelector('.ex-arr').textContent=b.classList.contains('collapsed')?'▶':'▼';">
+          <span>${escH(projName)} <span style="font-weight:400">(${items.length})</span></span>
+          <span class="ex-arr">${hasActive ? '▼' : '▶'}</span>
         </div>
-        ${p.dataflowName && p.dataflowName !== p.jobName ? `<div class="ex-sub ex-sub-df">↳ ${escH(p.dataflowName)}</div>` : ''}
-        <div class="ex-sub">${escH(p._zipName)} · ${escH(p.targetTable)}</div>
-      </div>`;
-    }).join('');
+        <div class="ex-proj-body${hasActive ? '' : ' collapsed'}" id="${secId}">
+          ${items.map(p => _renderIntegrationItem(p)).join('')}
+        </div>`;
+    });
+    el.innerHTML = html;
   }
 
   // ── Detalle del panel derecho ────────────────────────────

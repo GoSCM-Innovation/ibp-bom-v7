@@ -2453,6 +2453,26 @@ button[disabled][title]:hover::after {
 .ex-section-body { padding: 10px 12px; }
 .ex-section-body.collapsed { display: none; }
 
+/* ── Sidebar project-group headers (Integration view) ── */
+.ex-proj-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 12px;
+  background: #0d1828;
+  border-top: 1px solid var(--border);
+  cursor: pointer;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text2);
+  letter-spacing: .04em;
+  text-transform: uppercase;
+  user-select: none;
+}
+.ex-proj-header:first-child { border-top: none; }
+.ex-proj-header:hover { background: var(--bg3); color: var(--text); }
+.ex-proj-body.collapsed { display: none; }
+
 .ex-header-card {
   padding: 12px 14px;
   background: var(--surface2);
