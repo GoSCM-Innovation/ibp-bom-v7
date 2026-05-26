@@ -486,7 +486,55 @@ var _XLS_PA_NOTES_EN = {
   'Hoja Tipos Excluidos lista...': 'Excluded Types sheet ready...',
   'Generando Resumen...': 'Generating Summary...',
   'Generando archivo Excel...': 'Generating Excel file...',
-  'Hoja Prod Source Item: {done}/{total}...': 'Prod Source Item sheet: {done}/{total}...'
+  'Hoja Prod Source Item: {done}/{total}...': 'Prod Source Item sheet: {done}/{total}...',
+  // ── Column headers ──
+  'Tiene PSR': 'Has PSR',
+  'En PSR': 'In PSR',
+  'En Resource Location': 'In Resource Location',
+  'RESID+LOCID usado en PSR': 'RESID+LOCID used in PSR',
+  'PRDID+LOCID en Location Product': 'PRDID+LOCID in Location Product',
+  'PRDID componente': 'PRDID component',
+  'Tipo componente': 'Component type',
+  'PRDID comp+LOCID en Location Product': 'PRDID comp+LOCID in Location Product',
+  'En Location Source (insumo)': 'In Location Source (component)',
+  'LOCFR origen': 'LOCFR origin',
+  'LOCDESCR origen': 'LOCFR origin description',
+  'Material de reemplazo (ISALTITEM)': 'Replacement material (ISALTITEM)',
+  'Reemplaza a': 'Replaces',
+  'RESID+LOCID en Resource Location': 'RESID+LOCID in Resource Location',
+  // ── Entity notes ──
+  'Excluye PINVALID=X': 'Excludes PINVALID=X',
+  'Solo SOURCEIDs activos en PSH': 'Active SOURCEIDs in PSH only',
+  'Excluye LOCVALID=X': 'Excludes LOCVALID=X',
+  'Excluye TINVALID=X': 'Excludes TINVALID=X',
+  // ── PSI component type values ──
+  'No determinado': 'Undetermined',
+  'Semielaborado': 'Semi-finished',
+  'Semielaborado (ext.)': 'Semi-finished (ext.)',
+  'Semielaborado (sin receta)': 'Semi-finished (no recipe)',
+  'Insumo': 'Input',
+  // ── PSI observation strings ──
+  'Coeficiente = 0 o no definido': 'Coefficient = 0 or undefined',
+  'Semielaborado: trazabilidad en PSH': 'Semi-finished: traceability in PSH',
+  'Semiterminado producido en otra planta: transferencia configurada': 'Semi-finished produced at another plant: transfer configured',
+  'Semiterminado sin arco de transferencia hacia esta planta': 'Semi-finished without transfer arc to this plant',
+  'Semiterminado sin receta de produccion (PSH) en ninguna planta': 'Semi-finished without production recipe (PSH) at any plant',
+  'Insumo sin arco de abastecimiento en Location Source': 'Input without supply arc in Location Source',
+  'Componente no habilitado en Location Product para esta planta': 'Component not enabled in Location Product for this plant',
+  'Material de reemplazo sin registro en Item Sub': 'Replacement material without record in Item Sub',
+  'SOURCEID valido en PSH | Coeficiente definido | Con arco de abastecimiento en Location Source | Habilitado en Location Product':
+    'Valid SOURCEID in PSH | Coefficient defined | Has supply arc in Location Source | Enabled in Location Product',
+  // ── Resource / Resource Location observation strings ──
+  'Sin cobertura en Location Product': 'No coverage in Location Product',
+  'Sin planta asignada en Resource Location': 'No plant assigned in Resource Location',
+  'En uso en PSR y con planta asignada en Resource Location': 'In use in PSR and with plant assigned in Resource Location',
+  'Recurso activo en PSR para esta planta': 'Resource active in PSR for this plant',
+  'Recurso asignado a planta pero sin uso en PSR para esta planta': 'Resource assigned to plant but not used in PSR for this plant',
+  // ── KPI labels (Global Execution Metrics) ──
+  'Total productos en maestro': 'Total products in master',
+  'Productos analizados (incluidos)': 'Analyzed products (included)',
+  'Productos sin hallazgos (OK)': 'Products with no findings (OK)',
+  'SOURCEIDs activos (PSH)': 'Active SOURCEIDs (PSH)'
 };
 function _xnPA(s) {
   return (window.I18n && I18n.getLang() === 'en' && _XLS_PA_NOTES_EN[s]) ? _XLS_PA_NOTES_EN[s] : s;
@@ -592,7 +640,7 @@ async function doProductionAnalysis() {
         return idbBulkPut('pa_psh', rows);
       });
     log(logEl, 'ok', timer.fmt() + ' PSH: ' + nPsh + ' reg (' + Object.keys(pshBySid).length + ' SOURCEIDs)');
-    PA_EXEC_META.entities.push({ name: 'Production Source Header', entityName: ent.psh, downloaded: nPsh, note: 'Excluye PINVALID=X' });
+    PA_EXEC_META.entities.push({ name: 'Production Source Header', entityName: ent.psh, downloaded: nPsh, note: _xnPA('Excluye PINVALID=X') });
     progEl.style.width = '12%';
 
     if (ent.psi) {
@@ -604,7 +652,7 @@ async function doProductionAnalysis() {
           return idbBulkPut('pa_psi', validRows);
         });
       log(logEl, 'ok', timer.fmt() + ' PSI: ' + nPsi + ' reg');
-      PA_EXEC_META.entities.push({ name: 'Production Source Item', entityName: ent.psi, downloaded: nPsi, note: 'Solo SOURCEIDs activos en PSH' });
+      PA_EXEC_META.entities.push({ name: 'Production Source Item', entityName: ent.psi, downloaded: nPsi, note: _xnPA('Solo SOURCEIDs activos en PSH') });
     }
     progEl.style.width = '18%';
 
@@ -617,7 +665,7 @@ async function doProductionAnalysis() {
           return idbBulkPut('pa_psisub', validRows);
         });
       log(logEl, 'ok', timer.fmt() + ' PSI Sub: ' + nPsiSub + ' reg');
-      PA_EXEC_META.entities.push({ name: 'Production Source Item Sub', entityName: ent.psiSub, downloaded: nPsiSub, note: 'Solo SOURCEIDs activos en PSH' });
+      PA_EXEC_META.entities.push({ name: 'Production Source Item Sub', entityName: ent.psiSub, downloaded: nPsiSub, note: _xnPA('Solo SOURCEIDs activos en PSH') });
     }
     progEl.style.width = '22%';
 
@@ -630,7 +678,7 @@ async function doProductionAnalysis() {
           return idbBulkPut('pa_psr', validRows);
         });
       log(logEl, 'ok', timer.fmt() + ' PSR: ' + nPsr + ' reg');
-      PA_EXEC_META.entities.push({ name: 'Production Source Resource', entityName: ent.psr, downloaded: nPsr, note: 'Solo SOURCEIDs activos en PSH' });
+      PA_EXEC_META.entities.push({ name: 'Production Source Resource', entityName: ent.psr, downloaded: nPsr, note: _xnPA('Solo SOURCEIDs activos en PSH') });
     }
     progEl.style.width = '32%';
 
@@ -657,7 +705,7 @@ async function doProductionAnalysis() {
           return Promise.resolve();
         });
       log(logEl, 'ok', timer.fmt() + ' Location: ' + nLoc + ' reg');
-      PA_EXEC_META.entities.push({ name: 'Location', entityName: ent.loc, downloaded: nLoc, note: 'Excluye LOCVALID=X' });
+      PA_EXEC_META.entities.push({ name: 'Location', entityName: ent.loc, downloaded: nLoc, note: _xnPA('Excluye LOCVALID=X') });
     }
     progEl.style.width = '54%';
 
@@ -713,7 +761,7 @@ async function doProductionAnalysis() {
           return idbBulkPut('pa_loc_src', rows);
         });
       log(logEl, 'ok', timer.fmt() + ' Location Source: ' + nLs + ' reg');
-      PA_EXEC_META.entities.push({ name: 'Location Source', entityName: ent.locSrc, downloaded: nLs, note: 'Excluye TINVALID=X' });
+      PA_EXEC_META.entities.push({ name: 'Location Source', entityName: ent.locSrc, downloaded: nLs, note: _xnPA('Excluye TINVALID=X') });
     }
     progEl.style.width = '75%';
 
@@ -1371,7 +1419,7 @@ async function paAnalyzeAndExport(
       var fills = [];
 
       // Location Product — universal 🔴
-      if (!inLP) { obs.push('Sin cobertura en Location Product'); fills.push('red'); }
+      if (!inLP) { obs.push(_xnPA('Sin cobertura en Location Product')); fills.push('red'); }
 
       // PSH + PSI + PSR como bloque
       var reqPSH = rules.requiresPSH;
@@ -1954,10 +2002,10 @@ async function paAnalyzeAndExport(
     var _s2Hdrs = [
       I18n.t('xls.col.status'), I18n.t('xls.col.obs'),
       'RESID','RESDESCR',
-      'En PSR','En Resource Location',
-      '# Plantas asignadas','Plantas asignadas (códigos)',
-      '# Fuentes prod.','Fuentes prod. (SOURCEIDs)',
-      '# Productos que fabrica','Productos que fabrica (códigos)'
+      _xnPA('En PSR'),_xnPA('En Resource Location'),
+      _xnPA('# Plantas asignadas'),_xnPA('Plantas asignadas (códigos)'),
+      _xnPA('# Fuentes prod.'),_xnPA('Fuentes prod. (SOURCEIDs)'),
+      _xnPA('# Productos que fabrica'),_xnPA('Productos que fabrica (códigos)')
     ];
     var _s2Notes = [
       _xnPA('Color de alerta: 🔴 Alerta = recurso completamente huérfano (sin PSR ni Resource Location) | 🟡 Advertencia = dato incompleto | ✅ OK = recurso activo y con planta asignada.'),
@@ -2020,8 +2068,8 @@ async function paAnalyzeAndExport(
       var obs = [];
       if (!inPSR && !inRL) obs.push(_xnPA('Recurso huérfano: sin uso en producción ni planta asignada'));
       else if (!inPSR)     obs.push(_xnPA('Sin uso en producción (no aparece en PSR)'));
-      else if (!inRL)      obs.push('Sin planta asignada en Resource Location');
-      if (!obs.length)     obs.push('En uso en PSR y con planta asignada en Resource Location');
+      else if (!inRL)      obs.push(_xnPA('Sin planta asignada en Resource Location'));
+      if (!obs.length)     obs.push(_xnPA('En uso en PSR y con planta asignada en Resource Location'));
       var fill = (!inPSR && !inRL) ? C_RED : (!inPSR || !inRL) ? C_YEL : null;
       var _s2Row = [
         statusLabel(fill), obs.join(' | '),
@@ -2048,7 +2096,7 @@ async function paAnalyzeAndExport(
     var _s3Hdrs = [
       I18n.t('xls.col.status'), I18n.t('xls.col.obs'),
       'RESID','RESDESCR','LOCID','LOCDESCR',
-      'RESID+LOCID usado en PSR'
+      _xnPA('RESID+LOCID usado en PSR')
     ];
     var _s3Notes = [
       _xnPA('Color de alerta: 🟡 Advertencia = recurso asignado a planta pero sin uso en ninguna receta | ✅ OK = recurso activo en PSR para esta planta.'),
@@ -2070,7 +2118,7 @@ async function paAnalyzeAndExport(
       PA_RES_LOC[resid].forEach(function(e) {
         var locid = e.LOCID;
         var used  = psrByResidLoc.has(resid + '|' + locid);
-        var obs   = used ? 'Recurso activo en PSR para esta planta' : 'Recurso asignado a planta pero sin uso en PSR para esta planta';
+        var obs   = used ? _xnPA('Recurso activo en PSR para esta planta') : _xnPA('Recurso asignado a planta pero sin uso en PSR para esta planta');
         var fill  = used ? null : C_YEL;
         var _s3Row = [statusLabel(fill), obs, resid, rd(resid), locid, ld(locid), yn(used)];
         efInjectRow(_s3Row, 'pa', 'resourceLocation', 5, e);
@@ -2094,10 +2142,10 @@ async function paAnalyzeAndExport(
       'PRDID output','PRDDESCR output','MATTYPEID output',
       'LOCID planta','LOCDESCR planta',
       'SOURCETYPE(s)','PLEADTIME','OUTPUTCOEFFICIENT','PRATIO',
-      'PRDID+LOCID en Location Product',
-      '# Componentes PSI','# Recursos PSR','Recursos PSR (códigos)',
-      '# Componentes con alternativa',
-      'Tiene PSR'
+      _xnPA('PRDID+LOCID en Location Product'),
+      _xnPA('# Componentes PSI'),_xnPA('# Recursos PSR'),_xnPA('Recursos PSR (códigos)'),
+      _xnPA('# Componentes con alternativa'),
+      _xnPA('Tiene PSR')
     ];
     var _s6Notes = [
       _xnPA('Color de alerta: 🔴 Alerta = BOM vacío, PLEADTIME=0, sin Location Product o sin PSR | 🟡 Advertencia = sin SOURCETYPE=P o múltiples fuentes sin cuota | ✅ OK = receta completa.'),
@@ -2192,13 +2240,13 @@ async function paAnalyzeAndExport(
       'SOURCEID',
       'PRDID output','PRDDESCR output','MATTYPEID output',
       'LOCID planta','LOCDESCR planta',
-      'PRDID componente','PRDDESCR comp','MATTYPEID comp',
-      'COMPONENTCOEFFICIENT','Tipo componente',
-      'PRDID comp+LOCID en Location Product',
-      'En Location Source (insumo)',
-      'LOCFR origen','LOCDESCR origen',
-      '# Orígenes comp.','Orígenes comp. (códigos)',
-      'Material de reemplazo (ISALTITEM)','Reemplaza a'
+      _xnPA('PRDID componente'),'PRDDESCR comp','MATTYPEID comp',
+      'COMPONENTCOEFFICIENT',_xnPA('Tipo componente'),
+      _xnPA('PRDID comp+LOCID en Location Product'),
+      _xnPA('En Location Source (insumo)'),
+      _xnPA('LOCFR origen'),_xnPA('LOCDESCR origen'),
+      _xnPA('# Orígenes comp.'),_xnPA('Orígenes comp. (códigos)'),
+      _xnPA('Material de reemplazo (ISALTITEM)'),_xnPA('Reemplaza a')
     ];
     var _s7Notes = [
       _xnPA('Color de alerta: 🔴 Alerta = coeficiente cero, insumo sin arco de abastecimiento o componente sin Location Product | 🟡 Advertencia = SOURCEID no encontrado o sustituto sin registro Item Sub | ✅ OK = componente bien configurado.'),
@@ -2267,11 +2315,11 @@ async function paAnalyzeAndExport(
         var isSemiRemote  = !hasLocalPsh && compCatIsSemi && hasAnyPsh;
         var isSemiNoRec   = !hasLocalPsh && compCatIsSemi && !hasAnyPsh;
 
-        var tipo = noSrc ? 'No determinado'
-          : isSemiLocal  ? 'Semielaborado'
-          : isSemiRemote ? 'Semielaborado (ext.)'
-          : isSemiNoRec  ? 'Semielaborado (sin receta)'
-          : 'Insumo';
+        var tipo = noSrc ? _xnPA('No determinado')
+          : isSemiLocal  ? _xnPA('Semielaborado')
+          : isSemiRemote ? _xnPA('Semielaborado (ext.)')
+          : isSemiNoRec  ? _xnPA('Semielaborado (sin receta)')
+          : _xnPA('Insumo');
         var compInLP = locid ? locPrdSet.has(locid + '|' + comp) : false;
         var noCoeff  = !coeff || Number(coeff) === 0;
 
@@ -2300,23 +2348,23 @@ async function paAnalyzeAndExport(
 
         var obs = [];
         var exclNote = _compExclNote(compMt);
-        if (noSrc)         obs.push('SOURCEID no encontrado en PSH');
-        if (noCoeff)       obs.push('Coeficiente = 0 o no definido');
+        if (noSrc)         obs.push(_xnPA('SOURCEID no encontrado en PSH'));
+        if (noCoeff)       obs.push(_xnPA('Coeficiente = 0 o no definido'));
         if (isSemiLocal) {
-          obs.push('Semielaborado: trazabilidad en PSH');
+          obs.push(_xnPA('Semielaborado: trazabilidad en PSH'));
         } else if (isSemiRemote) {
           if (!noSrc) obs.push(inLS
-            ? 'Semiterminado producido en otra planta: transferencia configurada'
-            : 'Semiterminado sin arco de transferencia hacia esta planta');
+            ? _xnPA('Semiterminado producido en otra planta: transferencia configurada')
+            : _xnPA('Semiterminado sin arco de transferencia hacia esta planta'));
         } else if (isSemiNoRec) {
-          obs.push('Semiterminado sin receta de produccion (PSH) en ninguna planta');
+          obs.push(_xnPA('Semiterminado sin receta de produccion (PSH) en ninguna planta'));
         } else if (!noSrc) {
-          if (!inLS) obs.push('Insumo sin arco de abastecimiento en Location Source');
+          if (!inLS) obs.push(_xnPA('Insumo sin arco de abastecimiento en Location Source'));
         }
-        if (!compInLP && locid) obs.push('Componente no habilitado en Location Product para esta planta');
-        if (isAlt === 'X' && !replacedBy && ent.psiSub) obs.push('Material de reemplazo sin registro en Item Sub');
-        if (exclNote) obs.push('Componente de tipo excluido (' + compMt + ') — validado en contexto');
-        if (!obs.length) obs.push('SOURCEID valido en PSH | Coeficiente definido | Con arco de abastecimiento en Location Source | Habilitado en Location Product');
+        if (!compInLP && locid) obs.push(_xnPA('Componente no habilitado en Location Product para esta planta'));
+        if (isAlt === 'X' && !replacedBy && ent.psiSub) obs.push(_xnPA('Material de reemplazo sin registro en Item Sub'));
+        if (exclNote) obs.push(I18n.t('xls.obs.compExcludedType', { type: compMt }));
+        if (!obs.length) obs.push(_xnPA('SOURCEID valido en PSH | Coeficiente definido | Con arco de abastecimiento en Location Source | Habilitado en Location Product'));
 
         var fill = (noCoeff
           || (isSemiRemote  && !inLS && !noSrc)
@@ -2365,8 +2413,8 @@ async function paAnalyzeAndExport(
       'PRDID output','PRDDESCR output','MATTYPEID output',
       'LOCID planta','LOCDESCR planta',
       'RESID','RESDESCR',
-      'RESID+LOCID en Resource Location',
-      '# Plantas con este recurso asignado','Plantas recurso (códigos)'
+      _xnPA('RESID+LOCID en Resource Location'),
+      _xnPA('# Plantas con este recurso asignado'),_xnPA('Plantas recurso (códigos)')
     ];
     var _s8Notes = [
       _xnPA('Color de alerta: 🟡 Advertencia = recurso asignado a una receta pero sin Resource Location en esa planta | ✅ OK = asignación válida y consistente.'),
@@ -2536,12 +2584,15 @@ async function paAnalyzeAndExport(
       paFilter: execMeta.paFilter,
       entities: execMeta.entities,
       mattypeCfg: MATTYPE_CFG,
-      kpis: [
-        { label: 'Total productos en maestro',         value: Object.keys(PA_PRD).length.toLocaleString('es-CL') },
-        { label: 'Productos analizados (incluidos)',   value: (prdStat.total || 0).toLocaleString('es-CL') },
-        { label: 'Productos sin hallazgos (OK)',       value: (prdStat.ok || 0).toLocaleString('es-CL') },
-        { label: 'SOURCEIDs activos (PSH)',            value: Object.keys(pshBySid).length.toLocaleString('es-CL') }
-      ]
+      kpis: (function() {
+        var _loc = (window.I18n && I18n.getLang() === 'en') ? 'en-US' : 'es-CL';
+        return [
+          { label: _xnPA('Total productos en maestro'),       value: Object.keys(PA_PRD).length.toLocaleString(_loc) },
+          { label: _xnPA('Productos analizados (incluidos)'), value: (prdStat.total || 0).toLocaleString(_loc) },
+          { label: _xnPA('Productos sin hallazgos (OK)'),     value: (prdStat.ok || 0).toLocaleString(_loc) },
+          { label: _xnPA('SOURCEIDs activos (PSH)'),          value: Object.keys(pshBySid).length.toLocaleString(_loc) }
+        ];
+      })()
     });
   }
 
