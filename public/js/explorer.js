@@ -58,9 +58,15 @@ const Explorer = (function () {
     fi.addEventListener('change', e => { addFiles([...e.target.files]); fi.value = ''; });
   }
 
+  // audit M-06: cap on uploaded ZIP file size. Real CI-DS ZIPs are < 10 MB.
+  const EX_MAX_ZIP_BYTES = 50 * 1024 * 1024;
   function addFiles(list) {
     list.filter(f => f.name.toLowerCase().endsWith('.zip')).forEach(f => {
       if (exFiles.find(x => x.name === f.name)) return;
+      if (f.size > EX_MAX_ZIP_BYTES) {
+        console.warn(`[Explorer] ZIP "${f.name}" rechazado: supera ${(EX_MAX_ZIP_BYTES/1024/1024).toFixed(0)} MB`);
+        return;
+      }
       const r = new FileReader();
       r.onload = ev => { exFiles.push({ name: f.name, data: ev.target.result }); renderFiles(); };
       r.readAsArrayBuffer(f);
@@ -308,6 +314,16 @@ const Explorer = (function () {
     chainEdges = [];
     const seen = new Set();
 
+    // audit M-07: precompute lookup pairs per integration ONCE rather than
+    // re-running the regex inside the O(N²) inner loop. With 1000 integrations
+    // this cuts the lookup branch from ~1M regex executions to ~1k.
+    const lookupPairsCache = new Map();
+    integrations.forEach(p => {
+      if (p.lookups && p.lookups.length > 0) {
+        lookupPairsCache.set(p._idx, extractLookupPairs(p.lookups));
+      }
+    });
+
     integrations.forEach(a => {
       const targetKey     = normTableKey(a.dstDSName, a.targetTable);
       const targetKeyNoDS = normTableKey('', a.targetTable);
@@ -382,7 +398,7 @@ const Explorer = (function () {
             !seen.has(`${a._idx}→${b._idx}:lookup`) &&
             b.lookups.length > 0 && aTblNorm.length >= 4) {
 
-          const bPairs = extractLookupPairs(b.lookups);
+          const bPairs = lookupPairsCache.get(b._idx) || [];
           const lookupMatch = bPairs.find(p => {
             if (p.ds !== aTblNorm) return false;
             // Si A tiene nombre de archivo Y el lookup también lo provee, deben coincidir

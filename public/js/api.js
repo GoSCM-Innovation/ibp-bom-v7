@@ -265,6 +265,11 @@
       var PAGE_SIZE = 50000;
       var page = 0;
       var entityName = _entityNameFromUrl(entityUrl);
+      // audit M-09: safety caps to prevent runaway pagination if a query
+      // accidentally omits filters or the upstream returns an infinite chain.
+      // 500 pages × 50000 = 25M rows ceiling; soft cap on rows at 10M.
+      var MAX_PAGES = 500;
+      var MAX_ROWS  = 10000000;
 
       // Aplicar mapeos de campos si existen
       var canonicalFields = selectFields ? selectFields.split(',') : [];
@@ -279,6 +284,14 @@
 
       while (url) {
         page++;
+        if (page > MAX_PAGES) {
+          log(logEl, 'warn', '  ↳ Tope de páginas alcanzado (' + MAX_PAGES + '). Datos parciales: ' + all.length + ' filas.');
+          break;
+        }
+        if (all.length >= MAX_ROWS) {
+          log(logEl, 'warn', '  ↳ Tope de filas alcanzado (' + MAX_ROWS + '). Datos parciales.');
+          break;
+        }
         if (page > 1) {
           log(logEl, 'info', '  ↳ Pág.' + page + ' GET → ' + url);
         }
