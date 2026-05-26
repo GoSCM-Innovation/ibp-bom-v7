@@ -2556,6 +2556,16 @@ async function paAnalyzeAndExport(
 
   /* ── HOJA 0: RESUMEN ── */
   setStatusPA(_xnPA('Generando Resumen...'), 98);
+  var _paSheetKeyMap = {
+    'Product':              I18n.t('xls.sheet.product'),
+    'Location':             I18n.t('xls.sheet.location'),
+    'Resource':             I18n.t('xls.sheet.resource'),
+    'Resource Location':    I18n.t('xls.sheet.resourceLocation'),
+    'Prod Source Header':   I18n.t('xls.sheet.prodSrcHeader'),
+    'Prod Source Item':     I18n.t('xls.sheet.prodSrcItem'),
+    'Prod Source Resource': I18n.t('xls.sheet.prodSrcResource'),
+    'Tipos Excluidos':      I18n.t('xls.sheet.excludedTypes')
+  };
   var sheetDefs = [
     { key: 'Product',              num: 1 },
     { key: 'Location',             num: 2 },
@@ -2570,7 +2580,7 @@ async function paAnalyzeAndExport(
     var s = STATS[d.key]; if (!s) return;
     var pct  = s.total > 0 ? Math.round((s.ok / s.total) * 100) : 100;
     var fill = s.red > 0 ? C_RED : s.yel > 0 ? C_YEL : null;
-    S0.addRow([d.num, d.key, s.total, s.red, s.yel, s.ok, pct + '%'], fill);
+    S0.addRow([d.num, _paSheetKeyMap[d.key] || d.key, s.total, s.red, s.yel, s.ok, pct + '%'], fill);
   });
   S0.finalize();
 
