@@ -11,6 +11,7 @@
 const express = require('express');
 const fetch = require('node-fetch');
 const path = require('path');
+const https = require('https');
 const rateLimit = require('express-rate-limit');
 
 const app = express();
@@ -25,15 +26,31 @@ const ODATA_PREFIX_IBP = '/sap/opu/odata/IBP/';
 const ODATA_PREFIX_SAP = '/sap/opu/odata/sap/';   // lowercase — BC_EXT_APPJOB_MANAGEMENT uses /sap/opu/odata/sap/
 const PREFIX_MAP = { IBP: ODATA_PREFIX_IBP, SAP: ODATA_PREFIX_SAP };
 
-// ─── Security headers ────────────────────────────────────────────
+// ─── Outbound HTTPS agent — bounded socket pool (audit M-05) ─────
+const httpsAgent = new https.Agent({
+  keepAlive: true,
+  maxSockets: 50,
+  timeout: 30000
+});
+
+// Fetch defaults: 90s per-request timeout is wide enough for SAP IBP heavy pages
+// (5–30 s typical) but kills slowloris/DoS attempts. Use this on every outbound fetch.
+const FETCH_TIMEOUT_MS = 90000;
+const SOAP_TIMEOUT_MS  = 60000;
+
+// ─── Security headers (audit L-11 fase 1) ────────────────────────
 app.use((_req, res, next) => {
   res.setHeader('X-Content-Type-Options', 'nosniff');
   res.setHeader('X-Frame-Options', 'DENY');
   res.setHeader('Referrer-Policy', 'no-referrer');
+  res.setHeader('Strict-Transport-Security', 'max-age=63072000; includeSubDomains');
+  res.setHeader('Permissions-Policy', 'geolocation=(), microphone=(), camera=()');
   next();
 });
 
-app.use(express.json());
+// body limit: largest legit request is the OData `query` field (~25 KB measured).
+// 64 KB cap leaves 2× headroom while blocking inflated bodies (audit M-04).
+app.use(express.json({ limit: '64kb' }));
 app.use(express.static(path.join(__dirname, 'public')));
 
 // ─── Rate limiting ───────────────────────────────────────────────
@@ -48,8 +65,37 @@ app.use('/api/', apiLimiter);
 
 // ─── Validation helpers ───────────────────────────────────────────
 
-// Validates the base URL: must be HTTPS and end with the allowed host suffix.
-// Blocks loopback and private IP ranges (RFC 1918 / RFC 5735).
+// Validates a hostname against private/internal IP ranges (audit H-05).
+// Returns true if the host is private/loopback/link-local/CGNAT (IPv4 + IPv6).
+function isPrivateHost(host) {
+  // Strip IPv6 brackets if present
+  const h = host.replace(/^\[|\]$/g, '').toLowerCase();
+
+  // IPv4 loopback, RFC1918, link-local, CGNAT, all-zeros
+  if (/^(localhost|0\.0\.0\.0|127\.|10\.|169\.254\.|192\.168\.)/.test(h)) return true;
+  if (/^172\.(1[6-9]|2\d|3[01])\./.test(h)) return true;
+  if (/^100\.(6[4-9]|[7-9]\d|1[01]\d|12[0-7])\./.test(h)) return true;
+
+  // IPv6: loopback (::1), unspecified (::), unique-local (fc00::/7), link-local (fe80::/10),
+  // IPv4-mapped (::ffff:0.0.0.0/96)
+  if (/^(::1|::|fc[0-9a-f]{2}:|fd[0-9a-f]{2}:|fe[89ab][0-9a-f]:|::ffff:)/i.test(h)) return true;
+
+  return false;
+}
+
+// SAP IBP tenants follow the pattern <tenant>-api.scmibp.ondemand.com.
+// Override via ALLOWED_IBP_HOST_REGEX env var if a non-standard tenant exists.
+// Default pattern is anchored to prevent partial matches (audit H-03).
+const DEFAULT_IBP_HOST_REGEX = /^[a-z0-9-]+-api\.scmibp\.ondemand\.com$/i;
+function getIbpHostRegex() {
+  const raw = process.env.ALLOWED_IBP_HOST_REGEX;
+  if (!raw) return DEFAULT_IBP_HOST_REGEX;
+  try { return new RegExp(raw, 'i'); }
+  catch { console.error('[config] ALLOWED_IBP_HOST_REGEX inválido, usando default'); return DEFAULT_IBP_HOST_REGEX; }
+}
+
+// Validates the base URL: must be HTTPS, NOT a private/internal IP, and match the
+// SAP IBP tenant regex (audit H-03, H-05).
 function validateProxyUrl(rawUrl) {
   let parsed;
   try { parsed = new URL(rawUrl); } catch { return 'URL inválida'; }
@@ -57,25 +103,53 @@ function validateProxyUrl(rawUrl) {
   if (parsed.protocol !== 'https:') return 'Solo se permite HTTPS';
 
   const host = parsed.hostname;
+  if (isPrivateHost(host)) return 'Host no permitido';
 
-  // Block loopback and private ranges
-  if (/^(localhost|127\.|10\.|169\.254\.|::1$)/.test(host)) return 'Host no permitido';
-  if (/^172\.(1[6-9]|2\d|3[01])\./.test(host)) return 'Host no permitido';
-  if (/^192\.168\./.test(host)) return 'Host no permitido';
-
-  // Allowlist: only SAP IBP domains (override via ALLOWED_HOST_SUFFIX env var)
-  const suffix = process.env.ALLOWED_HOST_SUFFIX || '.ondemand.com';
-  if (!host.endsWith(suffix)) return 'Host no permitido';
+  if (!getIbpHostRegex().test(host)) return 'Host no permitido';
 
   return null;
 }
 
+// Validates a CI-DS HCI URL (audit H-01). SAP CI-DS lives on Kyma, Neo, or HCS.
+// Override via ALLOWED_HCI_HOST_REGEX env var if needed.
+const DEFAULT_HCI_HOST_REGEX = /^([a-z0-9-]+\.)+(kyma\.ondemand\.com|hana\.ondemand\.com|hcs\.cloud\.sap)$/i;
+function getHciHostRegex() {
+  const raw = process.env.ALLOWED_HCI_HOST_REGEX;
+  if (!raw) return DEFAULT_HCI_HOST_REGEX;
+  try { return new RegExp(raw, 'i'); }
+  catch { console.error('[config] ALLOWED_HCI_HOST_REGEX inválido, usando default'); return DEFAULT_HCI_HOST_REGEX; }
+}
+function validateHciUrl(rawUrl) {
+  let parsed;
+  try { parsed = new URL(rawUrl); } catch { return 'URL CI-DS inválida'; }
+  if (parsed.protocol !== 'https:') return 'Solo se permite HTTPS';
+  const host = parsed.hostname;
+  if (isPrivateHost(host)) return 'Host CI-DS no permitido';
+  if (!getHciHostRegex().test(host)) return 'Host CI-DS no permitido';
+  return null;
+}
+
 // Validates that the OData service name is in the allowed list.
-// Strips optional version suffix (e.g. ;v=0002) before checking.
+// Strict regex: SERVICE_NAME optionally followed by ;v=NNNN. Anything else
+// (path traversal, slashes, dots) is rejected (audit H-02).
+const SERVICE_RE = /^[A-Z][A-Z0-9_]*(?:;v=\d+)?$/;
 function validateService(service) {
-  if (!service) return 'Servicio no permitido';
+  if (!service || typeof service !== 'string') return 'Servicio no permitido';
+  if (!SERVICE_RE.test(service)) return 'Servicio no permitido';
   const baseName = service.split(';')[0];
   if (!ALLOWED_SERVICES.includes(baseName)) return 'Servicio no permitido';
+  return null;
+}
+
+// Validates the OData query string forwarded to SAP. Caps length and rejects
+// characters the frontend never sends (audit M-01). Spaces are allowed because
+// $select fields are not URL-encoded by the client (api.js:275-277).
+const MAX_QUERY_LEN = 60000;
+function validateQuery(query) {
+  if (query === undefined || query === null || query === '') return null;
+  if (typeof query !== 'string') return 'Query inválida';
+  if (query.length > MAX_QUERY_LEN) return 'Query demasiado larga';
+  if (/[\x00#]/.test(query)) return 'Query inválida';
   return null;
 }
 
@@ -97,13 +171,15 @@ app.post('/api/proxy', async (req, res) => {
     return res.status(400).json({ error: 'Faltan parámetros requeridos' });
   }
 
-  const baseError = validateProxyUrl(base + '/');
-  const svcError  = validateService(service);
-  const pathError = validateEntityPath(entityPath);
+  const baseError  = validateProxyUrl(base + '/');
+  const svcError   = validateService(service);
+  const pathError  = validateEntityPath(entityPath);
+  const queryError = validateQuery(query);
 
-  if (baseError) return res.status(400).json({ error: baseError });
-  if (svcError)  return res.status(400).json({ error: svcError });
-  if (pathError) return res.status(400).json({ error: pathError });
+  if (baseError)  return res.status(400).json({ error: baseError });
+  if (svcError)   return res.status(400).json({ error: svcError });
+  if (pathError)  return res.status(400).json({ error: pathError });
+  if (queryError) return res.status(400).json({ error: queryError });
 
   const odataPrefix = PREFIX_MAP[prefix] || ODATA_PREFIX_IBP;
   const url = `${base}${odataPrefix}${service}/${entityPath}${query ? '?' + query : ''}`;
@@ -117,7 +193,9 @@ app.post('/api/proxy', async (req, res) => {
         'Accept': 'application/json',
         'Content-Type': 'application/json'
       },
-      timeout: 120000
+      timeout: FETCH_TIMEOUT_MS,
+      agent: httpsAgent,
+      redirect: 'manual'
     });
 
     if (!resp.ok) {
@@ -163,7 +241,9 @@ app.post('/api/proxy-xml', async (req, res) => {
         'Authorization': `Basic ${auth}`,
         'Accept': 'application/xml'
       },
-      timeout: 60000
+      timeout: SOAP_TIMEOUT_MS,
+      agent: httpsAgent,
+      redirect: 'manual'
     });
 
     if (!resp.ok) {
@@ -204,16 +284,24 @@ app.post('/api/proxy-next', async (req, res) => {
     return res.status(400).json({ error: 'Path no permitido' });
   }
 
+  // Strip any userinfo from the SAP-returned __next URL — credentials must come
+  // only from the Authorization header we attach, never from the URL itself.
+  parsed.username = '';
+  parsed.password = '';
+  const safeUrl = parsed.toString();
+
   try {
     const auth = Buffer.from(`${user}:${password}`).toString('base64');
-    const resp = await fetch(url, {
+    const resp = await fetch(safeUrl, {
       method: 'GET',
       headers: {
         'Authorization': `Basic ${auth}`,
         'Accept': 'application/json',
         'Content-Type': 'application/json'
       },
-      timeout: 120000
+      timeout: FETCH_TIMEOUT_MS,
+      agent: httpsAgent,
+      redirect: 'manual'
     });
 
     if (!resp.ok) {
@@ -235,11 +323,40 @@ app.post('/api/proxy-next', async (req, res) => {
 // ─── /api/send-feedback ───────────────────────────────────────────
 // Body: { name, app, type, description }
 // Sends feedback email via EmailJS REST API using server-side credentials.
-app.post('/api/send-feedback', async (req, res) => {
+// Hardened against spam abuse (audit M-03):
+//  - Dedicated rate limiter: 5 req/min/IP (vs global 60/min)
+//  - Length caps on every field
+//  - Origin check: must come from production or a Vercel preview deploy of this app
+const feedbackLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 5,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Demasiados mensajes, intenta de nuevo en un minuto' }
+});
+
+const ALLOWED_FEEDBACK_ORIGIN_RE = /^https:\/\/ibp-bom-v7(-[a-z0-9-]+)?\.vercel\.app$/i;
+
+app.post('/api/send-feedback', feedbackLimiter, async (req, res) => {
   const { name, app: appName, type, description } = req.body || {};
 
   if (!name || !description) {
     return res.status(400).json({ error: 'Faltan campos requeridos' });
+  }
+  if (typeof name !== 'string' || name.length > 200)
+    return res.status(400).json({ error: 'Nombre demasiado largo' });
+  if (typeof description !== 'string' || description.length > 5000)
+    return res.status(400).json({ error: 'Descripción demasiado larga (máx 5000 caracteres)' });
+  if (appName && (typeof appName !== 'string' || appName.length > 100))
+    return res.status(400).json({ error: 'Campo "app" inválido' });
+  if (type && (typeof type !== 'string' || type.length > 100))
+    return res.status(400).json({ error: 'Campo "type" inválido' });
+
+  // Origin check: block cross-site abuse from arbitrary pages.
+  // Production: https://ibp-bom-v7.vercel.app · Previews: https://ibp-bom-v7-<hash>.vercel.app
+  const origin = req.get('origin') || '';
+  if (origin && !ALLOWED_FEEDBACK_ORIGIN_RE.test(origin)) {
+    return res.status(403).json({ error: 'Origen no permitido' });
   }
 
   try {
@@ -252,7 +369,8 @@ app.post('/api/send-feedback', async (req, res) => {
         user_id:         process.env.EMAILJS_PUBLIC_KEY,
         accessToken:     process.env.EMAILJS_PRIVATE_KEY,
         template_params: { from_name: name, app: appName, type, description }
-      })
+      }),
+      timeout: SOAP_TIMEOUT_MS
     });
 
     if (resp.ok) return res.json({ ok: true });
@@ -296,7 +414,9 @@ async function cidsRawSoap(hciUrl, soapAction, envelope) {
     method: 'POST',
     headers: { 'Content-Type': 'text/xml; charset=utf-8', 'SOAPAction': soapAction },
     body: envelope,
-    timeout: 60000,
+    timeout: SOAP_TIMEOUT_MS,
+    agent: httpsAgent,
+    redirect: 'manual'
   });
   return { ok: resp.ok, status: resp.status, text: await resp.text() };
 }
@@ -337,12 +457,18 @@ app.post('/api/cids-login', async (req, res) => {
   if (!hciUrl || !orgName || !user || !password)
     return res.status(400).json({ error: 'hciUrl, orgName, user y password son requeridos' });
 
+  // audit H-01: hciUrl previously had zero validation, enabling SSRF + credential
+  // exfiltration. Now allowlisted against SAP CI-DS host patterns (Kyma/Neo/HCS).
+  const hciError = validateHciUrl(hciUrl);
+  if (hciError) return res.status(400).json({ error: hciError });
+
   const loginBody = `<web:logonRequest><orgName>${xe(orgName)}</orgName><userName>${xe(user)}</userName><password>${xe(password)}</password><isProduction>${isProduction ? 'true' : 'false'}</isProduction></web:logonRequest>`;
   try {
     const { ok, status, text } = await cidsRawSoap(hciUrl, 'function=logon', buildCidsEnvelope(loginBody, null));
     if (!ok) {
       const fault = parseSoapFault(text);
-      return res.status(401).json({ error: fault?.faultString || `Error de autenticación (HTTP ${status})` });
+      console.error('[cids-login] auth failed', status, fault?.faultString || '');
+      return res.status(401).json({ error: `Error de autenticación (HTTP ${status})` });
     }
     const sessionId = xmlVal(text, 'SessionID') || xmlVal(text, 'sessionID');
     if (!sessionId) return res.status(401).json({ error: 'La respuesta no devolvió SessionID' });
@@ -361,6 +487,10 @@ app.post('/api/cids-soap', async (req, res) => {
   if (!operation) return res.status(400).json({ error: 'operation requerida' });
   if (!CIDS_ALLOWED_OPS.has(operation)) return res.status(400).json({ error: 'Operación no permitida' });
 
+  // audit H-01: validate hciUrl against allowlist before any outbound fetch.
+  const hciError = validateHciUrl(hciUrl);
+  if (hciError) return res.status(400).json({ error: hciError });
+
   const soapActions = { getProjects: 'function=getAllProjects', getProjectTasks: 'function=getAllProjectTasks', logout: 'function=logoff' };
   try {
     const body     = buildCidsBody(operation, { ...params, sessionId });
@@ -370,12 +500,14 @@ app.post('/api/cids-soap', async (req, res) => {
       const fault = parseSoapFault(text);
       if (/session/i.test(fault?.faultCode || '') || /session/i.test(fault?.faultString || ''))
         return res.status(401).json({ error: 'SESSION_EXPIRED' });
-      return res.status(status).json({ error: fault?.faultString || `SOAP error HTTP ${status}` });
+      // audit M-02: don't leak upstream SOAP fault details to client; log them instead.
+      console.error('[cids-soap] fault', status, fault?.faultCode || '', fault?.faultString || '');
+      return res.status(status >= 400 && status < 600 ? status : 502).json({ error: `Error en CI-DS (HTTP ${status})` });
     }
     return res.json(parseCidsResponse(operation, text));
   } catch (e) {
     console.error('[cids-soap]', e.message);
-    return res.status(500).json({ error: e.message });
+    return res.status(500).json({ error: 'Error interno del servidor' });
   }
 });
 
