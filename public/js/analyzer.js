@@ -227,6 +227,13 @@
       'Sin anomalias topologicas': 'No topological anomalies',
       'cliente(s) servido(s)': 'customer(s) served',
       'Activo como origen para {n} producto(s)': 'Active as origin for {n} product(s)',
+      // ── Entity notes ──
+      'Excluye TINVALID=X': 'Excludes TINVALID=X',
+      'Excluye CINVALID=X': 'Excludes CINVALID=X',
+      'Excluye PINVALID=X': 'Excludes PINVALID=X',
+      'Solo SOURCEIDs activos en PSH': 'Active SOURCEIDs in PSH only',
+      'Excluye LOCVALID=X': 'Excludes LOCVALID=X',
+      'Excluye CUSTVALID=X': 'Excludes CUSTVALID=X',
       // ── Location role values ──
       'Planta con Entrega': 'Plant with Delivery',
       'Planta': 'Plant',
@@ -586,7 +593,7 @@
               return idbBulkPut('sn_loc', rows);
             });
           log(logEl, 'ok', timer.fmt() + ' Location Source: ' + nLoc + ' reg → IDB (' + Object.keys(SN_IDX.allPrds).length + ' productos)');
-          SN_EXEC_META.entities.push({ name: 'Location Source', entityName: locationEntity, downloaded: nLoc, note: 'Excluye TINVALID=X' });
+          SN_EXEC_META.entities.push({ name: 'Location Source', entityName: locationEntity, downloaded: nLoc, note: _xn('Excluye TINVALID=X') });
         }
         progEl.style.width = '8%';
 
@@ -601,7 +608,7 @@
               return idbBulkPut('sn_cust', rows);
             });
           log(logEl, 'ok', timer.fmt() + ' Customer Source: ' + nCust + ' reg → IDB');
-          SN_EXEC_META.entities.push({ name: 'Customer Source', entityName: customerEntity, downloaded: nCust, note: 'Excluye CINVALID=X' });
+          SN_EXEC_META.entities.push({ name: 'Customer Source', entityName: customerEntity, downloaded: nCust, note: _xn('Excluye CINVALID=X') });
         }
         progEl.style.width = '17%';
 
@@ -634,7 +641,7 @@
               return idbBulkPut('sn_plant', rows);
             });
           log(logEl, 'ok', timer.fmt() + ' Production Source Header: ' + nSrc + ' reg → IDB');
-          SN_EXEC_META.entities.push({ name: 'Production Source Header', entityName: sourceProdEntity, downloaded: nSrc, note: 'Excluye PINVALID=X' });
+          SN_EXEC_META.entities.push({ name: 'Production Source Header', entityName: sourceProdEntity, downloaded: nSrc, note: _xn('Excluye PINVALID=X') });
         }
         progEl.style.width = '28%';
 
@@ -657,7 +664,7 @@
               return idbBulkPut('sn_psi', validRows);
             });
           log(logEl, 'ok', timer.fmt() + ' Production Source Item: ' + nPsi + ' reg → IDB (' + Object.keys(SN_IDX.psiCompPrds).length + ' componentes únicos)');
-          SN_EXEC_META.entities.push({ name: 'Production Source Item', entityName: sourceItemEntity, downloaded: nPsi, note: 'Solo SOURCEIDs activos en PSH' });
+          SN_EXEC_META.entities.push({ name: 'Production Source Item', entityName: sourceItemEntity, downloaded: nPsi, note: _xn('Solo SOURCEIDs activos en PSH') });
         }
         progEl.style.width = '33%';
 
@@ -672,7 +679,7 @@
               return Promise.resolve();
             });
           log(logEl, 'ok', timer.fmt() + ' Location: ' + nLocM + ' reg');
-          SN_EXEC_META.entities.push({ name: 'Location', entityName: locMasterEntity, downloaded: nLocM, note: 'Excluye LOCVALID=X' });
+          SN_EXEC_META.entities.push({ name: 'Location', entityName: locMasterEntity, downloaded: nLocM, note: _xn('Excluye LOCVALID=X') });
         }
         progEl.style.width = '38%';
 
@@ -698,7 +705,7 @@
               return Promise.resolve();
             });
           log(logEl, 'ok', timer.fmt() + ' Customer: ' + nCustM + ' reg');
-          SN_EXEC_META.entities.push({ name: 'Customer', entityName: custMasterEntity, downloaded: nCustM, note: 'Excluye CUSTVALID=X' });
+          SN_EXEC_META.entities.push({ name: 'Customer', entityName: custMasterEntity, downloaded: nCustM, note: _xn('Excluye CUSTVALID=X') });
         }
         progEl.style.width = '46%';
 
@@ -1681,7 +1688,7 @@
             : useTradingRules ? { 'Solo Distribución + Entrega': 1 }
             : useRawmatRules  ? { 'Abastecimiento Completo': 1 }
             :                   { 'Red Completa': 1 };
-          if (!OK_STATUSES[networkStatus]) obs.push(networkStatus);
+          if (!OK_STATUSES[networkStatus]) obs.push(_xn(networkStatus));
 
           if (paths._truncated) obs.push(_xn('Paths truncados (>50.000, red muy compleja)'));
           cycles.forEach(function (c) { obs.push(_xn('Ciclo:') + ' ' + c); });
