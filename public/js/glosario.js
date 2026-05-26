@@ -7,33 +7,47 @@
 
   var _currentModule = 'pa';
 
+  /* ─── I18N ─────────────────────────────────────────────────── */
+  function _lang() {
+    try { return (window.I18n && window.I18n.getLang) ? window.I18n.getLang() : 'es'; }
+    catch (e) { return 'es'; }
+  }
+  function _t(s) {
+    if (_lang() !== 'en') return s;
+    return (_TEXTS[s] != null) ? _TEXTS[s] : s;
+  }
+  /* Mapa ES → EN. Las claves son cadenas exactas en español tal como aparecen
+     en el HTML generado por las secciones. Se completa al final del archivo
+     (se hace hoist por ser `var`). */
+  var _TEXTS = {};
+
   /* ─── MICRO-HELPERS ─────────────────────────────────────────── */
   function h(tag, cls, content) {
     return '<' + tag + (cls ? ' class="' + cls + '"' : '') + '>' + content + '</' + tag + '>';
   }
   function badge(sev) {
     var map = {
-      red:    '<span class="glos-badge glos-red">⛔ Alerta</span>',
-      yellow: '<span class="glos-badge glos-yellow">⚠ Advertencia</span>',
-      ok:     '<span class="glos-badge glos-ok">✅ OK</span>',
-      info:   '<span class="glos-badge glos-info">ℹ Info</span>'
+      red:    '<span class="glos-badge glos-red">' + _t('⛔ Alerta') + '</span>',
+      yellow: '<span class="glos-badge glos-yellow">' + _t('⚠ Advertencia') + '</span>',
+      ok:     '<span class="glos-badge glos-ok">' + _t('✅ OK') + '</span>',
+      info:   '<span class="glos-badge glos-info">' + _t('ℹ Info') + '</span>'
     };
     return map[sev] || '';
   }
   function catBadge(cat) {
     var map = {
-      finished:      '<span class="glos-cat glos-cat-finished">Terminado</span>',
-      semi:          '<span class="glos-cat glos-cat-semi">Semiterminado</span>',
-      rawmat:        '<span class="glos-cat glos-cat-rawmat">Mat. Prima</span>',
-      trading:       '<span class="glos-cat glos-cat-trading">Mercadería</span>',
-      uncategorized: '<span class="glos-cat glos-cat-uncategorized">Sin cat.</span>',
-      all:           '<span class="glos-cat glos-cat-all">Todos</span>'
+      finished:      '<span class="glos-cat glos-cat-finished">' + _t('Terminado') + '</span>',
+      semi:          '<span class="glos-cat glos-cat-semi">' + _t('Semiterminado') + '</span>',
+      rawmat:        '<span class="glos-cat glos-cat-rawmat">' + _t('Mat. Prima') + '</span>',
+      trading:       '<span class="glos-cat glos-cat-trading">' + _t('Mercadería') + '</span>',
+      uncategorized: '<span class="glos-cat glos-cat-uncategorized">' + _t('Sin cat.') + '</span>',
+      all:           '<span class="glos-cat glos-cat-all">' + _t('Todos') + '</span>'
     };
     return (cat || []).map(function (c) { return map[c] || ''; }).join(' ');
   }
 
   function obsTable(rows) {
-    var header = '<tr><th>Texto en Excel</th><th>Estado</th><th>Aplica a</th><th>Por qué aparece</th><th>Qué revisar en IBP</th></tr>';
+    var header = '<tr><th>' + _t('Texto en Excel') + '</th><th>' + _t('Estado') + '</th><th>' + _t('Aplica a') + '</th><th>' + _t('Por qué aparece') + '</th><th>' + _t('Qué revisar en IBP') + '</th></tr>';
     var body = rows.map(function (r) {
       return '<tr class="glos-obs-' + r[1] + '">' +
         '<td><code class="glos-obs-code">' + r[0] + '</code></td>' +
@@ -47,7 +61,7 @@
   }
 
   function colTable(rows) {
-    var header = '<tr><th>Columna</th><th>Qué significa</th></tr>';
+    var header = '<tr><th>' + _t('Columna') + '</th><th>' + _t('Qué significa') + '</th></tr>';
     var body = rows.map(function (r) {
       return '<tr><td><strong class="glos-col-name">' + r[0] + '</strong></td><td>' + r[1] + '</td></tr>';
     }).join('');
@@ -55,7 +69,7 @@
   }
 
   function netStatusTable(rows) {
-    var header = '<tr><th>Estado de la Red</th><th>Estado</th><th>Aplica a</th><th>Significado</th></tr>';
+    var header = '<tr><th>' + _t('Estado de la Red') + '</th><th>' + _t('Estado') + '</th><th>' + _t('Aplica a') + '</th><th>' + _t('Significado') + '</th></tr>';
     var body = rows.map(function (r) {
       return '<tr class="glos-obs-' + r[1] + '">' +
         '<td><code class="glos-obs-code">' + r[0] + '</code></td>' +
@@ -876,17 +890,65 @@
     if (!nav) return;
     nav.innerHTML = sections.map(function (s) {
       return '<a class="glos-nav-link" href="#' + s.id + '" onclick="glosarioNavClick(event,\'' + s.id + '\')">' +
-        s.icon + ' ' + s.title + '</a>';
+        s.icon + ' ' + _t(s.title) + '</a>';
     }).join('');
   }
 
   function renderContent(sections) {
     var cont = document.getElementById('glosarioContent');
     if (!cont) return;
-    cont.innerHTML = sections.map(function (s) {
-      return section(s.id, s.icon, s.title, s.content());
+    var html = sections.map(function (s) {
+      return section(s.id, s.icon, _t(s.title), s.content());
     }).join('<hr class="glos-hr">');
+    if (_lang() === 'en') html = _translateHtml(html);
+    cont.innerHTML = html;
     cont.scrollTop = 0;
+  }
+
+  /* Recorre nodos de texto del HTML generado y traduce con _TEXTS.
+     Es robusto frente a inner HTML porque opera sobre nodos de texto y
+     atributos title/aria-label. */
+  function _translateHtml(html) {
+    try {
+      var tmp = document.createElement('div');
+      tmp.innerHTML = html;
+      // Traducir bloques HTML completos cuando coinciden con una clave
+      // (algunas entradas del mapa contienen <strong>...).
+      _walkAndTranslate(tmp);
+      return tmp.innerHTML;
+    } catch (e) {
+      console.warn('[glosario i18n] _translateHtml', e);
+      return html;
+    }
+  }
+
+  function _walkAndTranslate(root) {
+    // 1) intentar match exacto de innerHTML de elementos hoja (p, td, th, li, span, h3, h2, strong, em, div)
+    var candidates = root.querySelectorAll('p, td, th, li, span, h2, h3, h4, strong, em, code, a, div');
+    candidates.forEach(function (el) {
+      // saltar contenedores con muchos hijos estructurales
+      var inner = el.innerHTML;
+      if (inner == null) return;
+      var trimmed = inner.trim();
+      if (!trimmed) return;
+      if (_TEXTS[trimmed] != null) {
+        el.innerHTML = _TEXTS[trimmed];
+      }
+    });
+    // 2) nodos de texto sueltos
+    var walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, null, false);
+    var nodes = [];
+    var n;
+    while ((n = walker.nextNode())) nodes.push(n);
+    nodes.forEach(function (tn) {
+      var t = tn.nodeValue;
+      if (!t) return;
+      var trimmed = t.trim();
+      if (!trimmed) return;
+      if (_TEXTS[trimmed] != null) {
+        tn.nodeValue = t.replace(trimmed, _TEXTS[trimmed]);
+      }
+    });
   }
 
   /* ─── PDF EXPORT ─────────────────────────────────────────────── */
@@ -904,12 +966,12 @@
     var fileName = 'Glosario_' + _currentModule.toUpperCase() + '_' + dateStr + '.pdf';
 
     var btn = document.getElementById('glosarioPdfBtn');
-    if (btn) { btn.disabled = true; btn.textContent = 'Generando...'; }
+    if (btn) { btn.disabled = true; btn.textContent = I18n.t('glosario.btn.generating'); }
 
     setTimeout(function () {
       try { _buildPDF(J, modName, today, fileName); }
       finally {
-        if (btn) { btn.disabled = false; btn.textContent = '↓ Exportar PDF'; }
+        if (btn) { btn.disabled = false; btn.textContent = I18n.t('glosario.btn.exportPdf'); }
       }
     }, 0);
   };
@@ -955,7 +1017,7 @@
       doc.setFontSize(7.5);
       doc.setFont('helvetica', 'normal');
       T([185, 200, 220]);
-      doc.text('GoSCM  |  Glosario ' + modName, ML, 8);
+      doc.text(I18n.t('glosario.pdf.headerTitle', { mod: modName }), ML, 8);
     }
 
     function newPage() {
@@ -976,17 +1038,17 @@
     doc.text('GOSCM APPLICATIONS HUB', PW / 2, 62, { align: 'center' });
 
     doc.setFontSize(30); T([10, 10, 10]); doc.setFont('helvetica', 'bold');
-    doc.text('Glosario', PW / 2, 94, { align: 'center' });
+    doc.text(I18n.t('glosario.pdf.coverTitle'), PW / 2, 94, { align: 'center' });
     doc.setFontSize(17);
     doc.text(modName, PW / 2, 108, { align: 'center' });
 
     D([10, 10, 10]); doc.setLineWidth(0.4);
     doc.line(ML + 25, 140, PW - MR - 25, 140);
 
-    var dateLocale = today.toLocaleDateString('es-CL', { year: 'numeric', month: 'long', day: 'numeric' });
+    var dateLocale = today.toLocaleDateString(_lang() === 'en' ? 'en-US' : 'es-CL', { year: 'numeric', month: 'long', day: 'numeric' });
     doc.setFontSize(9.5); T([150, 165, 205]); doc.setFont('helvetica', 'normal');
-    doc.text('Guía de referencia para la lectura del análisis exportado', PW / 2, 149, { align: 'center' });
-    doc.text('Generado el ' + dateLocale, PW / 2, 159, { align: 'center' });
+    doc.text(I18n.t('glosario.pdf.coverSubtitle'), PW / 2, 149, { align: 'center' });
+    doc.text(I18n.t('glosario.pdf.generatedOn', { date: dateLocale }), PW / 2, 159, { align: 'center' });
 
     /* ── CONTENT PAGES ── */
     newPage();
@@ -1020,7 +1082,7 @@
       doc.line(ML, PH - FTR + 2, PW - MR, PH - FTR + 2);
       doc.setFontSize(7); T(C.muted); doc.setFont('helvetica', 'normal');
       doc.text('GoSCM Applications Hub', ML, PH - 5.5);
-      doc.text('Página ' + (pg - 1) + ' de ' + contPg, PW - MR, PH - 5.5, { align: 'right' });
+      doc.text(I18n.t('glosario.pdf.pageFooter', { n: pg - 1, total: contPg }), PW - MR, PH - 5.5, { align: 'right' });
     }
 
     doc.save(fileName);
@@ -1111,7 +1173,7 @@
       ensure(12);
       doc.autoTable({
         startY: y,
-        head: [['Estado', 'Significado']],
+        head: [[_t('Estado'), _t('Significado')]],
         body: rows,
         margin: { top: TOP, left: ML, right: MR, bottom: FTR + 3 },
         tableWidth: CW,
@@ -1211,8 +1273,10 @@
       b.classList.toggle('active', b.id === 'glosModBtn-' + mod);
     });
     var sections = mod === 'pa' ? PA_SECTIONS : SN_SECTIONS;
-    renderNav(sections);
-    renderContent(sections);
+    _dictReady.then(function () {
+      renderNav(sections);
+      renderContent(sections);
+    });
   };
 
   var _scrollLocked = false;
@@ -1276,4 +1340,31 @@
   } else {
     hookSwitchTab();
   }
+
+  /* ═══════════════════════════════════════════════════════════════
+     DICCIONARIO ES → EN — carga diferida desde i18n/glosario.en.json
+     ═══════════════════════════════════════════════════════════════ */
+  var _dictReady = fetch('i18n/glosario.en.json', { cache: 'no-cache' })
+    .then(function (r) { return r.ok ? r.json() : {}; })
+    .then(function (obj) { Object.assign(_TEXTS, obj); return _TEXTS; })
+    .catch(function (err) { console.error('[glosario] dict load error', err); return _TEXTS; });
+
+  /* Re-render al cambiar de idioma */
+  document.addEventListener('i18n:change', function () {
+    try {
+      var tab = document.getElementById('tab-glosario');
+      if (!tab) return;
+      if (_initialized) {
+        var sections = _currentModule === 'pa' ? PA_SECTIONS : SN_SECTIONS;
+        _dictReady.then(function () {
+          renderNav(sections);
+          renderContent(sections);
+        });
+      }
+      var btn = document.getElementById('glosarioPdfBtn');
+      if (btn && !btn.disabled) {
+        btn.textContent = I18n.t('glosario.btn.exportPdf');
+      }
+    } catch (e) { console.warn('[glosario i18n change]', e); }
+  });
 })();

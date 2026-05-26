@@ -2,6 +2,297 @@
        SUPPLY NETWORK: STREAMING FETCH + INDEX + ANALYSE + EXPORT
        ═══════════════════════════════════════════════════════════════ */
 
+    /* ── i18n helper para notas de columnas Excel ── */
+    var _XLS_NOTES_EN = {
+      'Color: ⛔ Alerta = problema critico | ⚠ Advertencia = dato incompleto | ✅ OK = sin hallazgos.':
+        'Color: ⛔ Alert = critical issue | ⚠ Warning = incomplete data | ✅ OK = no findings.',
+      'Color: ⛔ Alerta | ⚠ Advertencia | ✅ OK.':
+        'Color: ⛔ Alert | ⚠ Warning | ✅ OK.',
+      'Detalle de validaciones. En estado OK lista las que pasaron.':
+        'Validation detail. In OK status, lists those that passed.',
+      'Codigo unico del producto (PRDID).': 'Unique product code (PRDID).',
+      'Descripcion del producto segun maestro.': 'Product description from master.',
+      'Tipo de material SAP (MATTYPEID). Determina reglas de validacion por categoria.':
+        'SAP material type (MATTYPEID). Determines validation rules per category.',
+      'Si/No — tiene fuente de produccion (PSH) activa. Sin PSH = no se fabrica internamente.':
+        'Yes/No — has active production source (PSH). No PSH = not manufactured internally.',
+      'Si/No — aparece como componente en BOM de algun otro producto (PSI).':
+        'Yes/No — appears as a component in another product’s BOM (PSI).',
+      'Si/No — tiene arcos de transferencia entre ubicaciones (Location Source).':
+        'Yes/No — has transfer arcs between locations (Location Source).',
+      'Si/No — tiene arcos de entrega a cliente (Customer Source).':
+        'Yes/No — has customer delivery arcs (Customer Source).',
+      'Si/No — habilitado en al menos una ubicacion (Location Product). Sin esto IBP ignora el producto.':
+        'Yes/No — enabled in at least one location (Location Product). Without this IBP ignores the product.',
+      'Si/No — habilitado para al menos un cliente (Customer Product).':
+        'Yes/No — enabled for at least one customer (Customer Product).',
+      'Si/No — solo existe en el maestro, sin actividad en ninguna entidad de red.':
+        'Yes/No — exists only in master data, no activity in any network entity.',
+      'Estado logistico: Red Completa = tiene ruta de planta a cliente | Sin Entrega = tiene produccion pero no llega a cliente | Huerfano = sin actividad de red.':
+        'Logistics status: Full Network = has plant-to-customer route | No Delivery = has production but does not reach a customer | Orphan = no network activity.',
+      'Numero de plantas productoras (nodos con PSH) desde las que este producto puede originarse.':
+        'Number of producing plants (PSH nodes) from which this product can originate.',
+      'Numero de centros de distribucion intermedios en la red del producto.':
+        'Number of intermediate distribution centers in the product’s network.',
+      'Numero de clientes alcanzables a traves de rutas completas.':
+        'Number of customers reachable through full routes.',
+      'Cantidad de rutas completas de planta a cliente. 0 = no llega a ningun cliente.':
+        'Number of full plant-to-customer routes. 0 = does not reach any customer.',
+      'Numero de saltos de la ruta mas larga de planta a cliente.':
+        'Number of hops in the longest plant-to-customer route.',
+      'Ubicaciones que reciben producto pero cuyas salidas no llegan a ningun cliente.':
+        'Locations that receive product but whose outflows do not reach any customer.',
+      'Ubicaciones que reciben producto pero no tienen ninguna salida configurada.':
+        'Locations that receive product but have no outflow configured.',
+      'Puntaje de salud 0-100 calculado en base a completitud de rutas, anomalias y lead times.':
+        'Health score 0-100 calculated based on route completeness, anomalies and lead times.',
+      'Clasificacion del puntaje: Healthy (≥80) | Acceptable (≥60) | Weak (≥40) | Critical (<40).':
+        'Score classification: Healthy (≥80) | Acceptable (≥60) | Weak (≥40) | Critical (<40).',
+      'Desglose paso a paso del calculo: bonificaciones (+) y penalizaciones (-) que determinan el score final.':
+        'Step-by-step breakdown: bonuses (+) and penalties (-) that determine the final score.',
+      'Cantidad de ubicaciones origen distintas (LOCFR) en Location Source para este producto.':
+        'Number of distinct origin locations (LOCFR) in Location Source for this product.',
+      'Codigos de las ubicaciones origen separados por coma.':
+        'Comma-separated origin location codes.',
+      'Cantidad de ubicaciones destino distintas (LOCID) en Location Source para este producto.':
+        'Number of distinct destination locations (LOCID) in Location Source for this product.',
+      'Codigos de las ubicaciones destino separados por coma.':
+        'Comma-separated destination location codes.',
+      'Cantidad de clientes distintos declarados en Customer Source para este producto.':
+        'Number of distinct customers declared in Customer Source for this product.',
+      'Codigos de los clientes en Customer Source separados por coma.':
+        'Comma-separated customer codes from Customer Source.',
+      'Si/No — alguna ubicacion destino recibe este producto desde mas de un origen simultaneamente (multi-sourcing).':
+        'Yes/No — some destination location receives this product from more than one origin simultaneously (multi-sourcing).',
+      'Promedio de TLEADTIME (dias) para todos los arcos de Location Source de este producto. — si no hay arcos con lead time definido.':
+        'Average TLEADTIME (days) across all Location Source arcs for this product. — if no arcs have a defined lead time.',
+      'Promedio de CLEADTIME (dias) para todos los arcos de Customer Source de este producto. — si no hay arcos con lead time definido.':
+        'Average CLEADTIME (days) across all Customer Source arcs for this product. — if no arcs have a defined lead time.',
+      'Cantidad de plantas que producen este producto pero no tienen ninguna ruta hasta algun cliente.':
+        'Number of plants that produce this product but have no route to any customer.',
+      'Codigo unico de la ubicacion (LOCID).': 'Unique location code (LOCID).',
+      'Descripcion de la ubicacion segun maestro.': 'Location description from master.',
+      'Tipo de ubicacion SAP (LOCTYPE). Informativo; el rol real se infiere del comportamiento en los datos.':
+        'SAP location type (LOCTYPE). Informational; the real role is inferred from data behavior.',
+      'Rol inferido del comportamiento en los datos: Planta con Entrega = PSH + CustSrc | Planta = solo PSH | DC con Entrega Directa = LocSrc + CustSrc | DC = solo LocSrc | Punto de Entrega = solo CustSrc | Sin rol activo = sin presencia en red.':
+        'Role inferred from data behavior: Plant with Delivery = PSH + CustSrc | Plant = PSH only | DC with Direct Delivery = LocSrc + CustSrc | DC = LocSrc only | Delivery Point = CustSrc only | No active role = no network presence.',
+      'Si/No — tiene al menos una fuente de produccion (PSH) en esta ubicacion.':
+        'Yes/No — has at least one production source (PSH) at this location.',
+      'Si/No — aparece como origen o destino en Location Source.':
+        'Yes/No — appears as origin or destination in Location Source.',
+      'Si/No — aparece como ubicacion de entrega en Customer Source.':
+        'Yes/No — appears as a delivery location in Customer Source.',
+      'Si/No — habilitada en Location Product. Sin esto IBP no planifica en esta ubicacion.':
+        'Yes/No — enabled in Location Product. Without this IBP does not plan at this location.',
+      'Si/No — solo en maestro, sin actividad en red.':
+        'Yes/No — master-only, no network activity.',
+      'Total de productos distintos que pasan por esta ubicacion (como origen o destino en LocSrc).':
+        'Total distinct products that pass through this location (as origin or destination in LocSrc).',
+      'Productos para los que esta ubicacion actua como origen (LOCFR) en Location Source.':
+        'Products for which this location acts as origin (LOCFR) in Location Source.',
+      'Productos para los que esta ubicacion actua como destino (LOCID) en Location Source.':
+        'Products for which this location acts as destination (LOCID) in Location Source.',
+      'Clientes que pueden ser abastecidos desde esta ubicacion via Customer Source.':
+        'Customers that can be supplied from this location via Customer Source.',
+      'Si/No — su eliminacion cortaria rutas de multiples productos a clientes.':
+        'Yes/No — its removal would cut routes of multiple products to customers.',
+      'Numero de productos cuyas rutas pasan por este nodo critico.':
+        'Number of products whose routes pass through this critical node.',
+      'Numero de clientes cuyo abastecimiento depende de este nodo.':
+        'Number of customers whose supply depends on this node.',
+      'Critical (≥4 productos) | High (2–3) | Medium (1).':
+        'Critical (≥4 products) | High (2–3) | Medium (1).',
+      'Codigo unico del cliente (CUSTID).': 'Unique customer code (CUSTID).',
+      'Descripcion del cliente segun maestro.': 'Customer description from master.',
+      'Si/No — tiene al menos un arco de entrega configurado (Customer Source).':
+        'Yes/No — has at least one delivery arc configured (Customer Source).',
+      'Si/No — habilitado en Customer Product. Sin esto IBP ignora el cliente en planificacion.':
+        'Yes/No — enabled in Customer Product. Without this IBP ignores the customer in planning.',
+      'Si/No — solo en maestro, sin arcos de entrega.':
+        'Yes/No — master-only, no delivery arcs.',
+      'Numero de productos distintos que este cliente puede recibir segun Customer Source.':
+        'Number of distinct products this customer can receive according to Customer Source.',
+      'Numero de ubicaciones desde las que se despacha al cliente.':
+        'Number of locations that dispatch to the customer.',
+      'Total de rutas completas de planta a este cliente sumadas para todos sus productos.':
+        'Total full plant-to-customer routes summed across all its products.',
+      'Single Path = algún producto llega solo por una ruta | Single Node Dependency = hay un nodo unico que si falla corta el abastecimiento | Resilient = todos los productos tienen rutas alternativas.':
+        'Single Path = some product reaches via a single route only | Single Node Dependency = there is a single node whose failure cuts supply | Resilient = all products have alternative routes.',
+      'Producto transferido en este arco.': 'Product transferred in this arc.',
+      'Descripcion del producto.': 'Product description.',
+      'Tipo de material del producto (MATTYPEID).': 'Product material type (MATTYPEID).',
+      'Ubicacion de origen (LOCFR) del arco de transferencia.':
+        'Origin location (LOCFR) of the transfer arc.',
+      'Descripcion de la ubicacion origen.': 'Origin location description.',
+      'Ubicacion de destino (LOCID) del arco de transferencia.':
+        'Destination location (LOCID) of the transfer arc.',
+      'Descripcion de la ubicacion destino.': 'Destination location description.',
+      'Lead time de transferencia en dias. 0 o vacio = ⚠ Advertencia.':
+        'Transfer lead time in days. 0 or empty = ⚠ Warning.',
+      'Si/No — el origen esta habilitado para este producto en Location Product.':
+        'Yes/No — the origin is enabled for this product in Location Product.',
+      'Si/No — el destino esta habilitado para este producto en Location Product.':
+        'Yes/No — the destination is enabled for this product in Location Product.',
+      'Si/No — el producto tiene produccion propia (PSH) en alguna planta.':
+        'Yes/No — the product has its own production (PSH) at some plant.',
+      'Si/No — este arco pertenece a al menos una ruta completa que llega a un cliente.':
+        'Yes/No — this arc belongs to at least one full route that reaches a customer.',
+      'Si/No — existe un arco configurado en la direccion opuesta (LOCID->LOCFR) para el mismo producto.':
+        'Yes/No — there is an arc configured in the opposite direction (LOCID->LOCFR) for the same product.',
+      'OK = lead time > 0 | Zero = TLEADTIME = 0 | Missing = sin valor.':
+        'OK = lead time > 0 | Zero = TLEADTIME = 0 | Missing = no value.',
+      'Si/No — SPOF: este LOCID tiene un unico LOCFR para este producto. Si falla el origen, el destino queda sin abastecimiento.':
+        'Yes/No — SPOF: this LOCID has a single LOCFR for this product. If the origin fails, the destination is left without supply.',
+      'Producto entregado al cliente en este arco.':
+        'Product delivered to the customer in this arc.',
+      'Ubicacion de despacho (LOCID) desde la que sale el producto al cliente.':
+        'Dispatch location (LOCID) from which the product is shipped to the customer.',
+      'Descripcion de la ubicacion de despacho.': 'Dispatch location description.',
+      'Cliente receptor (CUSTID).': 'Receiving customer (CUSTID).',
+      'Descripcion del cliente.': 'Customer description.',
+      'Lead time de entrega al cliente en dias. 0 o vacio = ⚠ Advertencia.':
+        'Customer delivery lead time in days. 0 or empty = ⚠ Warning.',
+      'Si/No — la ubicacion de despacho esta habilitada para este producto en Location Product.':
+        'Yes/No — the dispatch location is enabled for this product in Location Product.',
+      'Si/No — el cliente esta habilitado para este producto en Customer Product.':
+        'Yes/No — the customer is enabled for this product in Customer Product.',
+      'Si/No — el producto tiene produccion propia (PSH) en alguna planta de la red.':
+        'Yes/No — the product has its own production (PSH) at some plant in the network.',
+      'Si/No — existe una ruta completa de produccion hasta esta entrega al cliente.':
+        'Yes/No — there is a full production route up to this customer delivery.',
+      'OK = lead time > 0 | Zero = CLEADTIME = 0 | Missing = sin valor.':
+        'OK = lead time > 0 | Zero = CLEADTIME = 0 | Missing = no value.',
+      // networkStatus values (cell content)
+      'Huérfano': 'Orphan',
+      'Sin Producción': 'No Production',
+      'Sin Consumo PSI': 'No PSI Consumption',
+      'Sin Abastecimiento': 'No Supply',
+      'Sin Distribución': 'No Distribution',
+      'Sin Entrega a Cliente': 'No Customer Delivery',
+      'Sin arcos de red': 'No network arcs',
+      'Red Completa': 'Full Network',
+      'Distribución sin ruta completa': 'Distribution without full route',
+      'Semiterminado Local': 'Local Semi-finished',
+      'Semiterminado sin Transferencia': 'Semi-finished without Transfer',
+      'Semiterminado Local con Transferencia': 'Local Semi-finished with Transfer',
+      'Semiterminado con Transferencia': 'Semi-finished with Transfer',
+      'Abastecimiento Completo': 'Full Supply',
+      'Abastecimiento Parcial': 'Partial Supply',
+      'Abastecimiento sin Consumo PSI': 'Supply without PSI Consumption',
+      'Solo Distribución + Entrega': 'Distribution + Delivery only',
+      'Solo Distribución': 'Distribution only',
+      'Solo Entrega': 'Delivery only',
+      // Summary labels (Resumen sheet)
+      'Total productos analizados': 'Total products analyzed',
+      'Productos con red completa': 'Products with full network',
+      'Ghost nodes detectados': 'Ghost nodes detected',
+      'Health Score promedio': 'Average Health Score',
+      // ── Observaciones del Network Analyzer (hoja Product) ──
+      'Paths truncados (>50.000, red muy compleja)': 'Paths truncated (>50,000, network too complex)',
+      'Ciclo:': 'Cycle:',
+      'Ghost node:': 'Ghost node:',
+      'Dead-end:': 'Dead-end:',
+      'Planta aislada:': 'Isolated plant:',
+      'PLEADTIME faltante:': 'PLEADTIME missing:',
+      'TLEADTIME faltante:': 'TLEADTIME missing:',
+      'CLEADTIME faltante:': 'CLEADTIME missing:',
+      'Sin Location Product': 'No Location Product',
+      'Sin Customer Product': 'No Customer Product',
+      'Red desconectada: arcos LS y CS no comparten ubicaciones':
+        'Disconnected network: LS and CS arcs do not share locations',
+      'Destino(s) de transferencia sin consumo PSI:':
+        'Transfer destination(s) without PSI consumption:',
+      // okParts (Product OK)
+      'Semiterminado consumido en planta productora con transferencia configurada':
+        'Semi-finished consumed at producing plant with transfer configured',
+      'Semiterminado consumido en destino de transferencia':
+        'Semi-finished consumed at transfer destination',
+      'Semiterminado consumido en planta productora':
+        'Semi-finished consumed at producing plant',
+      'Habilitado en Location Product': 'Enabled in Location Product',
+      'Habilitado en Customer Product': 'Enabled in Customer Product',
+      'Lead times definidos': 'Lead times defined',
+      'Mercadería con arcos de distribución y entrega':
+        'Goods with distribution and delivery arcs',
+      'Red completa sin anomalias': 'Full network without anomalies',
+      'ruta(s) a cliente': 'route(s) to customer',
+      // Observaciones hoja Location
+      'Ghost node (alimentado sin salida util)': 'Ghost node (fed without useful outflow)',
+      'Dead-end (recibe pero no reenvía)': 'Dead-end (receives but does not forward)',
+      'Planta aislada (sin ruta a ningun cliente)': 'Isolated plant (no route to any customer)',
+      'Participa en ciclo:': 'In cycle:',
+      'Nodo critico: {n} prod, {m} clientes': 'Critical node: {n} products, {m} customers',
+      'Solo en maestro de ubicaciones, sin actividad en la red':
+        'Master-only, no network activity',
+      'Sin anomalias topologicas': 'No topological anomalies',
+      'cliente(s) servido(s)': 'customer(s) served',
+      'Activo como origen para {n} producto(s)': 'Active as origin for {n} product(s)',
+      // ── Entity notes ──
+      'Excluye TINVALID=X': 'Excludes TINVALID=X',
+      'Excluye CINVALID=X': 'Excludes CINVALID=X',
+      'Excluye PINVALID=X': 'Excludes PINVALID=X',
+      'Solo SOURCEIDs activos en PSH': 'Active SOURCEIDs in PSH only',
+      'Excluye LOCVALID=X': 'Excludes LOCVALID=X',
+      'Excluye CUSTVALID=X': 'Excludes CUSTVALID=X',
+      // ── Location role values ──
+      'Planta con Entrega': 'Plant with Delivery',
+      'Planta': 'Plant',
+      'DC con Entrega Directa': 'DC with Direct Delivery',
+      'DC': 'DC',
+      'Punto de Entrega': 'Delivery Point',
+      'Sin rol activo': 'No active role',
+      // ── Customer observations ──
+      'Solo en maestro, sin uso en red': 'Master-only, no network activity',
+      'Sin Customer Product': 'No Customer Product',
+      ' producto(s) con unica ruta': ' product(s) with single route',
+      ' producto(s) con nodo critico unico': ' product(s) with single critical node',
+      'Sin productos alcanzables desde produccion': 'No products reachable from production',
+      'Abastecido con rutas resilientes': 'Supplied with resilient routes',
+      'Habilitado en Customer Product': 'Enabled in Customer Product',
+      ' producto(s) alcanzables': ' product(s) reachable',
+      ' ruta(s) configuradas': ' route(s) configured',
+      // ── Location Source observations ──
+      'Sin Location Product en origen (': 'No Location Product at origin (',
+      'Sin Location Product en destino (': 'No Location Product at destination (',
+      'Arco duplicado en el dataset': 'Duplicate arc in dataset',
+      'Existe arco inverso (': 'Inverse arc exists (',
+      'Arco valido | Location Product en origen y destino | TLEADTIME definido':
+        'Valid arc | Location Product at origin and destination | TLEADTIME defined',
+      ' | En ruta completa': ' | In full route',
+      // ── Customer Source observations ──
+      'Sin Location Product en ubicacion (': 'No Location Product at location (',
+      'Sin Customer Product para cliente (': 'No Customer Product for customer (',
+      'Entrega no alcanzable desde produccion': 'Delivery not reachable from production',
+      'Entrega alcanzable | Location Product y Customer Product configurados | CLEADTIME definido':
+        'Delivery reachable | Location Product and Customer Product configured | CLEADTIME defined',
+      // ── Health score steps (static) ──
+      '+30 produccion configurada': '+30 production configured',
+      '+0 sin produccion': '+0 no production',
+      '+40 consumo PSI configurado': '+40 PSI consumption configured',
+      '+0 sin consumo PSI': '+0 no PSI consumption',
+      '+10 transferencia configurada': '+10 transfer configured',
+      '+60 arcos de suministro configurados': '+60 supply arcs configured',
+      '+0 sin arcos de suministro': '+0 no supply arcs',
+      '+20 entrega directa a cliente configurada': '+20 direct customer delivery configured',
+      '+40 distribucion configurada': '+40 distribution configured',
+      '+0 sin distribucion': '+0 no distribution',
+      '+40 entrega a cliente configurada': '+40 customer delivery configured',
+      '+0 sin entrega a cliente': '+0 no customer delivery',
+      '+50 ruta completa planta-cliente': '+50 full plant-to-customer route',
+      '+0 sin rutas completas': '+0 no full routes',
+      '-20 cliente(s) con unica ruta': '-20 customer(s) with single route',
+      '-15 fuente unica de produccion': '-15 single production source',
+      // ── Health score steps (dynamic prefixes) ──
+      '+20 multiples plantas (': '+20 multiple plants (',
+      '+20 ubicaciones de consumo alcanzadas (': '+20 consumption locations reached (',
+      '+20 multiples clientes (': '+20 multiple customers (',
+      '+15 multiples clientes (': '+15 multiple customers (',
+      '+15 multiples rutas (': '+15 multiple routes ('
+    };
+    function _xn(s) {
+      return (window.I18n && I18n.getLang() === 'en' && _XLS_NOTES_EN[s]) ? _XLS_NOTES_EN[s] : s;
+    }
+
     /* Fetches all OData pages, calls onPage(results) per page (no accumulation). */
     async function fetchAndIndex(entityUrl, logEl, pverFilter, selectFields, onPage) {
       var PAGE_SIZE = 50000;
@@ -84,8 +375,8 @@
           { role: 'Customer Source',          entityName: document.getElementById('selSNCustomer').value,   required: true, selectorId: 'selSNCustomer',   fields: ['PRDID','LOCID','CUSTID','CLEADTIME','CINVALID'] },
           { role: 'Production Source Header', entityName: document.getElementById('selSNSourceProd').value, required: true, selectorId: 'selSNSourceProd', fields: ['SOURCEID','PRDID','LOCID','PLEADTIME','PRATIO','PINVALID'] },
           { role: 'Production Source Item',   entityName: document.getElementById('selSNSourceItem').value, required: true, selectorId: 'selSNSourceItem', fields: ['SOURCEID','PRDID','COMPONENTCOEFFICIENT'] },
-          { role: 'Ubicación maestra',        entityName: document.getElementById('selSNLocMaster').value,  required: true, selectorId: 'selSNLocMaster',  fields: ['LOCID','LOCDESCR','LOCTYPE','LOCVALID'] },
-          { role: 'Cliente maestra',          entityName: document.getElementById('selSNCustMaster').value, required: true, selectorId: 'selSNCustMaster', fields: ['CUSTID','CUSTDESCR','CUSTVALID'] },
+          { role: 'Location Master',        entityName: document.getElementById('selSNLocMaster').value,  required: true, selectorId: 'selSNLocMaster',  fields: ['LOCID','LOCDESCR','LOCTYPE','LOCVALID'] },
+          { role: 'Customer Master',          entityName: document.getElementById('selSNCustMaster').value, required: true, selectorId: 'selSNCustMaster', fields: ['CUSTID','CUSTDESCR','CUSTVALID'] },
           { role: 'Location Product',         entityName: document.getElementById('selSNLocProd').value,    required: true, selectorId: 'selSNLocProd',    fields: ['LOCID','PRDID'] },
           { role: 'Customer Product',         entityName: document.getElementById('selSNCustProd').value,   required: true, selectorId: 'selSNCustProd',   fields: ['CUSTID','PRDID'] },
         ];
@@ -104,7 +395,7 @@
         excl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
       }
       var wrap = document.getElementById('snmattypeExcludeWrap');
-      if (wrap) wrap.innerHTML = '<p style="color:var(--text2);font-size:12px;margin:8px 0;">&#9203; Cargando tipos de material desde SAP IBP\u2026</p>';
+      if (wrap) wrap.innerHTML = '<p style="color:var(--text2);font-size:12px;margin:8px 0;">' + escH(I18n.t('mattype.status.loading')) + '</p>';
       snFetchMattypes().then(function() {
         mattyeRenderExclude('sn');
         _mattyeUpdateExcludeSummary();
@@ -201,13 +492,14 @@
       var inclPrds = Object.keys(MATTYPE_CFG).filter(function(k) { return !MATTYPE_CFG[k].excluded; })
         .reduce(function(s,k){ return s + (MATTYPE_CFG[k].count||0); }, 0);
       var exclPrds = excl.reduce(function(s,k){ return s + (MATTYPE_CFG[k].count||0); }, 0);
+      var isEn = window.I18n && I18n.getLang() === 'en';
       if (!excl.length && !catted.length) {
-        el.textContent = 'Configuración por defecto — análisis estándar para todos los tipos';
+        el.textContent = I18n.t('run.snDefault');
       } else {
         var parts = [];
-        parts.push(inclPrds + ' productos incluidos en ' + (Object.keys(MATTYPE_CFG).length - excl.length) + ' tipo(s)');
-        if (excl.length)  parts.push(exclPrds + ' productos excluidos (' + excl.join(', ') + ')');
-        if (catted.length) parts.push(catted.length + ' tipo(s) categorizados');
+        parts.push(inclPrds + (isEn ? ' products included in ' : ' productos incluidos en ') + (Object.keys(MATTYPE_CFG).length - excl.length) + (isEn ? ' type(s)' : ' tipo(s)'));
+        if (excl.length)  parts.push(exclPrds + (isEn ? ' products excluded (' : ' productos excluidos (') + excl.join(', ') + ')');
+        if (catted.length) parts.push(catted.length + (isEn ? ' type(s) categorized' : ' tipo(s) categorizados'));
         el.textContent = parts.join(' · ');
       }
     }
@@ -245,15 +537,15 @@
           { role: 'Customer Source',          entityName: customerEntity,   required: true,  selectorId: 'selSNCustomer',   fields: ['PRDID','LOCID','CUSTID','CLEADTIME','CINVALID'] },
           { role: 'Production Source Header', entityName: sourceProdEntity, required: true,  selectorId: 'selSNSourceProd', fields: ['SOURCEID','PRDID','LOCID','PLEADTIME','PRATIO','PINVALID'] },
           { role: 'Production Source Item',   entityName: sourceItemEntity, required: true,  selectorId: 'selSNSourceItem', fields: ['SOURCEID','PRDID','COMPONENTCOEFFICIENT'] },
-          { role: 'Ubicación maestra',        entityName: locMasterEntity,  required: true,  selectorId: 'selSNLocMaster',  fields: ['LOCID','LOCDESCR','LOCTYPE','LOCVALID'] },
-          { role: 'Cliente maestra',          entityName: custMasterEntity, required: true,  selectorId: 'selSNCustMaster', fields: ['CUSTID','CUSTDESCR','CUSTVALID'] },
+          { role: 'Location Master',        entityName: locMasterEntity,  required: true,  selectorId: 'selSNLocMaster',  fields: ['LOCID','LOCDESCR','LOCTYPE','LOCVALID'] },
+          { role: 'Customer Master',          entityName: custMasterEntity, required: true,  selectorId: 'selSNCustMaster', fields: ['CUSTID','CUSTDESCR','CUSTVALID'] },
           { role: 'Location Product',         entityName: locProdEntity,    required: true,  selectorId: 'selSNLocProd',    fields: ['LOCID','PRDID'] },
           { role: 'Customer Product',         entityName: custProdEntity,   required: true,  selectorId: 'selSNCustProd',   fields: ['CUSTID','PRDID'] },
         ];
         var _snResult = validateEntityFields(_snChecks);
         if (_snResult.issues.length) {
           document.getElementById('btnFetchSN').disabled = false;
-          log(logEl, 'error', 'Hay correcciones pendientes. Resuélvelas en el paso de mapeo de entidades antes de ejecutar.');
+          log(logEl, 'error', I18n.t('analyzer.error.pendingCorrections'));
           if (typeof toggleMappingBody === 'function') toggleMappingBody('bodySNMDT', 'arrSNMDT', true);
           return;
         }
@@ -301,7 +593,7 @@
               return idbBulkPut('sn_loc', rows);
             });
           log(logEl, 'ok', timer.fmt() + ' Location Source: ' + nLoc + ' reg → IDB (' + Object.keys(SN_IDX.allPrds).length + ' productos)');
-          SN_EXEC_META.entities.push({ name: 'Location Source', entityName: locationEntity, downloaded: nLoc, note: 'Excluye TINVALID=X' });
+          SN_EXEC_META.entities.push({ name: 'Location Source', entityName: locationEntity, downloaded: nLoc, note: _xn('Excluye TINVALID=X') });
         }
         progEl.style.width = '8%';
 
@@ -316,7 +608,7 @@
               return idbBulkPut('sn_cust', rows);
             });
           log(logEl, 'ok', timer.fmt() + ' Customer Source: ' + nCust + ' reg → IDB');
-          SN_EXEC_META.entities.push({ name: 'Customer Source', entityName: customerEntity, downloaded: nCust, note: 'Excluye CINVALID=X' });
+          SN_EXEC_META.entities.push({ name: 'Customer Source', entityName: customerEntity, downloaded: nCust, note: _xn('Excluye CINVALID=X') });
         }
         progEl.style.width = '17%';
 
@@ -349,7 +641,7 @@
               return idbBulkPut('sn_plant', rows);
             });
           log(logEl, 'ok', timer.fmt() + ' Production Source Header: ' + nSrc + ' reg → IDB');
-          SN_EXEC_META.entities.push({ name: 'Production Source Header', entityName: sourceProdEntity, downloaded: nSrc, note: 'Excluye PINVALID=X' });
+          SN_EXEC_META.entities.push({ name: 'Production Source Header', entityName: sourceProdEntity, downloaded: nSrc, note: _xn('Excluye PINVALID=X') });
         }
         progEl.style.width = '28%';
 
@@ -372,7 +664,7 @@
               return idbBulkPut('sn_psi', validRows);
             });
           log(logEl, 'ok', timer.fmt() + ' Production Source Item: ' + nPsi + ' reg → IDB (' + Object.keys(SN_IDX.psiCompPrds).length + ' componentes únicos)');
-          SN_EXEC_META.entities.push({ name: 'Production Source Item', entityName: sourceItemEntity, downloaded: nPsi, note: 'Solo SOURCEIDs activos en PSH' });
+          SN_EXEC_META.entities.push({ name: 'Production Source Item', entityName: sourceItemEntity, downloaded: nPsi, note: _xn('Solo SOURCEIDs activos en PSH') });
         }
         progEl.style.width = '33%';
 
@@ -387,7 +679,7 @@
               return Promise.resolve();
             });
           log(logEl, 'ok', timer.fmt() + ' Location: ' + nLocM + ' reg');
-          SN_EXEC_META.entities.push({ name: 'Location', entityName: locMasterEntity, downloaded: nLocM, note: 'Excluye LOCVALID=X' });
+          SN_EXEC_META.entities.push({ name: 'Location', entityName: locMasterEntity, downloaded: nLocM, note: _xn('Excluye LOCVALID=X') });
         }
         progEl.style.width = '38%';
 
@@ -413,7 +705,7 @@
               return Promise.resolve();
             });
           log(logEl, 'ok', timer.fmt() + ' Customer: ' + nCustM + ' reg');
-          SN_EXEC_META.entities.push({ name: 'Customer', entityName: custMasterEntity, downloaded: nCustM, note: 'Excluye CUSTVALID=X' });
+          SN_EXEC_META.entities.push({ name: 'Customer', entityName: custMasterEntity, downloaded: nCustM, note: _xn('Excluye CUSTVALID=X') });
         }
         progEl.style.width = '46%';
 
@@ -441,7 +733,7 @@
         var _dur = fmtDuration(timer.ms());
         var _n   = summary.totalProducts.toLocaleString('es-CL');
         log(logEl, 'ok', timer.fmt() + ' Análisis completado. ' + _n + ' productos analizados · Excel descargado · ' + _dur + '.');
-        setStatusSN('ok', '✓ Análisis completado — Excel descargado | ' + _n + ' productos · ' + _dur);
+        setStatusSN('ok', I18n.t('analyzer.status.complete', { n: _n, dur: _dur }));
         document.getElementById('snSuccessBanner').classList.remove('hidden');
 
       } catch (e) {
@@ -459,25 +751,28 @@
       el.textContent = msg;
     }
 
+    function _setLogToggleBtn(btn, hidden) {
+      var key = hidden ? 'common.viewLogs' : 'common.hideLogs';
+      btn.setAttribute('data-i18n', key);
+      btn.textContent = window.I18n ? I18n.t(key) : (hidden ? 'Ver logs técnicos' : 'Ocultar logs');
+    }
+
     function toggleSNLogs() {
       var logEl = document.getElementById('logSN');
       var btn = document.getElementById('btnToggleSNLogs');
-      var hidden = logEl.classList.toggle('hidden');
-      btn.textContent = hidden ? 'Ver logs técnicos' : 'Ocultar logs';
+      _setLogToggleBtn(btn, logEl.classList.toggle('hidden'));
     }
 
     function toggleVizLogs() {
       var logEl = document.getElementById('logViz');
       var btn = document.getElementById('btnToggleVizLogs');
-      var hidden = logEl.classList.toggle('hidden');
-      btn.textContent = hidden ? 'Ver logs técnicos' : 'Ocultar logs';
+      _setLogToggleBtn(btn, logEl.classList.toggle('hidden'));
     }
 
     function toggleNetLogs() {
       var logEl = document.getElementById('logNet');
       var btn = document.getElementById('btnToggleNetLogs');
-      var hidden = logEl.classList.toggle('hidden');
-      btn.textContent = hidden ? 'Ver logs técnicos' : 'Ocultar logs';
+      _setLogToggleBtn(btn, logEl.classList.toggle('hidden'));
     }
 
 
@@ -878,8 +1173,8 @@
       function ld(id)      { var l = SN_IDX.locLookup[id]  || {}; return str(l.LOCDESCR  || ''); }
       function locType(id) { var l = SN_IDX.locLookup[id]  || {}; return str(l.LOCTYPE   || ''); }
       function cd(id)      { var c = SN_IDX.custLookup[id] || {}; return str(c.CUSTDESCR || ''); }
-      function yn(b)       { return b ? 'Sí' : 'No'; }
-      function stLabel(f)  { return f === C_RED ? '\u26d4 Alerta' : f === C_YEL ? '\u26a0 Advertencia' : '\u2705 OK'; }
+      function yn(b)       { return b ? I18n.t('xls.yes') : I18n.t('xls.no'); }
+      function stLabel(f)  { return f === C_RED ? I18n.t('xls.severity.alert') : f === C_YEL ? I18n.t('xls.severity.warning') : I18n.t('xls.severity.ok'); }
 
       /* ── Workbook ── */
       var wb    = new StreamingXlsx();
@@ -966,8 +1261,8 @@
       }
 
       /* ── Hoja Resumen (se llena al final) ── */
-      var s0hdr = ['#', 'Hoja', 'Total registros', 'Alertas 🔴', 'Advertencias 🟡', 'OK ✅', '% Consistencia'];
-      var s0ws = wb.addWorksheet('Resumen', { views: [{ state: 'frozen', ySplit: 1 }], properties: { tabColor: { argb: 'FF34D399' } } });
+      var s0hdr = ['#', I18n.t('xls.col.sheet'), I18n.t('xls.col.totalRecords'), I18n.t('xls.col.alerts'), I18n.t('xls.col.warnings'), I18n.t('xls.col.ok'), I18n.t('xls.col.consistencyPct')];
+      var s0ws = wb.addWorksheet(I18n.t('xls.sheet.summary'), { views: [{ state: 'frozen', ySplit: 1 }], properties: { tabColor: { argb: 'FF34D399' } } });
       s0ws.addRow(s0hdr);
       s0ws.getRow(1).eachCell(function (cell) {
         cell.fill  = { type: 'pattern', pattern: 'solid', fgColor: { argb: GOLD } };
@@ -980,49 +1275,67 @@
 
       /* ── Crear grupos de hojas ── */
       var _prdHdrs = [
-        'Estado','Observacion',
+        I18n.t('xls.col.status'), I18n.t('xls.col.obs'),
         'PRDID','PRDDESCR','MATTYPEID',
-        'En PSH?','En PSI?','En Location Source?','En Customer Source?','En Location Product?','En Customer Product?','Solo en maestro?',
-        'Estado de la Red','# Plantas','# DCs','# Clientes','# Rutas completas','Ruta mas larga','# Ghost Nodes','# Dead Ends',
-        'Health Score','Categoria de salud','Detalle Calculo Health Score',
-        '# Origenes (LOCFR)','Origenes (codigos)','# Destinos (LOCID)','Destinos (codigos)',
-        '# Clientes en CustSrc','Clientes (codigos)','Multi-sourced?','TLT promedio (dias)','CLT promedio (dias)',
-        '# Plantas aisladas'
+        I18n.t('xls.col.inPSHQ'), I18n.t('xls.col.inPSIQ'),
+        I18n.t('xls.col.inLocSourceQ'), I18n.t('xls.col.inCustSourceQ'),
+        I18n.t('xls.col.inLocProductQ'), I18n.t('xls.col.inCustProdQ'),
+        I18n.t('xls.col.onlyMasterQ'),
+        I18n.t('xls.col.networkStatus'),
+        I18n.t('xls.col.numPlants'),
+        '# DCs',
+        I18n.t('xls.col.numCustomers'),
+        I18n.t('xls.col.numFullRoutes'),
+        I18n.t('xls.col.longestRoute'),
+        '# Ghost Nodes','# Dead Ends',
+        'Health Score',
+        I18n.t('xls.col.healthCategory'),
+        I18n.t('xls.col.healthScoreBreakdown'),
+        I18n.t('xls.col.numOriginsLOCFR'),
+        I18n.t('xls.col.originsCodes'),
+        I18n.t('xls.col.numDestsLOCID'),
+        I18n.t('xls.col.destsCodes'),
+        I18n.t('xls.col.numCustomersInCustSrc'),
+        I18n.t('xls.col.customersCodes'),
+        'Multi-sourced?',
+        I18n.t('xls.col.avgTLT'),
+        I18n.t('xls.col.avgCLT'),
+        I18n.t('xls.col.numIsolatedPlants')
       ];
       var _prdNotes = [
-        'Color: \u26d4 Alerta = problema critico | \u26a0 Advertencia = dato incompleto | \u2705 OK = sin hallazgos.',
-        'Detalle de validaciones. En estado OK lista las que pasaron.',
-        'Codigo unico del producto (PRDID).',
-        'Descripcion del producto segun maestro.',
-        'Tipo de material SAP (MATTYPEID). Determina reglas de validacion por categoria.',
-        'Si/No — tiene fuente de produccion (PSH) activa. Sin PSH = no se fabrica internamente.',
-        'Si/No — aparece como componente en BOM de algun otro producto (PSI).',
-        'Si/No — tiene arcos de transferencia entre ubicaciones (Location Source).',
-        'Si/No — tiene arcos de entrega a cliente (Customer Source).',
-        'Si/No — habilitado en al menos una ubicacion (Location Product). Sin esto IBP ignora el producto.',
-        'Si/No — habilitado para al menos un cliente (Customer Product).',
-        'Si/No — solo existe en el maestro, sin actividad en ninguna entidad de red.',
-        'Estado logistico: Red Completa = tiene ruta de planta a cliente | Sin Entrega = tiene produccion pero no llega a cliente | Huerfano = sin actividad de red.',
-        'Numero de plantas productoras (nodos con PSH) desde las que este producto puede originarse.',
-        'Numero de centros de distribucion intermedios en la red del producto.',
-        'Numero de clientes alcanzables a traves de rutas completas.',
-        'Cantidad de rutas completas de planta a cliente. 0 = no llega a ningun cliente.',
-        'Numero de saltos de la ruta mas larga de planta a cliente.',
-        'Ubicaciones que reciben producto pero cuyas salidas no llegan a ningun cliente.',
-        'Ubicaciones que reciben producto pero no tienen ninguna salida configurada.',
-        'Puntaje de salud 0-100 calculado en base a completitud de rutas, anomalias y lead times.',
-        'Clasificacion del puntaje: Healthy (\u226580) | Acceptable (\u226560) | Weak (\u226540) | Critical (<40).',
-        'Desglose paso a paso del calculo: bonificaciones (+) y penalizaciones (-) que determinan el score final.',
-        'Cantidad de ubicaciones origen distintas (LOCFR) en Location Source para este producto.',
-        'Codigos de las ubicaciones origen separados por coma.',
-        'Cantidad de ubicaciones destino distintas (LOCID) en Location Source para este producto.',
-        'Codigos de las ubicaciones destino separados por coma.',
-        'Cantidad de clientes distintos declarados en Customer Source para este producto.',
-        'Codigos de los clientes en Customer Source separados por coma.',
-        'Si/No — alguna ubicacion destino recibe este producto desde mas de un origen simultaneamente (multi-sourcing).',
-        'Promedio de TLEADTIME (dias) para todos los arcos de Location Source de este producto. \u2014 si no hay arcos con lead time definido.',
-        'Promedio de CLEADTIME (dias) para todos los arcos de Customer Source de este producto. \u2014 si no hay arcos con lead time definido.',
-        'Cantidad de plantas que producen este producto pero no tienen ninguna ruta hasta algun cliente.'
+        _xn('Color: \u26d4 Alerta = problema critico | \u26a0 Advertencia = dato incompleto | \u2705 OK = sin hallazgos.'),
+        _xn('Detalle de validaciones. En estado OK lista las que pasaron.'),
+        _xn('Codigo unico del producto (PRDID).'),
+        _xn('Descripcion del producto segun maestro.'),
+        _xn('Tipo de material SAP (MATTYPEID). Determina reglas de validacion por categoria.'),
+        _xn('Si/No — tiene fuente de produccion (PSH) activa. Sin PSH = no se fabrica internamente.'),
+        _xn('Si/No — aparece como componente en BOM de algun otro producto (PSI).'),
+        _xn('Si/No — tiene arcos de transferencia entre ubicaciones (Location Source).'),
+        _xn('Si/No — tiene arcos de entrega a cliente (Customer Source).'),
+        _xn('Si/No — habilitado en al menos una ubicacion (Location Product). Sin esto IBP ignora el producto.'),
+        _xn('Si/No — habilitado para al menos un cliente (Customer Product).'),
+        _xn('Si/No — solo existe en el maestro, sin actividad en ninguna entidad de red.'),
+        _xn('Estado logistico: Red Completa = tiene ruta de planta a cliente | Sin Entrega = tiene produccion pero no llega a cliente | Huerfano = sin actividad de red.'),
+        _xn('Numero de plantas productoras (nodos con PSH) desde las que este producto puede originarse.'),
+        _xn('Numero de centros de distribucion intermedios en la red del producto.'),
+        _xn('Numero de clientes alcanzables a traves de rutas completas.'),
+        _xn('Cantidad de rutas completas de planta a cliente. 0 = no llega a ningun cliente.'),
+        _xn('Numero de saltos de la ruta mas larga de planta a cliente.'),
+        _xn('Ubicaciones que reciben producto pero cuyas salidas no llegan a ningun cliente.'),
+        _xn('Ubicaciones que reciben producto pero no tienen ninguna salida configurada.'),
+        _xn('Puntaje de salud 0-100 calculado en base a completitud de rutas, anomalias y lead times.'),
+        _xn('Clasificacion del puntaje: Healthy (\u226580) | Acceptable (\u226560) | Weak (\u226540) | Critical (<40).'),
+        _xn('Desglose paso a paso del calculo: bonificaciones (+) y penalizaciones (-) que determinan el score final.'),
+        _xn('Cantidad de ubicaciones origen distintas (LOCFR) en Location Source para este producto.'),
+        _xn('Codigos de las ubicaciones origen separados por coma.'),
+        _xn('Cantidad de ubicaciones destino distintas (LOCID) en Location Source para este producto.'),
+        _xn('Codigos de las ubicaciones destino separados por coma.'),
+        _xn('Cantidad de clientes distintos declarados en Customer Source para este producto.'),
+        _xn('Codigos de los clientes en Customer Source separados por coma.'),
+        _xn('Si/No — alguna ubicacion destino recibe este producto desde mas de un origen simultaneamente (multi-sourcing).'),
+        _xn('Promedio de TLEADTIME (dias) para todos los arcos de Location Source de este producto. \u2014 si no hay arcos con lead time definido.'),
+        _xn('Promedio de CLEADTIME (dias) para todos los arcos de Customer Source de este producto. \u2014 si no hay arcos con lead time definido.'),
+        _xn('Cantidad de plantas que producen este producto pero no tienen ninguna ruta hasta algun cliente.')
       ];
       var _prdGroups = [
         'control','control',
@@ -1035,35 +1348,35 @@
         'detail'
       ];
       efInjectHeaders(_prdHdrs, _prdNotes, _prdGroups, 'sn', 'product', 4);
-      var gPrd = makeGroup('Product', 'FF29ABE2', _prdHdrs, _prdNotes, _prdGroups);
+      var gPrd = makeGroup(I18n.t('xls.sheet.product'), 'FF29ABE2', _prdHdrs, _prdNotes, _prdGroups);
 
       var _locHdrs = [
-        'Estado','Observacion',
-        'LOCID','LOCDESCR','LOCTYPE','Rol inferido',
-        'En PSH?','En Location Source?','En Customer Source?','En Location Product?','Solo en maestro?',
-        '# Productos manejados','# Como origen (LOCFR)','# Como destino (LOCID)','# Clientes servidos',
-        'Es nodo critico?','# Productos impactados','# Clientes impactados','Nivel de riesgo'
+        I18n.t('xls.col.status'), I18n.t('xls.col.obs'),
+        'LOCID','LOCDESCR','LOCTYPE', I18n.t('xls.col.inferredRole'),
+        I18n.t('xls.col.inPSHQ'), I18n.t('xls.col.inLocSourceQ'), I18n.t('xls.col.inCustSourceQ'), I18n.t('xls.col.inLocProductQ'), I18n.t('xls.col.onlyMasterQ'),
+        I18n.t('xls.col.numProductsHandled'), I18n.t('xls.col.numAsOrigin'), I18n.t('xls.col.numAsDest'), I18n.t('xls.col.numCustServed'),
+        I18n.t('xls.col.isCriticalNodeQ'), I18n.t('xls.col.numImpactedProducts'), I18n.t('xls.col.numImpactedCustomers'), I18n.t('xls.col.riskLevel')
       ];
       var _locNotes = [
-        'Color: \u26d4 Alerta | \u26a0 Advertencia | \u2705 OK.',
-        'Detalle de validaciones. En estado OK lista las que pasaron.',
-        'Codigo unico de la ubicacion (LOCID).',
-        'Descripcion de la ubicacion segun maestro.',
-        'Tipo de ubicacion SAP (LOCTYPE). Informativo; el rol real se infiere del comportamiento en los datos.',
-        'Rol inferido del comportamiento en los datos: Planta con Entrega = PSH + CustSrc | Planta = solo PSH | DC con Entrega Directa = LocSrc + CustSrc | DC = solo LocSrc | Punto de Entrega = solo CustSrc | Sin rol activo = sin presencia en red.',
-        'Si/No — tiene al menos una fuente de produccion (PSH) en esta ubicacion.',
-        'Si/No — aparece como origen o destino en Location Source.',
-        'Si/No — aparece como ubicacion de entrega en Customer Source.',
-        'Si/No — habilitada en Location Product. Sin esto IBP no planifica en esta ubicacion.',
-        'Si/No — solo en maestro, sin actividad en red.',
-        'Total de productos distintos que pasan por esta ubicacion (como origen o destino en LocSrc).',
-        'Productos para los que esta ubicacion actua como origen (LOCFR) en Location Source.',
-        'Productos para los que esta ubicacion actua como destino (LOCID) en Location Source.',
-        'Clientes que pueden ser abastecidos desde esta ubicacion via Customer Source.',
-        'Si/No — su eliminacion cortaria rutas de multiples productos a clientes.',
-        'Numero de productos cuyas rutas pasan por este nodo critico.',
-        'Numero de clientes cuyo abastecimiento depende de este nodo.',
-        'Critical (\u22654 productos) | High (2\u20133) | Medium (1).'
+        _xn('Color: \u26d4 Alerta | \u26a0 Advertencia | \u2705 OK.'),
+        _xn('Detalle de validaciones. En estado OK lista las que pasaron.'),
+        _xn('Codigo unico de la ubicacion (LOCID).'),
+        _xn('Descripcion de la ubicacion segun maestro.'),
+        _xn('Tipo de ubicacion SAP (LOCTYPE). Informativo; el rol real se infiere del comportamiento en los datos.'),
+        _xn('Rol inferido del comportamiento en los datos: Planta con Entrega = PSH + CustSrc | Planta = solo PSH | DC con Entrega Directa = LocSrc + CustSrc | DC = solo LocSrc | Punto de Entrega = solo CustSrc | Sin rol activo = sin presencia en red.'),
+        _xn('Si/No — tiene al menos una fuente de produccion (PSH) en esta ubicacion.'),
+        _xn('Si/No — aparece como origen o destino en Location Source.'),
+        _xn('Si/No — aparece como ubicacion de entrega en Customer Source.'),
+        _xn('Si/No — habilitada en Location Product. Sin esto IBP no planifica en esta ubicacion.'),
+        _xn('Si/No — solo en maestro, sin actividad en red.'),
+        _xn('Total de productos distintos que pasan por esta ubicacion (como origen o destino en LocSrc).'),
+        _xn('Productos para los que esta ubicacion actua como origen (LOCFR) en Location Source.'),
+        _xn('Productos para los que esta ubicacion actua como destino (LOCID) en Location Source.'),
+        _xn('Clientes que pueden ser abastecidos desde esta ubicacion via Customer Source.'),
+        _xn('Si/No — su eliminacion cortaria rutas de multiples productos a clientes.'),
+        _xn('Numero de productos cuyas rutas pasan por este nodo critico.'),
+        _xn('Numero de clientes cuyo abastecimiento depende de este nodo.'),
+        _xn('Critical (\u22654 productos) | High (2\u20133) | Medium (1).')
       ];
       var _locGroups = [
         'control','control',
@@ -1073,26 +1386,26 @@
         'metric','metric','metric','metric'
       ];
       efInjectHeaders(_locHdrs, _locNotes, _locGroups, 'sn', 'location', 4);
-      var gLoc = makeGroup('Location', 'FF06B6D4', _locHdrs, _locNotes, _locGroups);
+      var gLoc = makeGroup(I18n.t('xls.sheet.location'), 'FF06B6D4', _locHdrs, _locNotes, _locGroups);
 
       var _custHdrs = [
-        'Estado','Observacion',
+        I18n.t('xls.col.status'), I18n.t('xls.col.obs'),
         'CUSTID','CUSTDESCR',
-        'En Customer Source?','En Customer Product?','Solo en maestro?',
-        '# Productos recibidos','# Ubicaciones proveedoras','# Paths que llegan','Resiliencia predominante'
+        I18n.t('xls.col.inCustSourceQ'), I18n.t('xls.col.inCustProdQ'), I18n.t('xls.col.onlyMasterQ'),
+        I18n.t('xls.col.numProductsReceived'), I18n.t('xls.col.numSupplyingLocs'), I18n.t('xls.col.numPathsReaching'), I18n.t('xls.col.predominantResilience')
       ];
       var _custNotes = [
-        'Color: \u26d4 Alerta | \u26a0 Advertencia | \u2705 OK.',
-        'Detalle de validaciones. En estado OK lista las que pasaron.',
-        'Codigo unico del cliente (CUSTID).',
-        'Descripcion del cliente segun maestro.',
-        'Si/No — tiene al menos un arco de entrega configurado (Customer Source).',
-        'Si/No — habilitado en Customer Product. Sin esto IBP ignora el cliente en planificacion.',
-        'Si/No — solo en maestro, sin arcos de entrega.',
-        'Numero de productos distintos que este cliente puede recibir segun Customer Source.',
-        'Numero de ubicaciones desde las que se despacha al cliente.',
-        'Total de rutas completas de planta a este cliente sumadas para todos sus productos.',
-        'Single Path = algún producto llega solo por una ruta | Single Node Dependency = hay un nodo unico que si falla corta el abastecimiento | Resilient = todos los productos tienen rutas alternativas.'
+        _xn('Color: \u26d4 Alerta | \u26a0 Advertencia | \u2705 OK.'),
+        _xn('Detalle de validaciones. En estado OK lista las que pasaron.'),
+        _xn('Codigo unico del cliente (CUSTID).'),
+        _xn('Descripcion del cliente segun maestro.'),
+        _xn('Si/No — tiene al menos un arco de entrega configurado (Customer Source).'),
+        _xn('Si/No — habilitado en Customer Product. Sin esto IBP ignora el cliente en planificacion.'),
+        _xn('Si/No — solo en maestro, sin arcos de entrega.'),
+        _xn('Numero de productos distintos que este cliente puede recibir segun Customer Source.'),
+        _xn('Numero de ubicaciones desde las que se despacha al cliente.'),
+        _xn('Total de rutas completas de planta a este cliente sumadas para todos sus productos.'),
+        _xn('Single Path = algún producto llega solo por una ruta | Single Node Dependency = hay un nodo unico que si falla corta el abastecimiento | Resilient = todos los productos tienen rutas alternativas.')
       ];
       var _custGroups = [
         'control','control',
@@ -1101,32 +1414,32 @@
         'metric','metric','metric','metric'
       ];
       efInjectHeaders(_custHdrs, _custNotes, _custGroups, 'sn', 'customer', 3);
-      var gCust = makeGroup('Customer', 'FF10B981', _custHdrs, _custNotes, _custGroups);
+      var gCust = makeGroup(I18n.t('xls.sheet.customer'), 'FF10B981', _custHdrs, _custNotes, _custGroups);
 
       var _lsHdrs = [
-        'Estado','Observacion',
-        'PRDID','PRDDESCR','MATTYPEID','LOCFR','LOCFR Descripcion','LOCID','LOCID Descripcion','TLEADTIME',
-        'LOCFR+PRDID en Location Product?','LOCID+PRDID en Location Product?','PRDID en PSH?',
-        'Arco en ruta completa?','Arco inverso?','Lead Time Status','SPOF arco?'
+        I18n.t('xls.col.status'), I18n.t('xls.col.obs'),
+        'PRDID','PRDDESCR','MATTYPEID','LOCFR', I18n.t('xls.col.locFrDescr'), 'LOCID', I18n.t('xls.col.locIdDescr'), 'TLEADTIME',
+        I18n.t('xls.col.locFrPrdInLP'), I18n.t('xls.col.locIdPrdInLP'), I18n.t('xls.col.prdInPSHQ'),
+        I18n.t('xls.col.arcInFullRoute'), I18n.t('xls.col.arcInverse'), I18n.t('xls.col.leadTimeStatus'), I18n.t('xls.col.spofArc')
       ];
       var _lsNotes = [
-        'Color: \u26d4 Alerta | \u26a0 Advertencia | \u2705 OK.',
-        'Detalle de validaciones. En estado OK lista las que pasaron.',
-        'Producto transferido en este arco.',
-        'Descripcion del producto.',
-        'Tipo de material del producto (MATTYPEID).',
-        'Ubicacion de origen (LOCFR) del arco de transferencia.',
-        'Descripcion de la ubicacion origen.',
-        'Ubicacion de destino (LOCID) del arco de transferencia.',
-        'Descripcion de la ubicacion destino.',
-        'Lead time de transferencia en dias. 0 o vacio = \u26a0 Advertencia.',
-        'Si/No — el origen esta habilitado para este producto en Location Product.',
-        'Si/No — el destino esta habilitado para este producto en Location Product.',
-        'Si/No — el producto tiene produccion propia (PSH) en alguna planta.',
-        'Si/No — este arco pertenece a al menos una ruta completa que llega a un cliente.',
-        'Si/No — existe un arco configurado en la direccion opuesta (LOCID->LOCFR) para el mismo producto.',
-        'OK = lead time > 0 | Zero = TLEADTIME = 0 | Missing = sin valor.',
-        'Si/No — SPOF: este LOCID tiene un unico LOCFR para este producto. Si falla el origen, el destino queda sin abastecimiento.'
+        _xn('Color: \u26d4 Alerta | \u26a0 Advertencia | \u2705 OK.'),
+        _xn('Detalle de validaciones. En estado OK lista las que pasaron.'),
+        _xn('Producto transferido en este arco.'),
+        _xn('Descripcion del producto.'),
+        _xn('Tipo de material del producto (MATTYPEID).'),
+        _xn('Ubicacion de origen (LOCFR) del arco de transferencia.'),
+        _xn('Descripcion de la ubicacion origen.'),
+        _xn('Ubicacion de destino (LOCID) del arco de transferencia.'),
+        _xn('Descripcion de la ubicacion destino.'),
+        _xn('Lead time de transferencia en dias. 0 o vacio = \u26a0 Advertencia.'),
+        _xn('Si/No — el origen esta habilitado para este producto en Location Product.'),
+        _xn('Si/No — el destino esta habilitado para este producto en Location Product.'),
+        _xn('Si/No — el producto tiene produccion propia (PSH) en alguna planta.'),
+        _xn('Si/No — este arco pertenece a al menos una ruta completa que llega a un cliente.'),
+        _xn('Si/No — existe un arco configurado en la direccion opuesta (LOCID->LOCFR) para el mismo producto.'),
+        _xn('OK = lead time > 0 | Zero = TLEADTIME = 0 | Missing = sin valor.'),
+        _xn('Si/No — SPOF: este LOCID tiene un unico LOCFR para este producto. Si falla el origen, el destino queda sin abastecimiento.')
       ];
       var _lsGroups = [
         'control','control',
@@ -1135,30 +1448,30 @@
         'metric','metric','metric','metric'
       ];
       efInjectHeaders(_lsHdrs, _lsNotes, _lsGroups, 'sn', 'locationSource', 9);
-      var gLS = makeGroup('Location Source', 'FFF7A800', _lsHdrs, _lsNotes, _lsGroups);
+      var gLS = makeGroup(I18n.t('xls.sheet.locationSource'), 'FFF7A800', _lsHdrs, _lsNotes, _lsGroups);
 
       var _csHdrs = [
-        'Estado','Observacion',
-        'PRDID','PRDDESCR','MATTYPEID','LOCID','LOCID Descripcion','CUSTID','CUSTID Descripcion','CLEADTIME',
-        'LOCID+PRDID en Location Product?','CUSTID+PRDID en Customer Product?','PRDID en PSH?',
-        'Entrega alcanzable desde produccion?','Lead Time Status'
+        I18n.t('xls.col.status'), I18n.t('xls.col.obs'),
+        'PRDID','PRDDESCR','MATTYPEID','LOCID', I18n.t('xls.col.locIdDescr'), 'CUSTID', I18n.t('xls.col.custIdDescr'), 'CLEADTIME',
+        I18n.t('xls.col.locIdPrdInLP'), I18n.t('xls.col.custIdPrdInCP'), I18n.t('xls.col.prdInPSHQ'),
+        I18n.t('xls.col.deliveryReachableFromProd'), I18n.t('xls.col.leadTimeStatus')
       ];
       var _csNotes = [
-        'Color: \u26d4 Alerta | \u26a0 Advertencia | \u2705 OK.',
-        'Detalle de validaciones. En estado OK lista las que pasaron.',
-        'Producto entregado al cliente en este arco.',
-        'Descripcion del producto.',
-        'Tipo de material del producto (MATTYPEID).',
-        'Ubicacion de despacho (LOCID) desde la que sale el producto al cliente.',
-        'Descripcion de la ubicacion de despacho.',
-        'Cliente receptor (CUSTID).',
-        'Descripcion del cliente.',
-        'Lead time de entrega al cliente en dias. 0 o vacio = \u26a0 Advertencia.',
-        'Si/No — la ubicacion de despacho esta habilitada para este producto en Location Product.',
-        'Si/No — el cliente esta habilitado para este producto en Customer Product.',
-        'Si/No — el producto tiene produccion propia (PSH) en alguna planta de la red.',
-        'Si/No — existe una ruta completa de produccion hasta esta entrega al cliente.',
-        'OK = lead time > 0 | Zero = CLEADTIME = 0 | Missing = sin valor.'
+        _xn('Color: \u26d4 Alerta | \u26a0 Advertencia | \u2705 OK.'),
+        _xn('Detalle de validaciones. En estado OK lista las que pasaron.'),
+        _xn('Producto entregado al cliente en este arco.'),
+        _xn('Descripcion del producto.'),
+        _xn('Tipo de material del producto (MATTYPEID).'),
+        _xn('Ubicacion de despacho (LOCID) desde la que sale el producto al cliente.'),
+        _xn('Descripcion de la ubicacion de despacho.'),
+        _xn('Cliente receptor (CUSTID).'),
+        _xn('Descripcion del cliente.'),
+        _xn('Lead time de entrega al cliente en dias. 0 o vacio = \u26a0 Advertencia.'),
+        _xn('Si/No — la ubicacion de despacho esta habilitada para este producto en Location Product.'),
+        _xn('Si/No — el cliente esta habilitado para este producto en Customer Product.'),
+        _xn('Si/No — el producto tiene produccion propia (PSH) en alguna planta de la red.'),
+        _xn('Si/No — existe una ruta completa de produccion hasta esta entrega al cliente.'),
+        _xn('OK = lead time > 0 | Zero = CLEADTIME = 0 | Missing = sin valor.')
       ];
       var _csGroups = [
         'control','control',
@@ -1167,13 +1480,13 @@
         'metric','metric'
       ];
       efInjectHeaders(_csHdrs, _csNotes, _csGroups, 'sn', 'customerSource', 9);
-      var gCS = makeGroup('Customer Source', 'FFE8622A', _csHdrs, _csNotes, _csGroups);
+      var gCS = makeGroup(I18n.t('xls.sheet.customerSource'), 'FFE8622A', _csHdrs, _csNotes, _csGroups);
 
 
       /* ════════════════════════════════════════════════════════════════
          FASE 2 — Pre-índices globales (cursor IDB, sin acumular arrays)
          ════════════════════════════════════════════════════════════════ */
-      if (onStatus) onStatus('Construyendo índices globales...');
+      if (onStatus) onStatus(I18n.t('xls.log.buildGlobalIndices'));
       if (logEl) log(logEl, 'info', timer.fmt() + ' Fase 2: pre-índices...');
 
       var locProdSet  = new Set();   // "LOCID|PRDID"
@@ -1375,29 +1688,29 @@
             : useTradingRules ? { 'Solo Distribución + Entrega': 1 }
             : useRawmatRules  ? { 'Abastecimiento Completo': 1 }
             :                   { 'Red Completa': 1 };
-          if (!OK_STATUSES[networkStatus]) obs.push(networkStatus);
+          if (!OK_STATUSES[networkStatus]) obs.push(_xn(networkStatus));
 
-          if (paths._truncated) obs.push('Paths truncados (>50.000, red muy compleja)');
-          cycles.forEach(function (c) { obs.push('Ciclo: ' + c); });
+          if (paths._truncated) obs.push(_xn('Paths truncados (>50.000, red muy compleja)'));
+          cycles.forEach(function (c) { obs.push(_xn('Ciclo:') + ' ' + c); });
           // Ghost, dead-end, planta aislada solo aplican a terminados (necesitan ruta a cliente)
           if (!useSemiRules && !useRawmatRules) {
-            ghosts.forEach(function (l)   { obs.push('Ghost node: ' + l); });
-            deadEnds.forEach(function (l) { obs.push('Dead-end: ' + l); });
-            isoPlants.forEach(function(l) { obs.push('Planta aislada: ' + l); });
+            ghosts.forEach(function (l)   { obs.push(_xn('Ghost node:') + ' ' + l); });
+            deadEnds.forEach(function (l) { obs.push(_xn('Dead-end:') + ' ' + l); });
+            isoPlants.forEach(function(l) { obs.push(_xn('Planta aislada:') + ' ' + l); });
           }
           ltIssues.forEach(function (lt) {
             if (lt.type === 'plant') {
               // PLEADTIME: aplica a terminados y semiterminados, no a insumos ni mercadería
-              if (!useRawmatRules && !useTradingRules) obs.push('PLEADTIME faltante: ' + lt.loc);
+              if (!useRawmatRules && !useTradingRules) obs.push(_xn('PLEADTIME faltante:') + ' ' + lt.loc);
             } else if (lt.type === 'loc') {
-              obs.push('TLEADTIME faltante: ' + lt.from + '→' + lt.to);
+              obs.push(_xn('TLEADTIME faltante:') + ' ' + lt.from + '→' + lt.to);
             } else {
               // CLEADTIME: solo aplica si el producto llega a clientes (no semi ni insumo)
-              if (!useSemiRules && !useRawmatRules) obs.push('CLEADTIME faltante: ' + lt.from + '→' + lt.to);
+              if (!useSemiRules && !useRawmatRules) obs.push(_xn('CLEADTIME faltante:') + ' ' + lt.from + '→' + lt.to);
             }
           });
-          if (!inLP && (inPSH || inLS)) obs.push('Sin Location Product');
-          if (!inCP && inCS)            obs.push('Sin Customer Product');
+          if (!inLP && (inPSH || inLS)) obs.push(_xn('Sin Location Product'));
+          if (!inCP && inCS)            obs.push(_xn('Sin Customer Product'));
 
           // Trading y sin-categoría: validar que arcos LS y CS compartan al menos una ubicación
           var tradingDisconnected = false;
@@ -1408,7 +1721,7 @@
               graph.locEdges[fr].forEach(function(to) { _lsReachable[to] = true; });
             });
             tradingDisconnected = !Object.keys(graph.custEdges).some(function(loc) { return !!_lsReachable[loc]; });
-            if (tradingDisconnected) obs.push('Red desconectada: arcos LS y CS no comparten ubicaciones');
+            if (tradingDisconnected) obs.push(_xn('Red desconectada: arcos LS y CS no comparten ubicaciones'));
           }
 
           // Semiterminado: validar consumo PSI en cada destino de transferencia
@@ -1423,7 +1736,7 @@
             });
             semiDestsNoPsi = _lsDests.filter(function(loc) { return !_psiLocs[loc]; });
             if (semiDestsNoPsi.length > 0) {
-              obs.push('Destino(s) de transferencia sin consumo PSI: ' + semiDestsNoPsi.join(', '));
+              obs.push(_xn('Destino(s) de transferencia sin consumo PSI:') + ' ' + semiDestsNoPsi.join(', '));
             }
           }
 
@@ -1464,25 +1777,25 @@
             var okParts = [];
             if (useSemiRules) {
               if (networkStatus === 'Semiterminado Local con Transferencia') {
-                okParts.push('Semiterminado consumido en planta productora con transferencia configurada');
+                okParts.push(_xn('Semiterminado consumido en planta productora con transferencia configurada'));
               } else if (networkStatus === 'Semiterminado con Transferencia') {
-                okParts.push('Semiterminado consumido en destino de transferencia');
+                okParts.push(_xn('Semiterminado consumido en destino de transferencia'));
               } else {
-                okParts.push('Semiterminado consumido en planta productora');
+                okParts.push(_xn('Semiterminado consumido en planta productora'));
               }
-              if (inLP) okParts.push('Habilitado en Location Product');
-              if (ltIssues.length === 0) okParts.push('Lead times definidos');
+              if (inLP) okParts.push(_xn('Habilitado en Location Product'));
+              if (ltIssues.length === 0) okParts.push(_xn('Lead times definidos'));
             } else if (useTradingRules) {
-              okParts.push('Mercadería con arcos de distribución y entrega');
-              if (inLP) okParts.push('Habilitado en Location Product');
-              if (inCP && inCS) okParts.push('Habilitado en Customer Product');
-              if (ltIssues.length === 0) okParts.push('Lead times definidos');
+              okParts.push(_xn('Mercadería con arcos de distribución y entrega'));
+              if (inLP) okParts.push(_xn('Habilitado en Location Product'));
+              if (inCP && inCS) okParts.push(_xn('Habilitado en Customer Product'));
+              if (ltIssues.length === 0) okParts.push(_xn('Lead times definidos'));
             } else {
-              okParts.push('Red completa sin anomalias');
-              if (inLP)                  okParts.push('Habilitado en Location Product');
-              if (inCP && inCS)          okParts.push('Habilitado en Customer Product');
-              if (ltIssues.length === 0) okParts.push('Lead times definidos');
-              if (metrics.paths > 0)     okParts.push(metrics.paths + ' ruta(s) a cliente');
+              okParts.push(_xn('Red completa sin anomalias'));
+              if (inLP)                  okParts.push(_xn('Habilitado en Location Product'));
+              if (inCP && inCS)          okParts.push(_xn('Habilitado en Customer Product'));
+              if (ltIssues.length === 0) okParts.push(_xn('Lead times definidos'));
+              if (metrics.paths > 0)     okParts.push(metrics.paths + ' ' + _xn('ruta(s) a cliente'));
             }
             pObs = okParts.join(' | ');
           } else {
@@ -1506,7 +1819,7 @@
             stLabel(pFill), pObs,
             prdid, pd(prdid), pm(prdid),
             yn(inPSH), yn(inPSI), yn(inLS), yn(inCS), yn(inLP), yn(inCP), yn(onlyMaster),
-            networkStatus, metrics.plants, metrics.dcs, metrics.customers,
+            _xn(networkStatus), metrics.plants, metrics.dcs, metrics.customers,
             metrics.paths, metrics.longestPath, metrics.ghosts, metrics.deadEnds,
             health.score, health.category, health.detail,
             _numOrigins || NA_DASH, _origCodes, _numDests || NA_DASH, _destCodes,
@@ -1571,7 +1884,7 @@
         await new Promise(function (r) { setTimeout(r, 0); });
         var done = Math.min(i + CHUNK, n);
         if (onProgress) onProgress(57 + Math.round((done / n) * 28));
-        if (onStatus)   onStatus('Analizando ' + done + '/' + n + ' productos...');
+        if (onStatus)   onStatus(I18n.t('analyzer.progress.analyzing', { done: done, n: n }));
         if (logEl && i > 0 && i % 500 === 0)
           log(logEl, 'info', timer.fmt() + ' Analizados ' + done + '/' + n + '...');
       }
@@ -1582,7 +1895,7 @@
       /* ════════════════════════════════════════════════════════════════
          FASE 4 — Hoja Location
          ════════════════════════════════════════════════════════════════ */
-      if (onStatus) onStatus('Escribiendo hoja Location...');
+      if (onStatus) onStatus(I18n.t('xls.log.sheetReady', { sheet: I18n.t('xls.sheet.location') }));
 
       /* Integrar critNodeMap en locStats */
       Object.keys(critNodeMap).forEach(function (loc) {
@@ -1613,32 +1926,38 @@
         var numCust   = Object.keys(lSrc.custServed).length;
 
         var lobs = [];
-        if (lSt.isGhost)    lobs.push('Ghost node (alimentado sin salida util)');
-        if (lSt.isDeadEnd)  lobs.push('Dead-end (recibe pero no reenvía)');
-        if (lSt.isIsolated) lobs.push('Planta aislada (sin ruta a ningun cliente)');
-        if (lSt.inCycle && lSt.cycleDescs) lobs.push('Participa en ciclo: ' + lSt.cycleDescs[0]);
-        if (!inLPL && (inLSL || inPSHL))   lobs.push('Sin Location Product');
-        if (lSt.isCritical) lobs.push('Nodo critico: ' + lSt.productsImpacted + ' prod, ' + lSt.customersImpacted + ' clientes');
-        if (onlyMstL)       lobs.push('Solo en maestro de ubicaciones, sin actividad en la red');
+        if (lSt.isGhost)    lobs.push(_xn('Ghost node (alimentado sin salida util)'));
+        if (lSt.isDeadEnd)  lobs.push(_xn('Dead-end (recibe pero no reenvía)'));
+        if (lSt.isIsolated) lobs.push(_xn('Planta aislada (sin ruta a ningun cliente)'));
+        if (lSt.inCycle && lSt.cycleDescs) lobs.push(_xn('Participa en ciclo:') + ' ' + lSt.cycleDescs[0]);
+        if (!inLPL && (inLSL || inPSHL))   lobs.push(_xn('Sin Location Product'));
+        if (lSt.isCritical) lobs.push(
+          _xn('Nodo critico: {n} prod, {m} clientes')
+            .replace('{n}', lSt.productsImpacted)
+            .replace('{m}', lSt.customersImpacted)
+        );
+        if (onlyMstL)       lobs.push(_xn('Solo en maestro de ubicaciones, sin actividad en la red'));
 
         var lFill = (lSt.isGhost || lSt.isDeadEnd || lSt.isIsolated || lSt.inCycle || (!inLPL && (inLSL || inPSHL))) ? C_RED
           : (onlyMstL || lSt.isCritical) ? C_YEL : null;
 
         var lObsStr;
         if (!lobs.length) {
-          var lOkParts = ['Sin anomalias topologicas'];
-          if (inLPL)         lOkParts.push('Habilitado en Location Product');
-          if (numCust > 0)   lOkParts.push(numCust + ' cliente(s) servido(s)');
-          if (numOrigin > 0) lOkParts.push('Activo como origen para ' + numOrigin + ' producto(s)');
+          var lOkParts = [_xn('Sin anomalias topologicas')];
+          if (inLPL)         lOkParts.push(_xn('Habilitado en Location Product'));
+          if (numCust > 0)   lOkParts.push(numCust + ' ' + _xn('cliente(s) servido(s)'));
+          if (numOrigin > 0) lOkParts.push(
+            _xn('Activo como origen para {n} producto(s)').replace('{n}', numOrigin)
+          );
           lObsStr = lOkParts.join(' | ');
         } else { lObsStr = lobs.join(' | '); }
 
-        var _locRole = (inPSHL && inCSL) ? 'Planta con Entrega'
+        var _locRole = _xn((inPSHL && inCSL) ? 'Planta con Entrega'
           : inPSHL ? 'Planta'
           : (inLSL && inCSL) ? 'DC con Entrega Directa'
           : inLSL ? 'DC'
           : inCSL ? 'Punto de Entrega'
-          : 'Sin rol activo';
+          : 'Sin rol activo');
 
         var _locRow = [
           stLabel(lFill), lObsStr,
@@ -1656,7 +1975,7 @@
       /* ════════════════════════════════════════════════════════════════
          FASE 5 — Hoja Customer
          ════════════════════════════════════════════════════════════════ */
-      if (onStatus) onStatus('Escribiendo hoja Customer...');
+      if (onStatus) onStatus(I18n.t('xls.log.sheetReady', { sheet: I18n.t('xls.sheet.customer') }));
 
       var allCustObj = Object.assign({}, SN_IDX.custLookup, custInCustSrc, custInCustProd);
       Object.keys(allCustObj).sort().forEach(function (custid) {
@@ -1674,21 +1993,21 @@
           : cSt.prdCount > 0 ? 'Resilient' : '-';
 
         var cobs = [];
-        if (onlyM2)               cobs.push('Solo en maestro, sin uso en red');
-        if (!inCP2 && inCS2)      cobs.push('Sin Customer Product');
-        if (cSt.single > 0)       cobs.push(cSt.single + ' producto(s) con unica ruta');
-        if (cSt.dep > 0)          cobs.push(cSt.dep + ' producto(s) con nodo critico unico');
-        if (!onlyM2 && numPrd2 === 0) cobs.push('Sin productos alcanzables desde produccion');
+        if (onlyM2)               cobs.push(_xn('Solo en maestro, sin uso en red'));
+        if (!inCP2 && inCS2)      cobs.push(_xn('Sin Customer Product'));
+        if (cSt.single > 0)       cobs.push(cSt.single + _xn(' producto(s) con unica ruta'));
+        if (cSt.dep > 0)          cobs.push(cSt.dep + _xn(' producto(s) con nodo critico unico'));
+        if (!onlyM2 && numPrd2 === 0) cobs.push(_xn('Sin productos alcanzables desde produccion'));
 
         var cFill = (onlyM2 || (!onlyM2 && numPrd2 === 0)) ? C_RED
           : (!inCP2 && inCS2 || cSt.single > 0) ? C_YEL : null;
 
         var cObsStr;
         if (!cobs.length) {
-          var cOkParts = ['Abastecido con rutas resilientes'];
-          if (inCP2)           cOkParts.push('Habilitado en Customer Product');
-          if (numPrd2 > 0)     cOkParts.push(numPrd2 + ' producto(s) alcanzables');
-          if (cSt.pathCount > 0) cOkParts.push(cSt.pathCount + ' ruta(s) configuradas');
+          var cOkParts = [_xn('Abastecido con rutas resilientes')];
+          if (inCP2)           cOkParts.push(_xn('Habilitado en Customer Product'));
+          if (numPrd2 > 0)     cOkParts.push(numPrd2 + _xn(' producto(s) alcanzables'));
+          if (cSt.pathCount > 0) cOkParts.push(cSt.pathCount + _xn(' ruta(s) configuradas'));
           cObsStr = cOkParts.join(' | ');
         } else { cObsStr = cobs.join(' | '); }
 
@@ -1714,7 +2033,7 @@
       /* ════════════════════════════════════════════════════════════════
          FASE 6 — Hoja Location Source (cursor IDB, sin acumular array)
          ════════════════════════════════════════════════════════════════ */
-      if (onStatus) onStatus('Escribiendo hoja Location Source...');
+      if (onStatus) onStatus(I18n.t('xls.log.sheetReady', { sheet: I18n.t('xls.sheet.locationSource') }));
       var lsSeenArcs = new Set();  // para detectar duplicados en esta pasada
 
       await idbCursorEach('sn_loc', function (r) {
@@ -1735,10 +2054,10 @@
         var ltSt     = !tlt ? 'Missing' : (ltNum === 0 ? 'Zero' : 'OK');
 
         var lsObs = [];
-        if (!inLPFr) lsObs.push('Sin Location Product en origen (' + fr + ')');
-        if (!inLPTo) lsObs.push('Sin Location Product en destino (' + to + ')');
-        if (isDup)   lsObs.push('Arco duplicado en el dataset');
-        if (isInv)   lsObs.push('Existe arco inverso (' + to + '→' + fr + ')');
+        if (!inLPFr) lsObs.push(_xn('Sin Location Product en origen (') + fr + ')');
+        if (!inLPTo) lsObs.push(_xn('Sin Location Product en destino (') + to + ')');
+        if (isDup)   lsObs.push(_xn('Arco duplicado en el dataset'));
+        if (isInv)   lsObs.push(_xn('Existe arco inverso (') + to + '→' + fr + ')');
         if (ltSt !== 'OK') lsObs.push('TLEADTIME ' + ltSt.toLowerCase());
 
         var lsFill = (!inLPFr || !inLPTo || isDup) ? C_RED
@@ -1746,7 +2065,7 @@
 
         var lsObsStr = lsObs.length
           ? lsObs.join(' | ')
-          : 'Arco valido | Location Product en origen y destino | TLEADTIME definido' + (inPath ? ' | En ruta completa' : '');
+          : _xn('Arco valido | Location Product en origen y destino | TLEADTIME definido') + (inPath ? _xn(' | En ruta completa') : '');
 
         var isSpof = (originsPerDest[p + '|' + to] || 0) === 1;
         var _lsRow = [
@@ -1764,7 +2083,7 @@
       /* ════════════════════════════════════════════════════════════════
          FASE 7 — Hoja Customer Source (cursor IDB)
          ════════════════════════════════════════════════════════════════ */
-      if (onStatus) onStatus('Escribiendo hoja Customer Source...');
+      if (onStatus) onStatus(I18n.t('xls.log.sheetReady', { sheet: I18n.t('xls.sheet.customerSource') }));
 
       await idbCursorEach('sn_cust', function (r) {
         var p   = str(r.PRDID), loc = str(r.LOCID), c = str(r.CUSTID), clt = str(r.CLEADTIME || '');
@@ -1780,9 +2099,9 @@
         var ltSt2    = !clt ? 'Missing' : (ltNum2 === 0 ? 'Zero' : 'OK');
 
         var csObs = [];
-        if (!inLPLoc)               csObs.push('Sin Location Product en ubicacion (' + loc + ')');
-        if (!inCPCust)              csObs.push('Sin Customer Product para cliente (' + c + ')');
-        if (!inPath2 && pInPSH2)    csObs.push('Entrega no alcanzable desde produccion');
+        if (!inLPLoc)               csObs.push(_xn('Sin Location Product en ubicacion (') + loc + ')');
+        if (!inCPCust)              csObs.push(_xn('Sin Customer Product para cliente (') + c + ')');
+        if (!inPath2 && pInPSH2)    csObs.push(_xn('Entrega no alcanzable desde produccion'));
         if (ltSt2 !== 'OK')         csObs.push('CLEADTIME ' + ltSt2.toLowerCase());
 
         var csFill = (!inLPLoc || !inCPCust) ? C_RED
@@ -1790,7 +2109,7 @@
 
         var csObsStr = csObs.length
           ? csObs.join(' | ')
-          : 'Entrega alcanzable | Location Product y Customer Product configurados | CLEADTIME definido';
+          : _xn('Entrega alcanzable | Location Product y Customer Product configurados | CLEADTIME definido');
 
         var _csRow = [
           stLabel(csFill), csObsStr,
@@ -1807,14 +2126,21 @@
       /* ════════════════════════════════════════════════════════════════
          FASE 8 — Hoja Resumen + column widths + export
          ════════════════════════════════════════════════════════════════ */
-      if (onStatus) onStatus('Generando Resumen...');
+      if (onStatus) onStatus(I18n.t('xls.log.genSummary'));
 
+      var _sheetKeyMap = {
+        'Product': I18n.t('xls.sheet.product'),
+        'Location': I18n.t('xls.sheet.location'),
+        'Customer': I18n.t('xls.sheet.customer'),
+        'Location Source': I18n.t('xls.sheet.locationSource'),
+        'Customer Source': I18n.t('xls.sheet.customerSource')
+      };
       [{ key: 'Product', num: 1 }, { key: 'Location', num: 2 }, { key: 'Customer', num: 3 },
        { key: 'Location Source', num: 4 }, { key: 'Customer Source', num: 5 }
       ].forEach(function (d) {
         var s = STATS[d.key]; if (!s) return;
         var pct  = s.total > 0 ? Math.round((s.ok / s.total) * 100) : 100;
-        var row  = [d.num, d.key, s.total, s.red, s.yel, s.ok, pct + '%'];
+        var row  = [d.num, _sheetKeyMap[d.key] || d.key, s.total, s.red, s.yel, s.ok, pct + '%'];
         var fill  = s.red > 0 ? C_RED : s.yel > 0 ? C_YEL : null;
         var exRow = s0ws.addRow(row);
         if (fill) exRow.eachCell(function (cell) { cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: fill } }; });
@@ -1834,18 +2160,21 @@
           paFilter: execMeta.paFilter,
           entities: execMeta.entities,
           mattypeCfg: MATTYPE_CFG,
-          kpis: [
-            { label: 'Total productos analizados',       value: n.toLocaleString('es-CL') },
-            { label: 'Productos con red completa',       value: completeCount.toLocaleString('es-CL') },
-            { label: 'Total rutas planta → cliente',     value: totalPaths.toLocaleString('es-CL') },
-            { label: 'Ghost nodes detectados',           value: ghostCount.toLocaleString('es-CL') },
-            { label: 'Health Score promedio',            value: (n > 0 ? Math.round(healthSum / n) : 0) + ' / 100' }
-          ]
+          kpis: (function() {
+            var _loc = (window.I18n && I18n.getLang() === 'en') ? 'en-US' : 'es-CL';
+            return [
+              { label: _xn('Total productos analizados'),                    value: n.toLocaleString(_loc) },
+              { label: _xn('Productos con red completa'),                    value: completeCount.toLocaleString(_loc) },
+              { label: I18n.t('analyzer.summary.totalPlantCustRoutes'),      value: totalPaths.toLocaleString(_loc) },
+              { label: _xn('Ghost nodes detectados'),                        value: ghostCount.toLocaleString(_loc) },
+              { label: _xn('Health Score promedio'),                         value: (n > 0 ? Math.round(healthSum / n) : 0) + ' / 100' }
+            ];
+          })()
         });
       }
 
       if (onProgress) onProgress(97);
-      if (onStatus)   onStatus('Generando archivo Excel...');
+      if (onStatus)   onStatus(I18n.t('xls.log.genFile'));
       var buf  = await wb.xlsx.writeBuffer();
       var blob = new Blob([buf], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
       var dlUrl = URL.createObjectURL(blob);
@@ -2143,42 +2472,42 @@
 
       if (ctx.useSemiRules) {
         // Semi: PSH existencia + consumo PSI + resiliencia multi-planta
-        if (ctx.inPSH) { score += 30; steps.push('+30 produccion configurada'); }
-        else            { steps.push('+0 sin produccion'); cmts.push('Sin PSH'); }
-        if (ctx.inPSI) { score += 40; steps.push('+40 consumo PSI configurado'); }
-        else            { steps.push('+0 sin consumo PSI'); cmts.push('Sin consumo PSI'); }
-        if (metrics.plants > 1) { score += 20; steps.push('+20 multiples plantas (' + metrics.plants + ')'); }
-        if (ctx.inLS)  { score += 10; steps.push('+10 transferencia configurada'); }
+        if (ctx.inPSH) { score += 30; steps.push(_xn('+30 produccion configurada')); }
+        else            { steps.push(_xn('+0 sin produccion')); cmts.push('Sin PSH'); }
+        if (ctx.inPSI) { score += 40; steps.push(_xn('+40 consumo PSI configurado')); }
+        else            { steps.push(_xn('+0 sin consumo PSI')); cmts.push('Sin consumo PSI'); }
+        if (metrics.plants > 1) { score += 20; steps.push(_xn('+20 multiples plantas (') + metrics.plants + ')'); }
+        if (ctx.inLS)  { score += 10; steps.push(_xn('+10 transferencia configurada')); }
 
       } else if (ctx.useRawmatRules) {
         // Rawmat: arcos de suministro hacia plantas + cobertura de ubicaciones
-        if (ctx.inLS)        { score += 60; steps.push('+60 arcos de suministro configurados'); }
-        else                  { steps.push('+0 sin arcos de suministro'); cmts.push('Sin Location Source'); }
-        if (metrics.dcs > 0) { score += 20; steps.push('+20 ubicaciones de consumo alcanzadas (' + metrics.dcs + ')'); }
-        if (ctx.inCS)        { score += 20; steps.push('+20 entrega directa a cliente configurada'); }
+        if (ctx.inLS)        { score += 60; steps.push(_xn('+60 arcos de suministro configurados')); }
+        else                  { steps.push(_xn('+0 sin arcos de suministro')); cmts.push('Sin Location Source'); }
+        if (metrics.dcs > 0) { score += 20; steps.push(_xn('+20 ubicaciones de consumo alcanzadas (') + metrics.dcs + ')'); }
+        if (ctx.inCS)        { score += 20; steps.push(_xn('+20 entrega directa a cliente configurada')); }
 
       } else if (ctx.useTradingRules) {
         // Trading: distribución + entrega a cliente + amplitud de clientes
-        if (ctx.inLS) { score += 40; steps.push('+40 distribucion configurada'); }
-        else           { steps.push('+0 sin distribucion'); cmts.push('Sin Location Source'); }
-        if (ctx.inCS) { score += 40; steps.push('+40 entrega a cliente configurada'); }
-        else           { steps.push('+0 sin entrega a cliente'); cmts.push('Sin Customer Source'); }
-        if (metrics.customers > 1) { score += 20; steps.push('+20 multiples clientes (' + metrics.customers + ')'); }
+        if (ctx.inLS) { score += 40; steps.push(_xn('+40 distribucion configurada')); }
+        else           { steps.push(_xn('+0 sin distribucion')); cmts.push('Sin Location Source'); }
+        if (ctx.inCS) { score += 40; steps.push(_xn('+40 entrega a cliente configurada')); }
+        else           { steps.push(_xn('+0 sin entrega a cliente')); cmts.push('Sin Customer Source'); }
+        if (metrics.customers > 1) { score += 20; steps.push(_xn('+20 multiples clientes (') + metrics.customers + ')'); }
 
       } else {
         // Finished (y uncategorized): max teórico = 50+15+15+20 = 100 → 'Healthy' alcanzable
-        if (paths.length > 0) { score += 50; steps.push('+50 ruta completa planta-cliente'); }
-        else { steps.push('+0 sin rutas completas'); }
-        if (metrics.customers > 1) { score += 15; steps.push('+15 multiples clientes (' + metrics.customers + ')'); }
-        if (metrics.paths > 1) { score += 15; steps.push('+15 multiples rutas (' + metrics.paths + ')'); }
-        if (metrics.plants > 1) { score += 20; steps.push('+20 multiples plantas (' + metrics.plants + ')'); }
+        if (paths.length > 0) { score += 50; steps.push(_xn('+50 ruta completa planta-cliente')); }
+        else { steps.push(_xn('+0 sin rutas completas')); }
+        if (metrics.customers > 1) { score += 15; steps.push(_xn('+15 multiples clientes (') + metrics.customers + ')'); }
+        if (metrics.paths > 1) { score += 15; steps.push(_xn('+15 multiples rutas (') + metrics.paths + ')'); }
+        if (metrics.plants > 1) { score += 20; steps.push(_xn('+20 multiples plantas (') + metrics.plants + ')'); }
         if (ghosts.length > 0) { score -= 20; steps.push('-20 ghost nodes (' + ghosts.length + ')'); }
         if (deadEnds.length > 0) { score -= 15; steps.push('-15 dead ends (' + deadEnds.length + ')'); }
         var custPC = {};
         paths.forEach(function (p) { custPC[p.customer] = (custPC[p.customer] || 0) + 1; });
         var hasSinglePath = Object.keys(custPC).some(function (c) { return custPC[c] === 1; });
-        if (hasSinglePath) { score -= 20; steps.push('-20 cliente(s) con unica ruta'); cmts.push('Single-path customers detected'); }
-        if (metrics.plants === 1) { score -= 15; steps.push('-15 fuente unica de produccion'); cmts.push('Single production source'); }
+        if (hasSinglePath) { score -= 20; steps.push(_xn('-20 cliente(s) con unica ruta')); cmts.push('Single-path customers detected'); }
+        if (metrics.plants === 1) { score -= 15; steps.push(_xn('-15 fuente unica de produccion')); cmts.push('Single production source'); }
         if (paths.length === 0) cmts.push('No valid plant-to-customer paths');
         if (ghosts.length > 0) cmts.push(ghosts.length + ' ghost DC(s)');
         if (deadEnds.length > 0) cmts.push(deadEnds.length + ' dead-end location(s)');

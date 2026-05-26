@@ -912,24 +912,24 @@ function buildParamSheet(rows, jobsMode) {
 
   // Header row (row 1)
   const headers = [
-    {v:'Dato - Click Aquí para más detalle', s:XF.PRM_HDR},
-    {v:'Tipo de Integración',               s:XF.PRM_HDR},
+    {v:I18n.t('docs.xls.col.data'),            s:XF.PRM_HDR},
+    {v:I18n.t('docs.xls.col.integrationType'), s:XF.PRM_HDR},
   ];
   if (jobsMode) {
-    headers.push({v:'Job IBP',      s:XF.PRM_HDR});
-    headers.push({v:'Step',         s:XF.PRM_HDR});
-    headers.push({v:'Tipo de paso', s:XF.PRM_HDR});
-    headers.push({v:'Grupo',        s:XF.PRM_HDR});
+    headers.push({v:I18n.t('docs.xls.col.ibpJob'),   s:XF.PRM_HDR});
+    headers.push({v:I18n.t('docs.xls.col.step'),     s:XF.PRM_HDR});
+    headers.push({v:I18n.t('docs.xls.col.stepType'), s:XF.PRM_HDR});
+    headers.push({v:I18n.t('docs.xls.col.group'),    s:XF.PRM_HDR});
   } else {
-    headers.push({v:'Proceso',      s:XF.PRM_HDR});
-    headers.push({v:'Grupo',        s:XF.PRM_HDR});
+    headers.push({v:I18n.t('docs.xls.col.process'), s:XF.PRM_HDR});
+    headers.push({v:I18n.t('docs.xls.col.group'),   s:XF.PRM_HDR});
   }
   headers.push(
-    {v:'Task CI-DS',             s:XF.PRM_HDR},
-    {v:'Descripción de la task', s:XF.PRM_HDR},
-    {v:'Dataflow CIDS',          s:XF.PRM_HDR},
-    {v:'Sistema fuente',         s:XF.PRM_HDR},
-    {v:'Sistema Destino',        s:XF.PRM_HDR}
+    {v:I18n.t('docs.xls.col.taskCids'),      s:XF.PRM_HDR},
+    {v:I18n.t('docs.xls.col.taskDesc'),      s:XF.PRM_HDR},
+    {v:I18n.t('docs.xls.col.dataflowCids'),  s:XF.PRM_HDR},
+    {v:I18n.t('docs.xls.col.sourceSystem'),  s:XF.PRM_HDR},
+    {v:I18n.t('docs.xls.col.destSystem'),    s:XF.PRM_HDR}
   );
   sb.addRow(headers, 18);
 
@@ -992,23 +992,24 @@ function buildIntegrationSheet(parsed) {
   // Helper: fila vacía
   const emptyRow = () => sb.addRow(Array(N).fill({v:'', s:XF.DEFAULT}), 6);
 
-  // ── Fila 1: Back button en A1 (con hyperlink → Parámetros) + headers tabla 1
-  sb.addHyperlink(0, 0, "#'Parámetros'!A1");
+  // ── Fila 1: Back button en A1 (con hyperlink → hoja índice) + headers tabla 1
+  // El sheet name "Parámetros" se mantiene literal porque ya está fijo en el .xlsx generado
+  sb.addHyperlink(0, 0, "#'" + I18n.t('xls.sheet.parameters') + "'!A1");
   sb.addRow([
-    {v:'<--',                    s:XF.BACK_BTN},
-    {v:' #',                     s:XF.T1_HDR},
-    {v:'Campo Destino',          s:XF.T1_HDR},
-    {v:'Descripción Campo Destino', s:XF.T1_HDR},
-    {v:'Tabla Origen',           s:XF.T1_HDR},
-    {v:'Campo Origen',           s:XF.T1_HDR},
-    {v:'Mapping',                s:XF.T1_HDR},
+    {v:'<--',                                  s:XF.BACK_BTN},
+    {v:' #',                                   s:XF.T1_HDR},
+    {v:I18n.t('docs.xls.col.dstField'),        s:XF.T1_HDR},
+    {v:I18n.t('docs.xls.col.dstFieldDesc'),    s:XF.T1_HDR},
+    {v:I18n.t('docs.xls.col.srcTable'),        s:XF.T1_HDR},
+    {v:I18n.t('docs.xls.col.srcField'),        s:XF.T1_HDR},
+    {v:I18n.t('docs.xls.col.mapping'),         s:XF.T1_HDR},
   ], 22);
 
   // ── Datos tabla 1
   if (!mappings.length) {
     sb.addRow([
       {v:'', s:XF.DEFAULT},
-      {v:'Sin mapeos', s:XF.T1_DATA},
+      {v:I18n.t('docs.xls.empty.noMappings'), s:XF.T1_DATA},
       {v:'', s:XF.T1_DATA},{v:'', s:XF.T1_DATA},
       {v:'', s:XF.T1_DATA},{v:'', s:XF.T1_DATA},{v:'', s:XF.T1_DATA}
     ], 18);
@@ -1035,16 +1036,16 @@ function buildIntegrationSheet(parsed) {
   // ── Tabla 2 — Filtros
   sb.addRow([
     {v:'', s:XF.DEFAULT},
-    {v:'Tabla',              s:XF.T234_HDR},
-    {v:'Filtro',             s:XF.T234_HDR},
-    {v:'Descripción de filtro', s:XF.T234_HDR},
+    {v:I18n.t('docs.xls.col.table'),       s:XF.T234_HDR},
+    {v:I18n.t('docs.xls.col.filter'),      s:XF.T234_HDR},
+    {v:I18n.t('docs.xls.col.filterDesc'),  s:XF.T234_HDR},
     {v:'', s:XF.DEFAULT},{v:'', s:XF.DEFAULT},{v:'', s:XF.DEFAULT}
   ], 18);
 
   if (!filters.length) {
     sb.addRow([
       {v:'', s:XF.DEFAULT},
-      {v:'Sin filtros', s:XF.T2_DATA},
+      {v:I18n.t('docs.xls.empty.noFilters'), s:XF.T2_DATA},
       {v:'', s:XF.T2_DATA},{v:'', s:XF.T2_DATA},
       {v:'', s:XF.DEFAULT},{v:'', s:XF.DEFAULT},{v:'', s:XF.DEFAULT}
     ], 18);
@@ -1066,15 +1067,15 @@ function buildIntegrationSheet(parsed) {
   // ── Tabla 3 — Variables (Parámetros Globales)
   sb.addRow([
     {v:'', s:XF.DEFAULT},
-    {v:'Parámetro Global', s:XF.T234_HDR},
-    {v:'Valor',            s:XF.T234_HDR},
+    {v:I18n.t('docs.xls.col.globalParam'), s:XF.T234_HDR},
+    {v:I18n.t('docs.xls.col.value'),       s:XF.T234_HDR},
     {v:'', s:XF.DEFAULT},{v:'', s:XF.DEFAULT},{v:'', s:XF.DEFAULT},{v:'', s:XF.DEFAULT}
   ], 18);
 
   if (!variables || !variables.length) {
     sb.addRow([
       {v:'', s:XF.DEFAULT},
-      {v:'Sin variables', s:XF.T34_DATA},
+      {v:I18n.t('docs.xls.empty.noVariables'), s:XF.T34_DATA},
       {v:'', s:XF.T34_DATA},
       {v:'', s:XF.DEFAULT},{v:'', s:XF.DEFAULT},{v:'', s:XF.DEFAULT},{v:'', s:XF.DEFAULT}
     ], 18);
@@ -1094,15 +1095,15 @@ function buildIntegrationSheet(parsed) {
   // ── Tabla 4 — Lookups
   sb.addRow([
     {v:'', s:XF.DEFAULT},
-    {v:'Función Lookup', s:XF.T234_HDR},
-    {v:'Transform',      s:XF.T234_HDR},
+    {v:I18n.t('docs.xls.col.lookupFn'),  s:XF.T234_HDR},
+    {v:I18n.t('docs.xls.col.transform'), s:XF.T234_HDR},
     {v:'', s:XF.DEFAULT},{v:'', s:XF.DEFAULT},{v:'', s:XF.DEFAULT},{v:'', s:XF.DEFAULT}
   ], 18);
 
   if (!lookups.length) {
     sb.addRow([
       {v:'', s:XF.DEFAULT},
-      {v:'Sin lookups', s:XF.T34_DATA},
+      {v:I18n.t('docs.xls.empty.noLookups'), s:XF.T34_DATA},
       {v:'', s:XF.T34_DATA},
       {v:'', s:XF.DEFAULT},{v:'', s:XF.DEFAULT},{v:'', s:XF.DEFAULT},{v:'', s:XF.DEFAULT}
     ], 18);
@@ -1195,7 +1196,7 @@ async function generate() {
   xlsBuf = null;
   parsedIntegrations = [];
 
-  docsLog('Escaneando ZIPs…', 'l-info');
+  docsLog(I18n.t('docs.log.scanZipsStart'), 'l-info');
   setP(2);
 
   // Unique sheet-name generator (scoped to scan, reset on each scan)
@@ -1215,10 +1216,10 @@ async function generate() {
     catch(e) { docsLog(`  ✗ ${e.message}`, 'l-err'); continue; }
 
     const batchMap = await parseBatchCsv(zip);
-    docsLog(`  ✔ batch.csv: ${Object.keys(batchMap).length} entradas`, 'l-ok');
+    docsLog(I18n.t('docs.log.batchEntries', { n: Object.keys(batchMap).length }), 'l-ok');
 
     const xmlNames = Object.keys(zip.files).filter(n => n.endsWith('.xml') && !n.includes('/'));
-    docsLog(`  📄 ${xmlNames.length} XMLs`, 'l-line');
+    docsLog(I18n.t('docs.log.xmlsFound', { n: xmlNames.length }), 'l-line');
 
     for (let xi = 0; xi < xmlNames.length; xi++) {
       const fname = xmlNames[xi];
@@ -1231,7 +1232,7 @@ async function generate() {
       let dfResults;
       try { dfResults = parseIntegration(xmlStr, batchMap[fname] || {}); }
       catch(e) { docsLog(`  ✗ Parse ${fname}: ${e.message}`, 'l-err'); continue; }
-      if (!dfResults || !dfResults.length) { docsLog(`  ⚠ Sin DataFlows: ${fname}`, 'l-warn'); continue; }
+      if (!dfResults || !dfResults.length) { docsLog(I18n.t('docs.log.noDataflows', { file: fname }), 'l-warn'); continue; }
 
       const multiDF = dfResults.length > 1;
       for (const parsed of dfResults) {
@@ -1247,14 +1248,14 @@ async function generate() {
           atlSession: '', atlGroup: ''
         };
         parsedIntegrations.push({ sheetName, pkg: zf.name, parsed, paramRow });
-        docsLog(`  ✔ ${sheetName}  (${mappings.length} mapeos · ${filters.length} filtros · ${lookups.length} lookups)`, 'l-ok');
+        docsLog(I18n.t('docs.log.parsedDfFull', { name: sheetName, maps: mappings.length, filts: filters.length, lkps: lookups.length }), 'l-ok');
       }
     }
     done++;
   }
 
   setP(100);
-  docsLog(`✅ Escaneado — ${parsedIntegrations.length} integraciones encontradas`, 'l-ok');
+  docsLog(I18n.t('docs.log.scanDone', { n: parsedIntegrations.length }), 'l-ok');
   document.getElementById('gen-btn').disabled = false;
   renderSelList();
 }
@@ -1321,9 +1322,9 @@ function updateCounter() {
   const counterEl = document.getElementById('sel-counter');
   if (q) {
     const visChecked = [...visible].filter(el => el.querySelector('input').checked).length;
-    counterEl.textContent = `${visChecked} / ${visible.length} filtradas · ${checked.length} / ${all.length} total`;
+    counterEl.textContent = I18n.t('docs.counter.filtered', { visChecked: visChecked, visible: visible.length, checked: checked.length, all: all.length });
   } else {
-    counterEl.textContent = `${checked.length} / ${all.length} seleccionadas`;
+    counterEl.textContent = I18n.t('docs.counter.selected', { checked: checked.length, all: all.length });
   }
 }
 
@@ -1342,16 +1343,16 @@ async function buildExcel() {
   });
 
   if (!selected.length) {
-    docsLog('⚠ No hay integraciones seleccionadas.', 'l-warn');
+    docsLog(I18n.t('docs.log.noSelected'), 'l-warn');
     return;
   }
 
-  docsLog(`📋 Generando Excel con ${selected.length} integraciones…`, 'l-info');
+  docsLog(I18n.t('docs.log.generating', { n: selected.length }), 'l-info');
   setP(5);
 
   // ── ATL enrichment for ZIP mode (optional)
   if (docsMode === 'zip' && zipAtlFiles.length > 0) {
-    docsLog('📋 Procesando ' + zipAtlFiles.length + ' archivo(s) ATL…', 'l-info');
+    docsLog(I18n.t('docs.log.processingAtl', { n: zipAtlFiles.length }), 'l-info');
     const atlEnrich = {};
     for (const f of zipAtlFiles) {
       const atl = parseATL(f.text);
@@ -1367,23 +1368,23 @@ async function buildExcel() {
       item.paramRow.atlGroup   = e ? e.atlGroup   : '';
       item.paramRow.atlSession = e ? e.atlSession : '';
     });
-    docsLog('  ✔ ATL procesado: ' + Object.keys(atlEnrich).length + ' dataflows mapeados', 'l-ok');
+    docsLog(I18n.t('docs.log.atlProcessed', { n: Object.keys(atlEnrich).length }), 'l-ok');
   }
 
   // ── Fetch IBP field descriptions (MASTER_DATA_API_SRV + PLANNING_DATA_API_SRV)
-  docsLog('🔍 Obteniendo descripciones de campos desde IBP…', 'l-info');
+  docsLog(I18n.t('docs.log.fetchingIbpDescs'), 'l-info');
   let ibpDescs = {};
   try {
     ibpDescs = await fetchIbpFieldDescriptions();
     const n = Object.keys(ibpDescs).length;
     docsLog(
       n > 0
-        ? `✔ ${n} descripciones de campos obtenidas de IBP`
-        : '⚠ Sin conexión a IBP — se usarán descripciones del XML',
+        ? I18n.t('docs.log.ibpDescsOk', {n})
+        : I18n.t('docs.log.noIbpFallback'),
       n > 0 ? 'l-ok' : 'l-warn'
     );
   } catch (e) {
-    docsLog('⚠ No se pudo consultar IBP: ' + e.message, 'l-warn');
+    docsLog(I18n.t('docs.log.ibpQueryFailed', { err: e.message }), 'l-warn');
   }
   setP(15);
 
@@ -1405,14 +1406,14 @@ async function buildExcel() {
     sheets.push({ name: paramRow.sheetName, sb });
   }
 
-  docsLog('📋 Generando hoja Parámetros…', 'l-info');
+  docsLog(I18n.t('docs.log.generatingSheet', { sheet: I18n.t('xls.sheet.parameters') }), 'l-info');
   const paramSb = buildParamSheet(paramRows, docsMode === 'zipjobs');
-  sheets.unshift({ name: 'Parámetros', sb: paramSb });
+  sheets.unshift({ name: I18n.t('xls.sheet.parameters'), sb: paramSb });
 
-  docsLog('📦 Ensamblando archivo Excel…', 'l-info');
+  docsLog(I18n.t('docs.log.assemblingExcel'), 'l-info');
   xlsBuf = await assembleXlsx(sheets);
   setP(100);
-  docsLog(`✅ Listo — ${totalJobs} jobs · ${totalMaps} mapeos · ${totalFilts} filtros`, 'l-ok');
+  docsLog(I18n.t('docs.log.done', { jobs: totalJobs, maps: totalMaps, filts: totalFilts }), 'l-ok');
 
   document.getElementById('s-jobs').textContent = totalJobs;
   document.getElementById('s-maps').textContent = totalMaps;
@@ -1546,7 +1547,7 @@ async function generateZipJobs() {
   xlsBuf = null;
   parsedIntegrations = [];
 
-  docsLog('📦 Escaneando ZIPs…', 'l-info');
+  docsLog(I18n.t('docs.log.scanZipsStart'), 'l-info');
   setZjP(2);
 
   const usedNames = new Set();
@@ -1566,10 +1567,10 @@ async function generateZipJobs() {
     catch (e) { docsLog(`  ✗ ${e.message}`, 'l-err'); continue; }
 
     const batchMap = await parseBatchCsv(zip);
-    docsLog(`  ✔ batch.csv: ${Object.keys(batchMap).length} entradas`, 'l-ok');
+    docsLog(I18n.t('docs.log.batchEntries', { n: Object.keys(batchMap).length }), 'l-ok');
 
     const xmlNames = Object.keys(zip.files).filter(n => n.endsWith('.xml') && !n.includes('/'));
-    docsLog(`  📄 ${xmlNames.length} XMLs`, 'l-line');
+    docsLog(I18n.t('docs.log.xmlsFound', { n: xmlNames.length }), 'l-line');
 
     for (let xi = 0; xi < xmlNames.length; xi++) {
       const fname = xmlNames[xi];
@@ -1582,7 +1583,7 @@ async function generateZipJobs() {
       let dfResults;
       try { dfResults = parseIntegration(xmlStr, batchMap[fname] || {}); }
       catch (e) { docsLog(`  ✗ Parse ${fname}: ${e.message}`, 'l-err'); continue; }
-      if (!dfResults || !dfResults.length) { docsLog(`  ⚠ Sin DataFlows: ${fname}`, 'l-warn'); continue; }
+      if (!dfResults || !dfResults.length) { docsLog(I18n.t('docs.log.noDataflows', { file: fname }), 'l-warn'); continue; }
 
       const multiDF = dfResults.length > 1;
       for (const parsed of dfResults) {
@@ -1599,33 +1600,33 @@ async function generateZipJobs() {
           ibpJobName: '', ibpStepName: '', ibpStepType: '', atlGroup: ''
         };
         parsedIntegrations.push({ sheetName, pkg: zf.name, parsed, paramRow });
-        docsLog(`  ✔ ${sheetName}  (${parsed.mappings.length} mapeos · ${parsed.filters.length} filtros)`, 'l-ok');
+        docsLog(I18n.t('docs.log.parsedDf', { name: sheetName, maps: parsed.mappings.length, filts: parsed.filters.length }), 'l-ok');
       }
     }
     done++;
   }
 
-  docsLog(`✔ ${parsedIntegrations.length} integraciones encontradas`, 'l-ok');
+  docsLog(I18n.t('docs.log.integrationsFound', { n: parsedIntegrations.length }), 'l-ok');
   setZjP(50);
 
   // ── Phase 2: fetch IBP job steps and auto-match ──────────
   if (CFG && CFG.url && CFG.user && CFG.pass && parsedIntegrations.length) {
-    docsLog('🔍 Obteniendo JobTemplateSet desde IBP…', 'l-info');
+    docsLog(I18n.t('docs.log.fetchingJobTemplates'), 'l-info');
     let allTemplates = [], allSteps = [];
     try {
       allTemplates = await fetchAllPages(CFG.url + SVC_APPJOB + '/JobTemplateSet', docsLogEl);
-      docsLog(`  ✔ ${allTemplates.length} job templates`, 'l-ok');
+      docsLog(I18n.t('docs.log.jobTemplatesOk', { n: allTemplates.length }), 'l-ok');
     } catch (e) {
-      docsLog('  ⚠ No se pudo obtener JobTemplateSet: ' + e.message, 'l-warn');
+      docsLog(I18n.t('docs.log.jobTemplatesFailed', { err: e.message }), 'l-warn');
     }
     setZjP(65);
 
     try {
-      docsLog('🔍 Obteniendo JobTemplateSequenceSet…', 'l-info');
+      docsLog(I18n.t('docs.log.fetchingSequences'), 'l-info');
       allSteps = await fetchAllPages(CFG.url + SVC_APPJOB + '/JobTemplateSequenceSet', docsLogEl);
-      docsLog(`  ✔ ${allSteps.length} steps`, 'l-ok');
+      docsLog(I18n.t('docs.log.stepsOk', { n: allSteps.length }), 'l-ok');
     } catch (e) {
-      docsLog('  ⚠ No se pudo obtener JobTemplateSequenceSet: ' + e.message, 'l-warn');
+      docsLog(I18n.t('docs.log.sequencesFailed', { err: e.message }), 'l-warn');
     }
     setZjP(80);
 
@@ -1641,7 +1642,7 @@ async function generateZipJobs() {
     const diSteps    = allSteps.filter(s => (s.JceText || '').toUpperCase().includes(JCE_DATA_INT));
     const appjobBase = CFG.url + SVC_APPJOB;
 
-    docsLog(`  🔍 Obteniendo P_TSKID para ${diSteps.length} steps DATA INTEGRATION…`, 'l-info');
+    docsLog(I18n.t('docs.log.fetchingPtskid', { n: diSteps.length }), 'l-info');
 
     // seqName → taskId
     const seqToTaskId = {};
@@ -1655,9 +1656,9 @@ async function generateZipJobs() {
         const taskId  = (r.Low || '').trim();
         if (seqName && taskId) seqToTaskId[seqName] = taskId;
       });
-      docsLog(`  ✔ ${rows.length} entradas P_TSKID cargadas`, 'l-ok');
+      docsLog(I18n.t('docs.log.ptskidOk', { n: rows.length }), 'l-ok');
     } catch (e) {
-      docsLog(`  ⚠ startswith no soportado, sin match de jobs: ${e.message}`, 'l-warn');
+      docsLog(I18n.t('docs.log.startswithUnsupported', { err: e.message }), 'l-warn');
     }
 
     // Build final index: taskId.toUpperCase() → step info
@@ -1677,7 +1678,7 @@ async function generateZipJobs() {
         };
       }
     });
-    docsLog(`  ✔ ${Object.keys(stepByTaskId).length} task IDs indexados`, 'l-ok');
+    docsLog(I18n.t('docs.log.taskIdsIndexed', { n: Object.keys(stepByTaskId).length }), 'l-ok');
     setZjP(90);
 
     // Match each integration by actual task ID (P_TSKID.Low)
@@ -1690,15 +1691,15 @@ async function generateZipJobs() {
         item.paramRow.ibpStepName = hit.stepName;
         item.paramRow.ibpStepType = hit.jceText;
         matched++;
-        docsLog(`  📌 "${item.parsed.jobName}" → Job: "${hit.jobTemplateText}" (pos ${hit.stepPos})`, 'l-ok');
+        docsLog(I18n.t('docs.log.matchJob', { name: item.parsed.jobName, job: hit.jobTemplateText, pos: hit.stepPos }), 'l-ok');
       } else {
         unmatched++;
-        docsLog(`  ⚠ "${item.parsed.jobName}" sin match en IBP`, 'l-warn');
+        docsLog(I18n.t('docs.log.unmatchedIbp', { name: item.parsed.jobName }), 'l-warn');
       }
     }
-    docsLog(`✔ Match: ${matched} encontrados · ${unmatched} sin match`, matched > 0 ? 'l-ok' : 'l-warn');
+    docsLog(I18n.t('docs.log.matchResult', { matched, unmatched }), matched > 0 ? 'l-ok' : 'l-warn');
   } else {
-    docsLog('ℹ Sin conexión a IBP — las columnas Job/Step quedarán vacías.', 'l-info');
+    docsLog(I18n.t('docs.log.noIbpJobs'), 'l-info');
   }
 
   setZjP(100);
@@ -1920,7 +1921,7 @@ function parseATL(text) {
 // ── Fetch Application Jobs from IBP API ──────────────────────
 async function fetchAndDisplayJobs() {
   if (typeof CFG === 'undefined' || !CFG.url || !CFG.user || !CFG.pass) {
-    docsLog('⚠ Debes conectarte a SAP IBP primero.', 'l-warn');
+    docsLog(I18n.t('docs.log.needIbpConn'), 'l-warn');
     return;
   }
 
@@ -1929,7 +1930,7 @@ async function fetchAndDisplayJobs() {
   docsLogEl.innerHTML = '';
   docsLogEl.style.display = 'block';
   docsLogHint.style.display = 'none';
-  docsLog('🔍 Consultando Application Jobs…', 'l-info');
+  docsLog(I18n.t('docs.log.fetchingAppJobs'), 'l-info');
 
   try {
     // BC_EXT_APPJOB_MANAGEMENT uses /sap/opu/odata/sap/ (lowercase) with version suffix ;v=0002
@@ -1938,10 +1939,10 @@ async function fetchAndDisplayJobs() {
     let metaXml;
     try {
       metaXml = await apiXml(metaUrl);
-      docsLog('✔ $metadata obtenido', 'l-ok');
+      docsLog(I18n.t('docs.log.metadataOk'), 'l-ok');
     } catch (e) {
-      docsLog('✗ Error obteniendo $metadata: ' + e.message, 'l-err');
-      docsLog('ℹ Asegúrate de tener el Communication Arrangement SAP_COM_0326 configurado.', 'l-info');
+      docsLog(I18n.t('docs.log.metadataFailed', { err: e.message }), 'l-err');
+      docsLog(I18n.t('docs.log.scom0326Hint'), 'l-info');
       btn.disabled = false;
       return;
     }
@@ -1955,20 +1956,20 @@ async function fetchAndDisplayJobs() {
     // Try to fetch job catalog/templates
     const jobEntity = entitySets.find(n => /JobTemplate|CatalogEntries|JobSchedule/i.test(n)) || entitySets[0];
     if (!jobEntity) {
-      docsLog('✗ No se encontraron entidades de jobs en el servicio.', 'l-err');
+      docsLog(I18n.t('docs.log.noJobEntities'), 'l-err');
       btn.disabled = false;
       return;
     }
 
-    docsLog(`🔍 Fetching ${jobEntity}…`, 'l-info');
+    docsLog(I18n.t('docs.log.fetchingEntity', { entity: jobEntity }), 'l-info');
     const jobsUrl = CFG.url + SVC_APPJOB + '/' + jobEntity;
     const jobs = await fetchAllPages(jobsUrl, docsLogEl);
     fetchedJobs = jobs;
-    docsLog(`✔ ${jobs.length} jobs obtenidos`, 'l-ok');
+    docsLog(I18n.t('docs.log.jobsOk', { n: jobs.length }), 'l-ok');
 
     renderJobSelection(jobs, entitySets);
   } catch (e) {
-    docsLog('✗ Error: ' + e.message, 'l-err');
+    docsLog(I18n.t('docs.log.error', { err: e.message }), 'l-err');
   }
   btn.disabled = false;
 }
@@ -1979,7 +1980,7 @@ function renderJobSelection(jobs, entitySets) {
   const list  = document.getElementById('jobs-list');
 
   if (!jobs.length) {
-    list.innerHTML = '<div class="si-empty">No se encontraron jobs.</div>';
+    list.innerHTML = `<div class="si-empty">${I18n.t('docs.empty.noJobs')}</div>`;
     panel.style.display = 'block';
     return;
   }
@@ -2084,14 +2085,14 @@ function matchATLtoIntegrations(atlData, parsedInts) {
         if (candidates.length === 1) {
           item = candidates[0];
         } else if (candidates.length > 1) {
-          docsLog(`  ⚠ Múltiples ZIPs con dataflow "${df.displayName}" y sin GUID — no se puede desambiguar`, 'l-warn');
+          docsLog(I18n.t('docs.log.ambiguousDataflow', { name: df.displayName }), 'l-warn');
           // Cannot determine which is correct without GUID — skip to avoid false match
           continue;
         }
       }
 
       if (!item) {
-        docsLog(`  ⚠ ATL dataflow sin match en ZIPs: ${df.displayName} (guid: ${df.guid || 'n/a'})`, 'l-warn');
+        docsLog(I18n.t('docs.log.atlNoMatch', { name: df.displayName, guid: df.guid || 'n/a' }), 'l-warn');
         continue;
       }
 
@@ -2141,12 +2142,12 @@ async function generateFromJobs() {
     return descField ? (j[descField] || j[nameField] || '') : (j[nameField] || '');
   });
 
-  docsLog(`📋 ${selectedJobIdxs.length} jobs seleccionados`, 'l-info');
+  docsLog(I18n.t('docs.log.jobsSelected', { n: selectedJobIdxs.length }), 'l-info');
 
   // ── Fetch job steps from JobTemplateSequenceSet
   const stepMap = {};
   if (CFG && CFG.url && CFG.user && selectedJobIdxs.length) {
-    docsLog('🔍 Obteniendo pasos de los jobs…', 'l-info');
+    docsLog(I18n.t('docs.log.fetchingJobSteps'), 'l-info');
     const stepFetches = selectedJobIdxs.map(async function(_, ji) {
       const job = fetchedJobs[selectedJobIdxs[ji]];
       if (!job) return [];
@@ -2158,15 +2159,15 @@ async function generateFromJobs() {
         const data = await apiJson(CFG.url + SVC_APPJOB + '/JobTemplateSequenceSet?$filter=' + encodeURIComponent(filter) + '&$format=json');
         const steps = ((data.d && data.d.results) || data.value || [])
           .sort(function(a, b) { return (a.JobSequencePosition || 0) - (b.JobSequencePosition || 0); });
-        docsLog('  ✔ ' + jtName + ': ' + steps.length + ' pasos', 'l-ok');
+        docsLog(I18n.t('docs.log.jobStepsOk', { name: jtName, n: steps.length }), 'l-ok');
         steps.forEach(function(s) {
-          docsLog('    pos=' + s.JobSequencePosition + ' → ' + (s.JobSequenceText || s.JceText || ''), 'l-info');
+          docsLog(I18n.t('docs.log.stepDetail', { pos: s.JobSequencePosition, text: s.JobSequenceText || s.JceText || '' }), 'l-info');
         });
         return steps.map(function(s) {
           return { pos: s.JobSequencePosition || 0, text: s.JobSequenceText || s.JceText || '', jceText: s.JceText || '', seqName: s.JobSequenceName || '', taskId: '' };
         });
       } catch(e) {
-        docsLog('  ⚠ No se pudieron obtener pasos de ' + jtName + ': ' + e.message, 'l-warn');
+        docsLog(I18n.t('docs.log.jobStepsFailed', { name: jtName, err: e.message }), 'l-warn');
         return [];
       }
     });
@@ -2186,9 +2187,9 @@ async function generateFromJobs() {
         const taskId  = (r.Low || '').trim();
         if (seqName && taskId) seqToTaskId[seqName] = taskId;
       });
-      docsLog('  ✔ ' + Object.keys(seqToTaskId).length + ' task IDs resueltos via P_TSKID', 'l-ok');
+      docsLog(I18n.t('docs.log.ptskidResolved', { n: Object.keys(seqToTaskId).length }), 'l-ok');
     } catch(e) {
-      docsLog('  ⚠ P_TSKID no disponible, usando JobSequenceText como fallback: ' + e.message, 'l-warn');
+      docsLog(I18n.t('docs.log.ptskidFallback', { err: e.message }), 'l-warn');
     }
     Object.values(stepMap).forEach(function(steps) {
       steps.forEach(function(s) { s.taskId = seqToTaskId[s.seqName] || ''; });
@@ -2198,19 +2199,19 @@ async function generateFromJobs() {
   // ── Parse ATL files
   atlParsed = [];
   if (atlFiles.length) {
-    docsLog('📄 Parseando archivos ATL…', 'l-info');
+    docsLog(I18n.t('docs.log.parsingAtl'), 'l-info');
     for (const af of atlFiles) {
       try {
         const parsed = parseATL(af.text);
         atlParsed.push(parsed);
         const dfCount = parsed.groups.reduce((s, g) => s + g.dataflows.length, 0);
-        docsLog(`  ✔ ${af.name}: "${parsed.sessionName}" — ${parsed.groups.length} grupos, ${dfCount} dataflows`, 'l-ok');
+        docsLog(I18n.t('docs.log.atlOk', { file: af.name, session: parsed.sessionName, groups: parsed.groups.length, dataflows: dfCount }), 'l-ok');
       } catch (e) {
-        docsLog(`  ✗ ${af.name}: ${e.message}`, 'l-err');
+        docsLog(I18n.t('docs.log.atlFailed', {file: af.name, err: e.message}), 'l-err');
       }
     }
   } else {
-    docsLog('ℹ Sin archivos ATL — las integraciones no tendrán orden de proceso.', 'l-info');
+    docsLog(I18n.t('docs.log.noAtlFiles'), 'l-info');
   }
   setP(10);
 
@@ -2224,7 +2225,7 @@ async function generateFromJobs() {
   }
 
   if (jobsFiles.length) {
-    docsLog('📦 Escaneando ZIPs…', 'l-info');
+    docsLog(I18n.t('docs.log.scanZipsStart'), 'l-info');
     let done = 0;
     for (const zf of jobsFiles) {
       docsLog(`📦 ${zf.name}`, 'l-info');
@@ -2235,7 +2236,7 @@ async function generateFromJobs() {
       const batchMap = await parseBatchCsv(zip);
 
       const xmlNames = Object.keys(zip.files).filter(n => n.endsWith('.xml') && !n.includes('/'));
-      docsLog(`  📄 ${xmlNames.length} XMLs`, 'l-line');
+      docsLog(I18n.t('docs.log.xmlsFound', { n: xmlNames.length }), 'l-line');
 
       for (let xi = 0; xi < xmlNames.length; xi++) {
         const fname = xmlNames[xi];
@@ -2263,7 +2264,7 @@ async function generateFromJobs() {
             targetTable, sheetName
           };
           parsedIntegrations.push({ sheetName, pkg: zf.name, parsed, paramRow });
-          docsLog(`  ✔ ${sheetName}  (${mappings.length} mapeos · ${filters.length} filtros)`, 'l-ok');
+          docsLog(I18n.t('docs.log.parsedDf', {name: sheetName, maps: mappings.length, filts: filters.length}), 'l-ok');
         }
       }
       done++;
@@ -2282,7 +2283,7 @@ async function generateFromJobs() {
 
   let orderedIntegrations = [];
   {
-    docsLog('🔗 Mapeando steps → integraciones…', 'l-info');
+    docsLog(I18n.t('docs.log.mappingSteps'), 'l-info');
     const allOrdered = [];
     const globalMatched = new Set();
 
@@ -2320,7 +2321,7 @@ async function generateFromJobs() {
       const ibpStepPos  = matchedStep ? matchedStep.pos     : 9999;
       const ibpStepType = matchedStep ? matchedStep.jceText : '';
 
-      docsLog(`  📌 "${atl.sessionName}" → step: "${ibpStepName}" (pos ${ibpStepPos})`, 'l-info');
+      docsLog(I18n.t('docs.log.matchStep', {name: atl.sessionName, step: ibpStepName, pos: ibpStepPos}), 'l-info');
 
       const matched = matchATLtoIntegrations(atl, parsedIntegrations);
       for (const item of matched) {
@@ -2352,10 +2353,10 @@ async function generateFromJobs() {
         const directMatches = (intsByJobName[stepKeyUC] || intsByJobName[step.text.toUpperCase()] || [])
           .filter(p => !globalMatched.has(p.sheetName));
         if (!directMatches.length) {
-          docsLog(`  ⚠ Step "${step.text}" sin ATL y sin ZIP con jobName coincidente`, 'l-warn');
+          docsLog(I18n.t('docs.log.stepUnmatched', {step: step.text}), 'l-warn');
           continue;
         }
-        docsLog(`  📎 "${step.text}" (tarea directa) → ${directMatches.length} integración(es)`, 'l-info');
+        docsLog(I18n.t(directMatches.length === 1 ? 'docs.log.directTaskMatch.one' : 'docs.log.directTaskMatch.many', {step: step.text, n: directMatches.length}), 'l-info');
         for (const item of directMatches) {
           globalMatched.add(item.sheetName);
           allOrdered.push({
@@ -2380,18 +2381,18 @@ async function generateFromJobs() {
     });
 
     orderedIntegrations = allOrdered;
-    docsLog(`✔ ${orderedIntegrations.length} integraciones documentadas (solo las presentes en el job)`, 'l-ok');
+    docsLog(I18n.t('docs.log.docsCount', {n: orderedIntegrations.length}), 'l-ok');
   }
   setP(60);
 
   // ── Build Excel
-  docsLog('🔍 Obteniendo descripciones de campos desde IBP…', 'l-info');
+  docsLog(I18n.t('docs.log.fetchingIbpDescs'), 'l-info');
   let ibpDescs = {};
   try {
     ibpDescs = await fetchIbpFieldDescriptions();
     const n = Object.keys(ibpDescs).length;
-    docsLog(n > 0 ? `✔ ${n} descripciones de campos obtenidas de IBP` : '⚠ Sin descripciones IBP', n > 0 ? 'l-ok' : 'l-warn');
-  } catch (e) { docsLog('⚠ No se pudo consultar IBP: ' + e.message, 'l-warn'); }
+    docsLog(n > 0 ? I18n.t('docs.log.ibpDescsOk', {n}) : I18n.t('docs.log.ibpDescsEmpty'), n > 0 ? 'l-ok' : 'l-warn');
+  } catch (e) { docsLog(I18n.t('docs.log.ibpQueryFailed', { err: e.message }), 'l-warn'); }
   setP(70);
 
   const sheets = [];
@@ -2454,14 +2455,14 @@ async function generateFromJobs() {
     }
   }
 
-  docsLog('📋 Generando hoja Parámetros…', 'l-info');
+  docsLog(I18n.t('docs.log.generatingSheet', { sheet: I18n.t('xls.sheet.parameters') }), 'l-info');
   const paramSb = buildParamSheet(paramRows, true);
-  sheets.unshift({ name: 'Parámetros', sb: paramSb });
+  sheets.unshift({ name: I18n.t('xls.sheet.parameters'), sb: paramSb });
 
-  docsLog('📦 Ensamblando archivo Excel…', 'l-info');
+  docsLog(I18n.t('docs.log.assemblingExcel'), 'l-info');
   xlsBuf = await assembleXlsx(sheets);
   setP(100);
-  docsLog(`✅ Listo — ${totalJobs} integraciones · ${totalMaps} mapeos · ${totalFilts} filtros`, 'l-ok');
+  docsLog(I18n.t('docs.log.doneZj', {ints: totalJobs, maps: totalMaps, filts: totalFilts}), 'l-ok');
 
   document.getElementById('s-jobs').textContent = totalJobs;
   document.getElementById('s-maps').textContent = totalMaps;

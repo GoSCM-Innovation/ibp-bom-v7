@@ -74,7 +74,9 @@
       var logEl = document.getElementById('logConnect');
       var btn = document.getElementById('btnToggleConnLogs');
       var hidden = logEl.classList.toggle('hidden');
-      btn.textContent = hidden ? 'Ver logs técnicos' : 'Ocultar logs';
+      var key = hidden ? 'common.viewLogs' : 'common.hideLogs';
+      btn.setAttribute('data-i18n', key);
+      btn.textContent = window.I18n ? I18n.t(key) : (hidden ? 'Ver logs técnicos' : 'Ocultar logs');
     }
 
     function _resetProgBar(suffix) {
@@ -234,8 +236,8 @@
       logEl.innerHTML = '';
       var connStatusEl = document.getElementById('connStatus');
       connStatusEl.style.cssText = 'display:flex;font-size:12px;margin-top:6px;align-items:center;gap:8px;';
-      setConnStatus('info', 'Conectando a SAP IBP...');
-      log(logEl, 'info', 'Conectando a SAP IBP...');
+      setConnStatus('info', I18n.t('main.conn.connecting'));
+      log(logEl, 'info', I18n.t('main.conn.connecting'));
 
       CFG.url  = document.getElementById('inpUrl').value.replace(/\/+$/, '') || CFG.url;
       CFG.user = document.getElementById('inpUser').value || CFG.user;
@@ -246,7 +248,7 @@
       CFG.service = IBP_SERVICE;
 
       if (!CFG.url || !CFG.user || !CFG.pass || !CFG.pa) {
-        log(logEl, 'err', 'Completa URL, usuario, contraseña y Planning Area');
+        log(logEl, 'err', I18n.t('main.validation.missingAll'));
         return;
       }
 
@@ -274,7 +276,7 @@
           resp = CONN_CACHE.metaText;
           log(logEl, 'info', 'Usando $metadata en caché (' + resp.length + ' bytes)');
         } else {
-          setConnStatus('info', 'Leyendo metadatos OData...');
+          setConnStatus('info', I18n.t('main.conn.readingMetadata'));
           var metaUrl = CFG.url + '/sap/opu/odata/IBP/' + CFG.service + '/$metadata';
           log(logEl, 'info', 'GET $metadata → ' + metaUrl);
           resp = await apiXml(metaUrl);
@@ -282,7 +284,7 @@
         }
 
         // Parse XML to find EntityTypes
-        setConnStatus('info', 'Detectando entidades...');
+        setConnStatus('info', I18n.t('main.conn.detectingEntities'));
         var parser = new DOMParser();
         var xml = parser.parseFromString(resp, 'text/xml');
         var entityTypes = xml.querySelectorAll('EntityType');
@@ -306,7 +308,7 @@
         log(logEl, 'ok', ENTITIES.length + ' entidades encontradas');
 
         // Fetch VersionSpecificMasterDataTypes for this PA+Version to derive entity prefix
-        setConnStatus('info', 'Derivando prefijo de entidades para ' + CFG.pa + '...');
+        setConnStatus('info', I18n.t('main.conn.derivingPrefix', { pa: CFG.pa }));
         var mdtFilter = CFG.pver
           ? "PlanningAreaID eq '" + CFG.pa + "' and VersionID eq '" + CFG.pver + "'"
           : "PlanningAreaID eq '" + CFG.pa + "'";
@@ -361,7 +363,7 @@
         if (typeof fmLoad === 'function') fmLoad();
 
         setConnected(true);
-        setConnStatus('ok', 'Conectado — ' + ENTITIES.length + ' entidades · PA: ' + CFG.pa + (CFG.pver ? ' / ' + CFG.pver : ' (Baseline)'));
+        setConnStatus('ok', I18n.t('main.conn.connected', { count: ENTITIES.length, pa: CFG.pa, ver: CFG.pver ? ' / ' + CFG.pver : ' (Baseline)' }));
         document.getElementById('panelMDT').classList.remove('hidden');
         document.getElementById('panelSNMDT').classList.remove('hidden');
         Object.keys(TAB_BANNERS).forEach(function (t) {
@@ -425,7 +427,7 @@
       document.getElementById('connInfoUrl').textContent  = CFG.url  || '-';
       document.getElementById('connInfoUser').textContent = CFG.user || '-';
       document.getElementById('connInfoPA').textContent   = CFG.pa   || '-';
-      document.getElementById('connInfoPver').textContent = CFG.pver || 'Baseline';
+      document.getElementById('connInfoPver').textContent = CFG.pver || I18n.t('connDlg.baseline');
       showConnStep(0);
     }
 
@@ -452,7 +454,7 @@
       var pass = document.getElementById('inpPass').value;
 
       if (!url || !user || !pass) {
-        setConnStatus('err', 'Completa URL, usuario y contraseña');
+        setConnStatus('err', I18n.t('main.validation.missingCreds'));
         return;
       }
 
@@ -462,19 +464,19 @@
 
       var btn = document.getElementById('btnConnStep1');
       btn.disabled = true;
-      btn.textContent = 'Verificando...';
+      btn.textContent = I18n.t('main.conn.verifying');
 
       CONN_CACHE.metaText = null;
       CONN_CACHE.vsmt = [];
 
       try {
-        setConnStatus('info', 'Verificando credenciales...');
+        setConnStatus('info', I18n.t('main.conn.verifyingCreds'));
         var metaUrl = url + '/sap/opu/odata/IBP/' + IBP_SERVICE + '/$metadata';
         log(logEl, 'info', 'GET $metadata → ' + metaUrl);
         CONN_CACHE.metaText = await apiXml(metaUrl);
         log(logEl, 'ok', '$metadata OK (' + CONN_CACHE.metaText.length + ' bytes)');
 
-        setConnStatus('info', 'Cargando Planning Areas...');
+        setConnStatus('info', I18n.t('main.conn.loadingPAs'));
         var vsmtUrl = url + '/sap/opu/odata/IBP/' + IBP_SERVICE + '/VersionSpecificMasterDataTypes';
         CONN_CACHE.vsmt = await fetchAllPages(vsmtUrl, logEl, '', 'PlanningAreaID,VersionID');
         log(logEl, 'ok', CONN_CACHE.vsmt.length + ' registros VSMT recibidos');
@@ -487,7 +489,7 @@
         });
         pas.sort();
 
-        if (pas.length === 0) throw new Error('No se encontraron Planning Areas para este usuario');
+        if (pas.length === 0) throw new Error(I18n.t('main.conn.noPAsFound'));
 
         var sel = document.getElementById('selPA');
         sel.innerHTML = pas.map(function (pa) {
@@ -505,7 +507,7 @@
           if (dl) dl.innerHTML = arr.map(function (v) { return '<option value="' + escH(v) + '">'; }).join('');
         } catch (e) {}
 
-        setConnStatus('ok', pas.length + ' Planning Areas encontradas');
+        setConnStatus('ok', pas.length + ' ' + (window.I18n ? I18n.t('main.conn.loadingPAs').replace(/\.\.\.$/, '') : 'Planning Areas'));
         showConnStep(2);
 
       } catch (e) {
@@ -514,12 +516,12 @@
       }
 
       btn.disabled = false;
-      btn.textContent = 'Continuar →';
+      btn.textContent = I18n.t('common.continue');
     }
 
     function doConnStep2() {
       var pa = document.getElementById('selPA').value;
-      if (!pa) { setConnStatus('err', 'Selecciona una Planning Area'); return; }
+      if (!pa) { setConnStatus('err', I18n.t('main.validation.selectPA')); return; }
 
       var seen    = {};
       var versions = [];
@@ -531,7 +533,7 @@
       versions.sort();
 
       var sel = document.getElementById('selPver');
-      var opts = '<option value="">Baseline (vacío)</option>';
+      var opts = '<option value="">' + escH(I18n.t('main.scenario.baselineEmpty')) + '</option>';
       opts += versions.map(function (v) {
         return '<option value="' + escH(v) + '">' + escH(v) + '</option>';
       }).join('');
@@ -876,7 +878,7 @@
         if (f && matched === 0) {
           var noRes = document.createElement('div');
           noRes.className = 'ss-none';
-          noRes.textContent = 'Sin resultados para "' + filter + '"';
+          noRes.textContent = I18n.t('main.search.noResultsFor', { q: filter });
           list.appendChild(noRes);
         }
       }
@@ -953,8 +955,8 @@
       var bomResEntity = document.getElementById('selBomResMaster').value;
 
       if (!headerEntity || !itemEntity) {
-        setStatus('err', 'Selecciona al menos Header e Item');
-        log(logEl, 'err', 'Selecciona al menos Header e Item');
+        setStatus('err', I18n.t('main.validation.selectHeaderItem'));
+        log(logEl, 'err', I18n.t('main.validation.selectHeaderItem'));
         document.getElementById('btnFetch').disabled = false;
         return;
       }
@@ -977,8 +979,8 @@
           { role: 'Production Source Item',     entityName: itemEntity,    required: true,  selectorId: 'selItem',         fields: ['SOURCEID','PRDID','COMPONENTCOEFFICIENT','ISALTITEM'] },
           { role: 'Production Source Item Sub', entityName: itemSubEntity, required: true,  selectorId: 'selItemSub',      fields: ['SOURCEID','PRDFR','SPRDFR'] },
           { role: 'Production Source Resource', entityName: resourceEntity, required: true, selectorId: 'selResource',     fields: ['SOURCEID','RESID'] },
-          { role: 'Producto',                   entityName: productEntity, required: true,  selectorId: 'selProduct',      fields: ['PRDID','PRDDESCR','MATTYPEID','UOMID','UOMDESCR'] },
-          { role: 'Ubicación maestra',          entityName: bomLocEntity,  required: true,  selectorId: 'selBomLocMaster', fields: ['LOCID','LOCDESCR','LOCVALID'] },
+          { role: 'Product',                    entityName: productEntity, required: true,  selectorId: 'selProduct',      fields: ['PRDID','PRDDESCR','MATTYPEID','UOMID','UOMDESCR'] },
+          { role: 'Location Master',            entityName: bomLocEntity,  required: true,  selectorId: 'selBomLocMaster', fields: ['LOCID','LOCDESCR','LOCVALID'] },
         ];
         var _bomResult = validateEntityFields(_bomChecks);
         if (_bomResult.issues.length || _bomResult.applied.length) {
@@ -1001,12 +1003,12 @@
 
         // Open IDB and wipe previous BOM data
         if (!IDB) IDB = await openDB();
-        setStatus('info', 'Preparando base de datos local...');
+        setStatus('info', I18n.t('main.fetch.preparingDb'));
         await Promise.all(['bom_psh', 'bom_psi', 'bom_psisub', 'bom_psr', 'bom_prd', 'bom_loc'].map(idbClear));
         RES_DESCR = {};
 
         // ── Header → IDB ───────────────────────────────────────────────────────
-        setStatus('info', 'Descargando Production Source Header...');
+        setStatus('info', I18n.t('main.fetch.downloading', { entity: 'Production Source Header' }));
         log(logEl, 'info', 'GET → ' + baseOData + headerEntity + (paFilter ? ' [filtro PA/Ver]' : ''));
         var nHdr = await fetchAndIndex(baseOData + headerEntity, logEl, pshFilter,
           buildSelect(headerEntity, ['PRDID','SOURCEID','LOCID','SOURCETYPE','OUTPUTCOEFFICIENT','PINVALID']),
@@ -1019,7 +1021,7 @@
         setProgress(25);
 
         // ── Item → IDB ─────────────────────────────────────────────────────────
-        setStatus('info', 'Descargando Production Source Item...');
+        setStatus('info', I18n.t('main.fetch.downloading', { entity: 'Production Source Item' }));
         log(logEl, 'info', 'GET → ' + baseOData + itemEntity + (paFilter ? ' [filtro PA/Ver]' : ''));
         var nItm = await fetchAndIndex(baseOData + itemEntity, logEl, paFilter,
           buildSelect(itemEntity, ['SOURCEID','PRDID','COMPONENTCOEFFICIENT','ISALTITEM']),
@@ -1032,7 +1034,7 @@
 
         // ── Item Sub → IDB ────────────────────────────────────────────────────
         if (itemSubEntity) {
-          setStatus('info', 'Descargando Production Source Item Sub...');
+          setStatus('info', I18n.t('main.fetch.downloading', { entity: 'Production Source Item Sub' }));
           log(logEl, 'info', 'GET → ' + baseOData + itemSubEntity + (paFilter ? ' [filtro PA/Ver]' : ''));
           var nItmSub = await fetchAndIndex(baseOData + itemSubEntity, logEl, paFilter,
             buildSelect(itemSubEntity, ['SOURCEID','PRDFR','SPRDFR']),
@@ -1045,7 +1047,7 @@
 
         // ── Resource → IDB ─────────────────────────────────────────────────────
         if (resourceEntity) {
-          setStatus('info', 'Descargando Production Source Resource...');
+          setStatus('info', I18n.t('main.fetch.downloading', { entity: 'Production Source Resource' }));
           log(logEl, 'info', 'GET → ' + baseOData + resourceEntity + (paFilter ? ' [filtro PA/Ver]' : ''));
           var nRes = await fetchAndIndex(baseOData + resourceEntity, logEl, paFilter,
             'SOURCEID,RESID',
@@ -1061,7 +1063,7 @@
 
         // ── Product → IDB ──────────────────────────────────────────────────────
         if (productEntity) {
-          setStatus('info', 'Descargando Product (maestro)...');
+          setStatus('info', I18n.t('main.fetch.downloading', { entity: 'Product (' + I18n.t('common.master').replace(/[()]/g,'') + ')' }));
           log(logEl, 'info', 'GET → ' + baseOData + productEntity + (paFilter ? ' [filtro PA/Ver]' : ''));
           var nPrd = await fetchAndIndex(baseOData + productEntity, logEl, paFilter,
             buildSelect(productEntity, ['PRDID','PRDDESCR','MATTYPEID','UOMID','UOMDESCR']),
@@ -1074,7 +1076,7 @@
 
         // ── Location Master → IDB ──────────────────────────────────────────────
         if (bomLocEntity) {
-          setStatus('info', 'Descargando Location (maestro)...');
+          setStatus('info', I18n.t('main.fetch.downloading', { entity: 'Location (' + I18n.t('common.master').replace(/[()]/g,'') + ')' }));
           log(logEl, 'info', 'GET → ' + baseOData + bomLocEntity + (paFilter ? ' [filtro PA/Ver]' : ''));
           var nLoc = await fetchAndIndex(baseOData + bomLocEntity, logEl, locFilter,
             buildSelect(bomLocEntity, ['LOCID','LOCDESCR','LOCVALID']),
@@ -1089,7 +1091,7 @@
 
         // ── Resource Master → memoria (tabla pequeña) ──────────────────────────
         if (bomResEntity) {
-          setStatus('info', 'Descargando Resource (maestro)...');
+          setStatus('info', I18n.t('main.fetch.downloading', { entity: 'Resource (' + I18n.t('common.master').replace(/[()]/g,'') + ')' }));
           log(logEl, 'info', 'GET → ' + baseOData + bomResEntity + (paFilter ? ' [filtro PA/Ver]' : ''));
           var nResM = await fetchAndIndex(baseOData + bomResEntity, logEl, paFilter,
             'RESID,RESDESCR',
@@ -1104,12 +1106,12 @@
         setProgress(90);
 
         // Build product suggestion list from IDB (unique PRDIDs + descriptions)
-        setStatus('info', 'Indexando lista de productos...');
+        setStatus('info', I18n.t('main.fetch.indexingProducts'));
         prodSuggestions = await idbBuildProdSuggestions();
         prodSuggestions.sort(function (a, b) { return a.prdid.localeCompare(b.prdid); });
         setProgress(100);
 
-        var summary = '¡Listo! ' + prodSuggestions.length + ' productos en caché local. Selecciona uno para ver su BOM.';
+        var summary = I18n.t('main.bom.loadedSummary', {n: prodSuggestions.length});
         log(logEl, 'ok', summary);
         setStatus('ok', summary);
 
@@ -1138,7 +1140,9 @@
       var logEl = document.getElementById('logFetch');
       var btn = document.getElementById('btnToggleLogs');
       var hidden = logEl.classList.toggle('hidden');
-      btn.textContent = hidden ? 'Ver logs técnicos' : 'Ocultar logs';
+      var key = hidden ? 'common.viewLogs' : 'common.hideLogs';
+      btn.setAttribute('data-i18n', key);
+      btn.textContent = window.I18n ? I18n.t(key) : (hidden ? 'Ver logs técnicos' : 'Ocultar logs');
     }
 
 
@@ -1174,8 +1178,8 @@
       var desc = document.getElementById('fbDesc').value.trim();
       var btn = document.getElementById('fbSendBtn');
       var msg = document.getElementById('fbMsg');
-      if (!name || !desc) { msg.style.color = '#EF4444'; msg.textContent = 'Nombre y descripción son obligatorios.'; return; }
-      btn.disabled = true; btn.textContent = 'Enviando…'; msg.textContent = '';
+      if (!name || !desc) { msg.style.color = '#EF4444'; msg.textContent = I18n.t('feedback.validation.required'); return; }
+      btn.disabled = true; btn.textContent = I18n.t('feedback.btn.sending'); msg.textContent = '';
       fetch('/api/send-feedback', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -1185,8 +1189,8 @@
         .then(function (data) {
           if (data.ok) {
             msg.style.color = '#10B981';
-            msg.textContent = '✓ Enviado correctamente. ¡Gracias!';
-            btn.textContent = 'Enviar';
+            msg.textContent = I18n.t('feedback.sent.ok');
+            btn.textContent = I18n.t('common.send');
             btn.disabled = false;
             document.getElementById('fbName').value = '';
             document.getElementById('fbDesc').value = '';
@@ -1197,8 +1201,8 @@
         })
         .catch(function () {
           msg.style.color = '#EF4444';
-          msg.textContent = '✕ Error al enviar. Intenta de nuevo.';
-          btn.textContent = 'Enviar';
+          msg.textContent = '✕ ' + I18n.t('feedback.sent.error');
+          btn.textContent = I18n.t('common.send');
           btn.disabled = false;
         });
     }

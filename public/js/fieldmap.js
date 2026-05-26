@@ -321,20 +321,17 @@ function _fmRenderPanel(issues, applied, isBlocking) {
   html += '<div>';
   if (hasIssues) {
     var total = issues.length;
-    html += '<div class="fm-panel-title">Corrección requerida</div>';
-    html += '<div class="fm-panel-subtitle">Se encontraron ' + total + ' problema' + (total !== 1 ? 's' : '') +
-            ' de compatibilidad con el schema de este sistema SAP IBP. ' +
-            'Confirma cómo debe tratarlos la aplicación antes de continuar.</div>';
+    html += '<div class="fm-panel-title">' + I18n.t('fm.panel.title.issues') + '</div>';
+    html += '<div class="fm-panel-subtitle">' + I18n.t(total === 1 ? 'fm.panel.subtitle.issues.one' : 'fm.panel.subtitle.issues.many', {n: total}) + '</div>';
   } else {
-    html += '<div class="fm-panel-title">Correcciones activas</div>';
-    html += '<div class="fm-panel-subtitle">La aplicación está usando las siguientes correcciones guardadas ' +
-            'para adaptar los campos a tu sistema SAP IBP.</div>';
+    html += '<div class="fm-panel-title">' + I18n.t('fm.panel.title.active') + '</div>';
+    html += '<div class="fm-panel-subtitle">' + I18n.t('fm.panel.subtitle.active') + '</div>';
   }
   html += '</div></div>';
 
   // Sección: correcciones ya guardadas (siempre visible si existen)
   if (Object.keys(byEntityApplied).length) {
-    html += '<div class="fm-section-label fm-section-label--applied">Correcciones activas</div>';
+    html += '<div class="fm-section-label fm-section-label--applied">' + I18n.t('fm.section.active') + '</div>';
     Object.keys(byEntityApplied).forEach(function(key) {
       html += _fmRenderAppliedCard(byEntityApplied[key]);
     });
@@ -342,12 +339,12 @@ function _fmRenderPanel(issues, applied, isBlocking) {
 
   // Sección: problemas nuevos que requieren acción
   if (entityIssues.length) {
-    html += '<div class="fm-section-label">Entidades</div>';
+    html += '<div class="fm-section-label">' + I18n.t('fm.section.entities') + '</div>';
     entityIssues.forEach(function(iss) { html += _fmRenderEntityIssueCard(iss); });
   }
 
   if (Object.keys(byEntity).length) {
-    html += '<div class="fm-section-label">Campos ausentes</div>';
+    html += '<div class="fm-section-label">' + I18n.t('fm.section.missing') + '</div>';
     Object.keys(byEntity).forEach(function(entityName) {
       html += _fmRenderEntityCard(entityName, byEntity[entityName]);
     });
@@ -357,17 +354,17 @@ function _fmRenderPanel(issues, applied, isBlocking) {
   html += '<div class="fm-panel-actions">';
   if (isBlocking) {
     if (hasIssues) {
-      html += '<button class="btn btn-primary" onclick="fmConfirmCorrections(' + cidQ + ')">Aplicar y continuar</button>';
+      html += '<button class="btn btn-primary" onclick="fmConfirmCorrections(' + cidQ + ')">' + I18n.t('fm.btn.apply') + '</button>';
     } else {
-      html += '<button class="btn btn-primary" onclick="fmConfirmCorrections(' + cidQ + ')">Continuar</button>';
+      html += '<button class="btn btn-primary" onclick="fmConfirmCorrections(' + cidQ + ')">' + I18n.t('fm.btn.continue') + '</button>';
     }
-    html += '<button class="btn btn-secondary" style="margin-left:8px" onclick="fmClearCorrections(' + cidQ + ')">Limpiar correcciones guardadas</button>';
+    html += '<button class="btn btn-secondary" style="margin-left:8px" onclick="fmClearCorrections(' + cidQ + ')">' + I18n.t('fm.btn.clear') + '</button>';
   } else {
     if (hasIssues) {
-      html += '<button class="btn btn-primary" onclick="fmConfirmCorrections(' + cidQ + ')">Guardar correcciones</button>';
-      html += '<button class="btn btn-secondary" style="margin-left:8px" onclick="fmClearCorrections(' + cidQ + ')">Limpiar correcciones guardadas</button>';
+      html += '<button class="btn btn-primary" onclick="fmConfirmCorrections(' + cidQ + ')">' + I18n.t('fm.btn.save') + '</button>';
+      html += '<button class="btn btn-secondary" style="margin-left:8px" onclick="fmClearCorrections(' + cidQ + ')">' + I18n.t('fm.btn.clear') + '</button>';
     } else {
-      html += '<button class="btn btn-secondary" onclick="fmClearCorrections(' + cidQ + ')">Limpiar correcciones guardadas</button>';
+      html += '<button class="btn btn-secondary" onclick="fmClearCorrections(' + cidQ + ')">' + I18n.t('fm.btn.clear') + '</button>';
     }
   }
   html += '</div></div>';
@@ -386,14 +383,14 @@ function _fmRenderAppliedCard(group) {
   html += '<span class="fm-entity-name">' + escH(group.role) + '</span>';
 
   if (group.isAbsent) {
-    html += '<span class="fm-entity-badge fm-badge-applied">ausente confirmado</span>';
+    html += '<span class="fm-entity-badge fm-badge-applied">' + I18n.t('fm.badge.absent') + '</span>';
     html += '</div>';
     html += '<div class="fm-applied-list">';
-    html += '<div class="fm-applied-row"><span class="fm-applied-null">No disponible en este sistema</span></div>';
+    html += '<div class="fm-applied-row"><span class="fm-applied-null">' + I18n.t('fm.badge.unavailable') + '</span></div>';
     html += '</div>';
   } else {
     var count = group.fields.length;
-    var label = count + ' corrección' + (count !== 1 ? 'es' : '') + ' activa' + (count !== 1 ? 's' : '');
+    var label = count === 1 ? I18n.t('fm.badge.corrections.one') : I18n.t('fm.badge.corrections.many', {n: count});
     html += '<span class="fm-entity-badge fm-badge-applied">' + escH(label) + '</span>';
     html += '</div>';
     if (group.entityName && group.role !== group.entityName) {
@@ -405,7 +402,7 @@ function _fmRenderAppliedCard(group) {
       html += '<span class="fm-field-tag">' + escH(a.field) + '</span>';
       html += '<span class="fm-applied-arrow">&#8594;</span>';
       if (a.mappedTo === null) {
-        html += '<span class="fm-applied-value fm-applied-null">no existe en este sistema (omitido)</span>';
+        html += '<span class="fm-applied-value fm-applied-null">' + I18n.t('fm.badge.null') + '</span>';
       } else {
         html += '<span class="fm-applied-value">' + escH(a.mappedTo) + '</span>';
       }
@@ -424,9 +421,9 @@ function _fmRenderEntityIssueCard(iss) {
   html += '<div class="fm-entity-header">';
   html += '<span class="fm-entity-name">' + escH(iss.role) + '</span>';
   if (iss.type === 'entity_missing') {
-    html += '<span class="fm-entity-badge fm-badge-alert">No detectada</span>';
+    html += '<span class="fm-entity-badge fm-badge-alert">' + I18n.t('fm.badge.notDetected') + '</span>';
   } else {
-    html += '<span class="fm-entity-badge fm-badge-alert">Fuera de schema</span>';
+    html += '<span class="fm-entity-badge fm-badge-alert">' + I18n.t('fm.badge.outOfSchema') + '</span>';
   }
   html += '</div>';
   if (iss.entityName) {
@@ -441,22 +438,20 @@ function _fmRenderEntityIssueCard(iss) {
     var currentSel = _fmPanelSelections[key] || '__null__';
     var isNull = currentSel === '__null__';
 
-    html += '<div class="fm-entity-warning" style="margin-bottom:8px">' +
-            'La auto-detección no encontró ninguna entidad para este rol. ' +
-            'Indica si existe en tu sistema IBP o confirma que no está disponible.</div>';
+    html += '<div class="fm-entity-warning" style="margin-bottom:8px">' + I18n.t('fm.warning.notFound') + '</div>';
 
     html += '<label class="fm-radio-label">';
     html += '<input type="radio" name="fmEnt_' + cid + '_' + keyAttr + '" value="__null__"' +
             (isNull ? ' checked' : '') +
             ' onchange="fmSetEntitySelection(\'' + keyAttr + '\',\'__null__\',\'' + cid + '\')">';
-    html += '<span>No existe en este sistema &mdash; omitir esta funcionalidad</span>';
+    html += '<span>' + I18n.t('fm.radio.notExists.entity') + '</span>';
     html += '</label>';
 
     html += '<label class="fm-radio-label">';
     html += '<input type="radio" name="fmEnt_' + cid + '_' + keyAttr + '" value="__exists__"' +
             (!isNull ? ' checked' : '') +
             ' onchange="fmSetEntitySelection(\'' + keyAttr + '\',\'__exists__\',\'' + cid + '\')">';
-    html += '<span>Sí existe &mdash; seleccionar entidad:</span>';
+    html += '<span>' + I18n.t('fm.radio.exists.entity') + '</span>';
     html += '</label>';
 
     var entityList = (typeof ENTITIES !== 'undefined')
@@ -465,7 +460,7 @@ function _fmRenderEntityIssueCard(iss) {
     html += '<div class="fm-dropdown-wrap" id="' + escH(dropId) + '" style="' +
             (isNull ? 'opacity:0.4;pointer-events:none' : '') + '">';
     html += '<select class="fm-select" onchange="fmSetEntityValue(\'' + keyAttr + '\',this.value)">';
-    html += '<option value="">(selecciona entidad)</option>';
+    html += '<option value="">' + I18n.t('fm.select.entity') + '</option>';
     entityList.forEach(function (e) {
       var setName = e.name + 'Set';
       var sel = (currentSel === setName) ? ' selected' : '';
@@ -474,8 +469,7 @@ function _fmRenderEntityIssueCard(iss) {
     html += '</select></div>';
 
   } else {
-    html += '<div class="fm-entity-warning">Esta entidad no aparece en el <code>$metadata</code> del sistema. ' +
-            'Es posible que el nombre sea incorrecto. Verifica en el panel de configuración.</div>';
+    html += '<div class="fm-entity-warning">' + I18n.t('fm.warning.outOfSchema') + '</div>';
   }
 
   html += '</div>';
@@ -484,7 +478,7 @@ function _fmRenderEntityIssueCard(iss) {
 
 // Card para field_missing (agrupados por entidad)
 function _fmRenderEntityCard(entityName, issues) {
-  var label = issues.length + ' campo' + (issues.length !== 1 ? 's' : '');
+  var label = issues.length === 1 ? I18n.t('fm.badge.fields.one') : I18n.t('fm.badge.fields.many', {n: issues.length});
   var role = (issues[0] && issues[0].role && issues[0].role !== entityName) ? issues[0].role : null;
 
   var html = '<div class="fm-entity-card">';
@@ -498,9 +492,9 @@ function _fmRenderEntityCard(entityName, issues) {
 
   var noSuggestions = issues.every(function(i) { return !i.suggestion; });
   if (issues.length > 1 && noSuggestions) {
-    html += '<div class="fm-entity-warning">La app espera: ' +
-      escH(issues.map(function (i) { return i.field; }).join(', ')) +
-      '. Ninguno se encontró en el schema. Esta entidad puede tener un rol diferente en tu sistema.</div>';
+    html += '<div class="fm-entity-warning">' +
+      I18n.t('fm.warning.multiMissing', {fields: escH(issues.map(function (i) { return i.field; }).join(', '))}) +
+      '</div>';
   }
 
   issues.forEach(function (iss) { html += _fmRenderFieldRow(iss); });
@@ -513,7 +507,7 @@ function _fmRenderFieldRow(iss) {
   var cid = escH(_fmPanelContainerId);
   var dropId = 'fmDrop_' + cid + '_' + key;
   var currentSel = _fmPanelSelections[iss.entityName + '||' + iss.field] || '__null__';
-  var desc = FIELD_DESCRIPTIONS[iss.field] || '';
+  var desc = (window.I18n && I18n.has('fm.field.' + iss.field)) ? I18n.t('fm.field.' + iss.field) : (FIELD_DESCRIPTIONS[iss.field] || '');
 
   var html = '<div class="fm-field-row">';
   html += '<div class="fm-field-header">';
@@ -526,7 +520,7 @@ function _fmRenderFieldRow(iss) {
   html += '<label class="fm-radio-label">';
   html += '<input type="radio" name="fm_' + cid + '_' + key + '" value="__null__"' + noExistsChecked +
           ' onchange="fmSetSelection(\'' + key + '\',\'__null__\',\'' + cid + '\')">';
-  html += '<span>No existe en mi sistema &mdash; la app funcionará sin esta información</span>';
+  html += '<span>' + I18n.t('fm.radio.notExists.field') + '</span>';
   html += '</label>';
 
   // Radio: existe con otro nombre
@@ -534,14 +528,14 @@ function _fmRenderFieldRow(iss) {
   html += '<label class="fm-radio-label">';
   html += '<input type="radio" name="fm_' + cid + '_' + key + '" value="__map__"' + mapChecked +
           ' onchange="fmSetSelection(\'' + key + '\',\'__map__\',\'' + cid + '\')">';
-  html += '<span>Existe con otro nombre:</span>';
+  html += '<span>' + I18n.t('fm.radio.exists.field') + '</span>';
   html += '</label>';
 
   // Dropdown de campos del schema
   html += '<div class="fm-dropdown-wrap" id="' + escH(dropId) + '" style="' +
           (currentSel !== '__null__' ? '' : 'opacity:0.4;pointer-events:none') + '">';
   html += '<select class="fm-select" onchange="fmSetFieldValue(\'' + key + '\',this.value)">';
-  html += '<option value="">(selecciona campo)</option>';
+  html += '<option value="">' + I18n.t('fm.select.field') + '</option>';
   iss.allFields.forEach(function (f) {
     var sel = (currentSel === f) ? ' selected' : '';
     html += '<option value="' + escH(f) + '"' + sel + '>' + escH(f) + '</option>';

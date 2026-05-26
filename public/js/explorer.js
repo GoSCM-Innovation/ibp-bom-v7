@@ -26,6 +26,8 @@ const Explorer = (function () {
   let dfFsIntIdx      = null;   // integración actualmente abierta en fullscreen
   let analyzing       = false;
   let activePA      = new Set(); // PAs seleccionados; vacío = todos
+  let activeSrcDS   = new Set(); // Datastores origen seleccionados; vacío = todos
+  let activeDstDS   = new Set(); // Datastores destino seleccionados; vacío = todos
 
   // ── Estado CI-DS ─────────────────────────────────────────────
   let cidsConn      = null;  // { hciUrl, orgName, isProduction, sessionId }
@@ -81,7 +83,7 @@ const Explorer = (function () {
         <span class="size">${(f.data.byteLength / 1024).toFixed(0)} KB</span>
         <button class="rm" onclick="Explorer.removeFile(${i})">✕</button>
       </div>`).join('');
-    if (btn) btn.disabled = exFiles.length === 0;
+    if (btn) btn.disabled = exFiles.length === 0 || cidsLoading;
   }
 
   // ── Análisis principal ───────────────────────────────────
@@ -89,7 +91,7 @@ const Explorer = (function () {
     if (analyzing) return;
     analyzing = true;
     const btn = document.getElementById('ex-analyze-btn');
-    if (btn) { btn.disabled = true; btn.textContent = '⏳ Analizando...'; }
+    if (btn) { btn.disabled = true; btn.textContent = I18n.t('ex.btn.analyzing'); }
 
     integrations   = [];
     chainEdges     = [];
@@ -125,14 +127,20 @@ const Explorer = (function () {
 
     buildIndexes();
     detectChains();
-    activePA = new Set();
+    activePA    = new Set();
+    activeSrcDS = new Set();
+    activeDstDS = new Set();
     renderPlanAreaFilter();
+    renderDSFilter();
     filtered = integrations.slice();
     renderSidebarList(filtered);
     updateCounter(filtered.length, integrations.length);
 
     const results = document.getElementById('ex-results');
     if (results) results.style.display = 'block';
+
+    const uploadPanel = document.getElementById('ex-upload-panel');
+    if (uploadPanel) uploadPanel.classList.add('collapsed');
 
     // Log de diagnóstico en consola para ayudar a depurar cadenas
     console.debug(`[Explorer] ${integrations.length} dataflows, ${chainEdges.length} cadenas`);
@@ -142,7 +150,7 @@ const Explorer = (function () {
     }
 
     analyzing = false;
-    if (btn) { btn.disabled = false; btn.textContent = '🔬 Explorar integraciones'; }
+    if (btn) { btn.disabled = false; btn.textContent = I18n.t('ex.analyzeBtn'); }
   }
 
   // ── Índices ──────────────────────────────────────────────
@@ -451,12 +459,13 @@ const Explorer = (function () {
     const btnEl        = document.getElementById('cids-modal-submit');
 
     if (!hciUrl || !orgName || !user || !password) {
-      if (errEl) errEl.textContent = 'Todos los campos son obligatorios.';
+      if (errEl) errEl.textContent = I18n.t('ex.cids.allRequired');
       return;
     }
     if (errEl) errEl.textContent = '';
-    if (btnEl) { btnEl.disabled = true; btnEl.textContent = 'Conectando...'; }
+    if (btnEl) { btnEl.disabled = true; btnEl.textContent = I18n.t('ex.cids.connecting'); }
     cidsLoading = true;
+    renderFiles();
 
     try {
       const res = await fetch('/api/cids-login', {
@@ -471,7 +480,7 @@ const Explorer = (function () {
       closeCidsModal();
       renderCidsBar();
 
-      if (btnEl) btnEl.textContent = 'Cargando tareas...';
+      if (btnEl) btnEl.textContent = I18n.t('ex.cids.loadingTasks');
       cidsProdTasks = await fetchProductionTasks();
       renderCidsBar();
       const q = (document.getElementById('ex-search') || {}).value || '';
@@ -479,13 +488,14 @@ const Explorer = (function () {
     } catch (e) {
       if (e.isSessionExpired) {
         cidsDisconnect();
-        if (errEl) errEl.textContent = 'Sesión expirada. Vuelve a conectar.';
+        if (errEl) errEl.textContent = I18n.t('ex.cids.sessionExpired');
       } else {
         if (errEl) errEl.textContent = e.message;
       }
     } finally {
       cidsLoading = false;
-      if (btnEl) { btnEl.disabled = false; btnEl.textContent = 'Conectar'; }
+      renderFiles();
+      if (btnEl) { btnEl.disabled = false; btnEl.textContent = I18n.t('cids.btnConnect'); }
     }
   }
 
@@ -518,19 +528,21 @@ const Explorer = (function () {
     const toggle = document.getElementById('ex-cids-toggle');
 
     if (!cidsConn) {
-      if (bar)    bar.innerHTML = `<button class="ex-cids-connect-btn" onclick="Explorer.openCidsModal()">Conectar SAP CI-DS</button>`;
+      if (bar)    bar.innerHTML = `<button class="ex-cids-connect-btn" onclick="Explorer.openCidsModal()">${escH(I18n.t('ex.cids.connectBtn'))}</button>`;
       if (toggle) { toggle.innerHTML = ''; toggle.style.display = 'none'; }
       return;
     }
 
-    const repo    = cidsConn.isProduction ? 'Productivo' : 'Sandbox';
-    const count   = cidsProdTasks ? `${cidsProdTasks.size} tareas` : 'cargando...';
+    const repo    = cidsConn.isProduction ? I18n.t('cids.opt.prod') : I18n.t('cids.opt.sandbox');
+    const count   = cidsProdTasks
+      ? I18n.t(cidsProdTasks.size === 1 ? 'ex.cids.tasksCount.one' : 'ex.cids.tasksCount.many', { n: cidsProdTasks.size })
+      : I18n.t('ex.cids.loading');
     const promCls = showPromoted ? 'ex-toggle-switch on' : 'ex-toggle-switch';
 
     if (bar) {
       bar.innerHTML = `
         <span class="ex-cids-pill">CI-DS: ${escH(cidsConn.orgName)} · ${escH(repo)} · ${escH(count)}</span>
-        <button class="ex-cids-disconnect-btn" onclick="Explorer.cidsDisconnect()">Desconectar</button>`;
+        <button class="ex-cids-disconnect-btn" onclick="Explorer.cidsDisconnect()">${escH(I18n.t('ex.cids.disconnectBtn'))}</button>`;
     }
 
     if (toggle) {
@@ -538,8 +550,8 @@ const Explorer = (function () {
       if (cidsProdTasks) {
         toggle.innerHTML = `
           <label class="ex-promoted-label">
-            <span class="ex-promoted-text">Promovido a produccion</span>
-            <span class="${promCls}" onclick="Explorer.togglePromoted()" title="Mostrar solo integraciones en CI-DS ${escH(repo)}"><span class="ex-toggle-knob"></span></span>
+            <span class="ex-promoted-text">${escH(I18n.t('ex.cids.promotedLabel'))}</span>
+            <span class="${promCls}" onclick="Explorer.togglePromoted()" title="${escH(I18n.t('ex.cids.tooltip.filterRepo', { repo }))}"><span class="ex-toggle-knob"></span></span>
           </label>`;
       }
     }
@@ -550,6 +562,10 @@ const Explorer = (function () {
     let base = integrations.slice();
     if (activePA.size > 0)
       base = base.filter(p => activePA.has(p.planArea || ''));
+    if (activeSrcDS.size > 0)
+      base = base.filter(p => activeSrcDS.has(p.srcDSName || ''));
+    if (activeDstDS.size > 0)
+      base = base.filter(p => activeDstDS.has(p.dstDSName || ''));
     if (showPromoted && cidsProdTasks)
       base = base.filter(p => cidsProdTasks.has((p.jobName || '').toUpperCase()));
     return base;
@@ -566,7 +582,7 @@ const Explorer = (function () {
     el.style.display = '';
     el.innerHTML = '<span class="ex-pa-label">PA:</span>' +
       paValues.map(pa => {
-        const label = pa || 'Sin PA';
+        const label = pa || I18n.t('ex.pa.empty');
         const active = activePA.has(pa);
         return `<button class="ex-pa-chip${active ? ' active' : ''}" onclick='Explorer.togglePA(${JSON.stringify(pa)})'>${escH(label)}</button>`;
       }).join('');
@@ -579,32 +595,97 @@ const Explorer = (function () {
     applySearch(q);
   }
 
+  // ── Filtro Datastores ────────────────────────────────────
+  function renderDSFilter() {
+    const el = document.getElementById('ex-ds-filter');
+    if (!el) return;
+    const srcValues = [...new Set(integrations.map(p => p.srcDSName || ''))].sort();
+    const dstValues = [...new Set(integrations.map(p => p.dstDSName || ''))].sort();
+    const showSrc = srcValues.length > 1;
+    const showDst = dstValues.length > 1;
+    if (!showSrc && !showDst) { el.style.display = 'none'; return; }
+    el.style.display = '';
+    function rowHtml(values, activeSet, toggleFn, labelKey) {
+      const chips = values.map(v => {
+        const label  = v || I18n.t('ex.ds.empty');
+        const active = activeSet.has(v);
+        return `<button class="ex-pa-chip${active ? ' active' : ''}" onclick='Explorer.${toggleFn}(${JSON.stringify(v)})'>${escH(label)}</button>`;
+      }).join('');
+      return `<div class="ex-ds-row"><span class="ex-pa-label">${escH(I18n.t(labelKey))}:</span>${chips}</div>`;
+    }
+    el.innerHTML =
+      (showSrc ? rowHtml(srcValues, activeSrcDS, 'toggleSrcDS', 'ex.ds.src') : '') +
+      (showDst ? rowHtml(dstValues, activeDstDS, 'toggleDstDS', 'ex.ds.dst') : '');
+  }
+
+  function toggleSrcDS(ds) {
+    if (activeSrcDS.has(ds)) activeSrcDS.delete(ds); else activeSrcDS.add(ds);
+    renderDSFilter();
+    const q = (document.getElementById('ex-search') || {}).value || '';
+    applySearch(q);
+  }
+
+  function toggleDstDS(ds) {
+    if (activeDstDS.has(ds)) activeDstDS.delete(ds); else activeDstDS.add(ds);
+    renderDSFilter();
+    const q = (document.getElementById('ex-search') || {}).value || '';
+    applySearch(q);
+  }
+
   // ── Sidebar (lista master) ───────────────────────────────
+  function _renderIntegrationItem(p) {
+    const typeClass  = `ex-type-${p.tipoIntegracion || 'MD'}`;
+    const inEdges    = chainEdges.filter(e => e.to   === p._idx);
+    const outEdges   = chainEdges.filter(e => e.from === p._idx);
+    const viaColors  = { table: '#34d399', file: '#E8622A', lookup: '#a78bfa' };
+    const chainBadges = [
+      ...inEdges.map(e  => `<span style="color:${viaColors[e.via]||'#aaa'};font-size:10px;" title="${escH(I18n.t('ex.label.feedBy'))} (${e.via})">⬅</span>`),
+      ...outEdges.map(e => `<span style="color:${viaColors[e.via]||'#aaa'};font-size:10px;" title="${escH(I18n.t('ex.label.feedTo'))} (${e.via})">➡</span>`),
+    ].join('');
+    return `<div class="ex-item${selectedIdx === p._idx ? ' active' : ''}" data-idx="${p._idx}" onclick="Explorer.renderDetail(${p._idx})">
+      <div class="ex-name">
+        <span class="ex-type-badge ${typeClass}">${escH(p.tipoIntegracion || 'MD')}</span>${escH(p.jobName)}${chainBadges ? `<span style="margin-left:4px;">${chainBadges}</span>` : ''}
+      </div>
+      ${p.dataflowName && p.dataflowName !== p.jobName ? `<div class="ex-sub ex-sub-df">↳ ${escH(p.dataflowName)}</div>` : ''}
+      <div class="ex-sub">${escH(p.targetTable)}</div>
+    </div>`;
+  }
+
   function renderSidebarList(list) {
     const el = document.getElementById('ex-master');
     if (!el) return;
     if (!list || list.length === 0) {
-      el.innerHTML = '<p style="padding:12px;color:var(--text2);font-size:13px;">No se encontraron integraciones</p>';
+      el.innerHTML = `<p style="padding:12px;color:var(--text2);font-size:13px;">${escH(I18n.t('ex.empty.noIntegrations'))}</p>`;
       return;
     }
-    el.innerHTML = list.map(p => {
-      const typeClass = `ex-type-${p.tipoIntegracion || 'MD'}`;
-      const inEdges  = chainEdges.filter(e => e.to   === p._idx);
-      const outEdges = chainEdges.filter(e => e.from === p._idx);
-      // Iconos de cadena: ⬅ para entradas, ➡ para salidas; color por tipo
-      const viaColors = { table: '#34d399', file: '#E8622A', lookup: '#a78bfa' };
-      const chainBadges = [
-        ...inEdges.map(e  => `<span style="color:${viaColors[e.via]||'#aaa'};font-size:10px;" title="Alimentado por (${e.via})">⬅</span>`),
-        ...outEdges.map(e => `<span style="color:${viaColors[e.via]||'#aaa'};font-size:10px;" title="Alimenta a (${e.via})">➡</span>`),
-      ].join('');
-      return `<div class="ex-item${selectedIdx === p._idx ? ' active' : ''}" data-idx="${p._idx}" onclick="Explorer.renderDetail(${p._idx})">
-        <div class="ex-name">
-          <span class="ex-type-badge ${typeClass}">${escH(p.tipoIntegracion || 'MD')}</span>${escH(p.jobName)}${chainBadges ? `<span style="margin-left:4px;">${chainBadges}</span>` : ''}
+
+    // Agrupar por ZIP; si solo hay uno, lista plana sin header
+    const groups = new Map();
+    list.forEach(p => {
+      if (!groups.has(p._zipName)) groups.set(p._zipName, []);
+      groups.get(p._zipName).push(p);
+    });
+
+    if (groups.size === 1) {
+      el.innerHTML = list.map(p => _renderIntegrationItem(p)).join('');
+      return;
+    }
+
+    let html = '';
+    groups.forEach((items, zipName) => {
+      const projName  = zipName.replace(/\.zip$/i, '');
+      const secId     = 'ex-proj-' + projName.replace(/[^a-zA-Z0-9]/g, '_');
+      const hasActive = items.some(p => p._idx === selectedIdx);
+      html += `
+        <div class="ex-proj-header" onclick="var b=document.getElementById('${secId}');b.classList.toggle('collapsed');this.querySelector('.ex-arr').textContent=b.classList.contains('collapsed')?'▶':'▼';">
+          <span>${escH(projName)} <span style="font-weight:400">(${items.length})</span></span>
+          <span class="ex-arr">${hasActive ? '▼' : '▶'}</span>
         </div>
-        ${p.dataflowName && p.dataflowName !== p.jobName ? `<div class="ex-sub ex-sub-df">↳ ${escH(p.dataflowName)}</div>` : ''}
-        <div class="ex-sub">${escH(p._zipName)} · ${escH(p.targetTable)}</div>
-      </div>`;
-    }).join('');
+        <div class="ex-proj-body${hasActive ? '' : ' collapsed'}" id="${secId}">
+          ${items.map(p => _renderIntegrationItem(p)).join('')}
+        </div>`;
+    });
+    el.innerHTML = html;
   }
 
   // ── Detalle del panel derecho ────────────────────────────
@@ -639,11 +720,11 @@ const Explorer = (function () {
     const chainsHtml = (incoming.length || outgoing.length) ? `
       <div class="ex-chain-section">
         ${incoming.length ? `
-          <div class="ex-chain-label">⬅ Alimentado por</div>
-          <div>${incoming.map(e => chainPill(e, e.from, 'Alimentado por')).join('')}</div>` : ''}
+          <div class="ex-chain-label">⬅ ${escH(I18n.t('ex.label.feedBy'))}</div>
+          <div>${incoming.map(e => chainPill(e, e.from, I18n.t('ex.label.feedBy'))).join('')}</div>` : ''}
         ${outgoing.length ? `
-          <div class="ex-chain-label" style="margin-top:${incoming.length ? 8 : 0}px">➡ Alimenta a</div>
-          <div>${outgoing.map(e => chainPill(e, e.to, 'Alimenta a')).join('')}</div>` : ''}
+          <div class="ex-chain-label" style="margin-top:${incoming.length ? 8 : 0}px">➡ ${escH(I18n.t('ex.label.feedTo'))}</div>
+          <div>${outgoing.map(e => chainPill(e, e.to, I18n.t('ex.label.feedTo'))).join('')}</div>` : ''}
       </div>` : '';
 
     // header card
@@ -653,10 +734,10 @@ const Explorer = (function () {
           <span class="ex-type-badge ex-type-${p.tipoIntegracion || 'MD'}">${escH(p.tipoIntegracion || 'MD')}</span>
           ${escH(p.jobName)}
         </div>
-        ${p.dataflowName && p.dataflowName !== p.jobName ? `<div class="ex-h-sub">↳ Dataflow: ${escH(p.dataflowName)}</div>` : ''}
+        ${p.dataflowName && p.dataflowName !== p.jobName ? `<div class="ex-h-sub">↳ ${escH(I18n.t('ex.label.dataflow'))}: ${escH(p.dataflowName)}</div>` : ''}
         <div class="ex-h-flow">${escH(p.srcDSName || '—')} → ${escH(p.dstDSName || '—')}</div>
-        <div class="ex-h-sub">Target: <b>${escH(p.targetTable)}</b>${p.fileLoaderFileName ? ` · Archivo: <b>${escH(p.fileLoaderFileName)}</b>` : ''}</div>
-        <div class="ex-h-sub" style="margin-top:2px;">ZIP: ${escH(p._zipName)}</div>
+        <div class="ex-h-sub">${escH(I18n.t('ex.label.target'))}: <b>${escH(p.targetTable)}</b>${p.fileLoaderFileName ? ` · ${escH(I18n.t('ex.label.file'))}: <b>${escH(p.fileLoaderFileName)}</b>` : ''}</div>
+        <div class="ex-h-sub" style="margin-top:2px;">${escH(I18n.t('ex.label.zip'))}: ${escH(p._zipName)}</div>
       </div>`;
 
     // diagrama tipo CI-DS (nodos + connections del DataFlow)
@@ -675,12 +756,12 @@ const Explorer = (function () {
           this.querySelector('.ex-arr').textContent = b.classList.contains('collapsed') ? '▶' : '▼';
           if(wasCollapsed){ Explorer.renderDataflowDiagram(${idx}); }
         ">
-          <span>🗺️ Diagrama del DataFlow <span style="color:var(--text2);font-weight:400">(${p.diagram.nodes.length})</span></span>
+          <span>${escH(I18n.t('ex.section.diagram'))} <span style="color:var(--text2);font-weight:400">(${p.diagram.nodes.length})</span></span>
           <span class="ex-arr">▶</span>
         </div>
         <div class="ex-section-body collapsed" id="${dfSecId}">
           <div class="ex-df-diagram-wrap">
-            <button class="ex-df-fs-btn" onclick="event.stopPropagation();Explorer.openDataflowFullscreen(${idx})" title="Pantalla completa">⛶</button>
+            <button class="ex-df-fs-btn" onclick="event.stopPropagation();Explorer.openDataflowFullscreen(${idx})" title="${I18n.t('ex.btn.fullscreen')}">⛶</button>
             <div id="ex-df-diagram-${idx}" class="ex-df-diagram"></div>
           </div>
           <div id="ex-df-node-detail-${idx}" class="ex-df-node-detail"></div>
@@ -689,13 +770,13 @@ const Explorer = (function () {
 
     // mappings
     const mappingsHtml = buildSection('🗂️ Mappings', p.mappings.length,
-      p.mappings.length === 0 ? '<p style="color:var(--text2);font-size:12px;">Sin mappings</p>' :
+      p.mappings.length === 0 ? `<p style="color:var(--text2);font-size:12px;">${escH(I18n.t('ex.label.noMappings'))}</p>` :
       `<div style="overflow-x:auto">
         <table class="ex-mapping-table">
           <thead><tr>
-            <th style="min-width:130px">Campo Destino</th>
-            <th style="min-width:130px">Origen</th>
-            <th style="min-width:180px">Transformación</th>
+            <th style="min-width:130px">${escH(I18n.t('ex.table.dstField'))}</th>
+            <th style="min-width:130px">${escH(I18n.t('ex.table.source'))}</th>
+            <th style="min-width:180px">${escH(I18n.t('ex.table.transform'))}</th>
           </tr></thead>
           <tbody>${p.mappings.map(m => {
             const hasLookup = m.ops && /\blookup\s*\(/i.test(m.ops);
@@ -717,11 +798,11 @@ const Explorer = (function () {
     );
 
     // filtros
-    const filtersHtml = buildSection('🔍 Filtros', p.filters.length,
-      p.filters.length === 0 ? '<p style="color:var(--text2);font-size:12px;">Sin filtros</p>' :
+    const filtersHtml = buildSection(I18n.t('ex.section.filters'), p.filters.length,
+      p.filters.length === 0 ? `<p style="color:var(--text2);font-size:12px;">${escH(I18n.t('ex.label.noFilters'))}</p>` :
       p.filters.map(f => `
         <div class="ex-filter-row">
-          ${f.sourceTable ? `<div class="ex-filter-table">Tabla: ${escH(f.sourceTable)}</div>` : ''}
+          ${f.sourceTable ? `<div class="ex-filter-table">${escH(I18n.t('ex.label.table'))}: ${escH(f.sourceTable)}</div>` : ''}
           <pre class="ex-filter-expr">${escH(f.expression)}</pre>
         </div>`).join('')
     );
@@ -730,7 +811,7 @@ const Explorer = (function () {
     const lookupsHtml = p.lookups.length ? buildSection('🔗 Lookups', p.lookups.length,
       p.lookups.map(l => `
         <div class="ex-lookup-item">
-          ${l.transform ? `<div class="ex-lookup-tf">Transform: ${escH(l.transform)}</div>` : ''}
+          ${l.transform ? `<div class="ex-lookup-tf">${escH(I18n.t('ex.label.transform'))}: ${escH(l.transform)}</div>` : ''}
           <pre class="ex-lookup-fn">${escH(l.func)}</pre>
         </div>`).join('')
     ) : '';
@@ -740,7 +821,7 @@ const Explorer = (function () {
       p.variables.map(v => `
         <div class="ex-var-row">
           <span class="ex-var-name">${escH(v.name)}</span>
-          <span class="ex-var-val">${escH(v.value || '(vacío)')}</span>
+          <span class="ex-var-val">${escH(v.value || I18n.t('ex.var.empty'))}</span>
         </div>`).join('')
     ) : '';
 
@@ -845,11 +926,11 @@ const Explorer = (function () {
         label: `${st.icon}  ${n.displayName || n.xmiType}`,
         title: makeTooltip([
           `<b>${escH(n.displayName || '')}</b>`,
-          `Tipo: ${escH(n.xmiType)}`,
-          n.tableName ? `Tabla: ${escH(n.tableName)}` : '',
-          n.dsName    ? `Datastore: ${escH(n.dsName)}` : '',
-          n.fileName  ? `Archivo: ${escH(n.fileName)}` : '',
-          n.rowCount  ? `Rows: ${escH(n.rowCount)}` : '',
+          `${escH(I18n.t('ex.tooltip.type'))} ${escH(n.xmiType)}`,
+          n.tableName ? `${escH(I18n.t('ex.label.table'))}: ${escH(n.tableName)}` : '',
+          n.dsName    ? `${escH(I18n.t('ex.label.datastore'))}: ${escH(n.dsName)}` : '',
+          n.fileName  ? `${escH(I18n.t('ex.label.file'))}: ${escH(n.fileName)}` : '',
+          n.rowCount  ? `${escH(I18n.t('ex.label.rowCount'))}: ${escH(n.rowCount)}` : '',
         ].filter(Boolean)),
         shape:           'box',
         margin:          6,
@@ -973,7 +1054,7 @@ const Explorer = (function () {
       title.innerHTML = `<span class="ex-type-badge ex-type-${p.tipoIntegracion || 'MD'}">${escH(p.tipoIntegracion || 'MD')}</span>
         ${escH(p.jobName || '')}${p.dataflowName && p.dataflowName !== p.jobName ? ` <span class="ex-df-fs-sub">↳ ${escH(p.dataflowName)}</span>` : ''}`;
     }
-    if (det) det.innerHTML = '<div class="ex-df-fs-detail-hint">Click en un nodo del diagrama para ver sus detalles</div>';
+    if (det) det.innerHTML = `<div class="ex-df-fs-detail-hint">${escH(I18n.t('ex.df.fs.hint'))}</div>`;
 
     modal.style.display = 'flex';
     document.body.style.overflow = 'hidden';
@@ -1023,14 +1104,14 @@ const Explorer = (function () {
     let body = '';
     if (n.xmiType.includes('TableReader') || n.xmiType.includes('TableLoader')) {
       body = `
-        <div class="ex-df-kv">Datastore: <b>${escH(n.dsName || '—')}</b></div>
-        <div class="ex-df-kv">Tabla: <b>${escH(n.tableName || '—')}</b></div>`;
+        <div class="ex-df-kv">${escH(I18n.t('ex.label.datastore'))}: <b>${escH(n.dsName || '—')}</b></div>
+        <div class="ex-df-kv">${escH(I18n.t('ex.label.table'))}: <b>${escH(n.tableName || '—')}</b></div>`;
     } else if (n.xmiType.includes('FileReader') || n.xmiType.includes('FileLoader')) {
       body = `
-        <div class="ex-df-kv">Datastore: <b>${escH(n.dsName || '—')}</b></div>
-        <div class="ex-df-kv">Archivo: <b>${escH(n.fileName || '—')}</b></div>`;
+        <div class="ex-df-kv">${escH(I18n.t('ex.label.datastore'))}: <b>${escH(n.dsName || '—')}</b></div>
+        <div class="ex-df-kv">${escH(I18n.t('ex.label.file'))}: <b>${escH(n.fileName || '—')}</b></div>`;
     } else if (n.xmiType.includes('RowGenerationTransform')) {
-      body = `<div class="ex-df-kv">Row count: <b>${escH(n.rowCount || '—')}</b></div>`;
+      body = `<div class="ex-df-kv">${escH(I18n.t('ex.label.rowCount'))}: <b>${escH(n.rowCount || '—')}</b></div>`;
     } else if (n.xmiType.includes('QueryTransform') || n.xmiType.includes('XMLMapTransform')) {
       const inputs = (n.inputSchemas || []).map(s => `<span class="ex-df-input-chip">${escH(s)}</span>`).join('');
       const joins  = (n.joins || []).map(j => `
@@ -1040,7 +1121,7 @@ const Explorer = (function () {
         </div>`).join('');
       const filterBlock = n.filterExpression ? `
         <div class="ex-df-filter-block">
-          <div class="ex-df-filter-label">WHERE</div>
+          <div class="ex-df-filter-label">${escH(I18n.t('ex.label.where'))}</div>
           <pre class="ex-filter-expr">${escH(n.filterExpression)}</pre>
         </div>` : '';
       // Solo campos con projection (consistente con el tab Mappings)
@@ -1061,10 +1142,10 @@ const Explorer = (function () {
           </table>
         </div>`;
       body =
-        (inputs ? `<div class="ex-df-inputs"><span class="ex-df-section-label">Inputs:</span> ${inputs}</div>` : '') +
+        (inputs ? `<div class="ex-df-inputs"><span class="ex-df-section-label">${escH(I18n.t('ex.label.inputs'))}:</span> ${inputs}</div>` : '') +
         joins + filterBlock + fieldsBody;
     } else {
-      body = `<div style="color:var(--text2);">Sin detalle adicional disponible para este tipo de nodo.</div>`;
+      body = `<div style="color:var(--text2);">${escH(I18n.t('ex.label.noNodeDetail'))}</div>`;
     }
 
     const html = `
@@ -1117,7 +1198,7 @@ const Explorer = (function () {
     renderSidebarList(filtered);
     updateCounter(filtered.length, integrations.length);
     if (selectedIdx !== null && !filtered.find(p => p._idx === selectedIdx)) {
-      document.getElementById('ex-detail').innerHTML = '<p class="docs-hint">Selecciona una integración a la izquierda</p>';
+      document.getElementById('ex-detail').innerHTML = `<p class="docs-hint">${escH(I18n.t('ex.empty.selectIntegration'))}</p>`;
       selectedIdx = null;
     }
   }
@@ -1126,18 +1207,20 @@ const Explorer = (function () {
     const el = document.getElementById('ex-counter');
     if (!el || visible === null) return;
     if (currentDim !== 'integration') {
-      const labels = {
-        'dst-table':    'tablas destino',
-        'src-table':    'tablas origen',
-        'dst-field':    'campos destino',
-        'src-field':    'campos origen',
-        'filter-table': 'tablas filtro/join',
-        'filter-field': 'campos filtro/join',
+      const dimKeyMap = {
+        'dst-table':    'ex.dim.counter.dstTable',
+        'src-table':    'ex.dim.counter.srcTable',
+        'dst-field':    'ex.dim.counter.dstField',
+        'src-field':    'ex.dim.counter.srcField',
+        'filter-table': 'ex.dim.counter.filterTable',
+        'filter-field': 'ex.dim.counter.filterField',
       };
-      const lbl = labels[currentDim] || '';
+      const lbl = dimKeyMap[currentDim] ? I18n.t(dimKeyMap[currentDim]) : '';
       el.textContent = visible === total ? `${total} ${lbl}` : `${visible} / ${total} ${lbl}`;
     } else {
-      el.textContent = visible === total ? `${total} integración${total !== 1 ? 'es' : ''}` : `${visible} / ${total}`;
+      el.textContent = visible === total
+        ? I18n.t(total === 1 ? 'ex.unit.integration.one' : 'ex.unit.integration.many', { n: total })
+        : `${visible} / ${total}`;
     }
   }
 
@@ -1150,14 +1233,17 @@ const Explorer = (function () {
     'filter-table': 'byFilterTable',
     'filter-field': 'byFilterField',
   };
-  const DIM_LABELS = {
-    'dst-table':    'Tabla Destino',
-    'src-table':    'Tabla Origen',
-    'dst-field':    'Campo Destino',
-    'src-field':    'Campo Origen',
-    'filter-table': 'Tabla Filtro/Join',
-    'filter-field': 'Campo Filtro/Join',
+  const DIM_LABEL_KEY = {
+    'dst-table':    'ex.dim.dstTable',
+    'src-table':    'ex.dim.srcTable',
+    'dst-field':    'ex.dim.dstField',
+    'src-field':    'ex.dim.srcField',
+    'filter-table': 'ex.dim.filterTable',
+    'filter-field': 'ex.dim.filterField',
   };
+  function dimLabel(dim) {
+    return DIM_LABEL_KEY[dim] ? I18n.t(DIM_LABEL_KEY[dim]) : '';
+  }
   const ALL_DIMS = ['integration','dst-table','src-table','dst-field','src-field','filter-table','filter-field'];
 
   function switchDimension(dim) {
@@ -1175,7 +1261,7 @@ const Explorer = (function () {
     if (currentView === 'graph' && dim !== 'integration') switchView('list');
 
     const det = document.getElementById('ex-detail');
-    if (det) det.innerHTML = '<p class="docs-hint">Selecciona un elemento a la izquierda</p>';
+    if (det) det.innerHTML = `<p class="docs-hint">${escH(I18n.t('ex.empty.selectElement'))}</p>`;
 
     const q = (document.getElementById('ex-search') || {}).value || '';
     renderMasterForDim(dim, q);
@@ -1186,6 +1272,7 @@ const Explorer = (function () {
     const mapKey = DIM_MAP_KEY[dim];
     if (!mapKey) return;
     renderMasterDimItems(indexes[mapKey], dim, query);
+    if (selectedDimKey !== null) renderDetailDimByKey(selectedDimKey, dim);
   }
 
   // Para dimensiones de filtro, el contador muestra filtros (fIdx) en lugar de mapeos (mIdx)
@@ -1202,7 +1289,7 @@ const Explorer = (function () {
     const isField  = dim === 'dst-field'    || dim === 'src-field'    || dim === 'filter-field';
     const isFilter = dim === 'filter-table' || dim === 'filter-field';
 
-    const paSet = activePA.size > 0
+    const paSet = (activePA.size > 0 || (showPromoted && cidsProdTasks))
       ? new Set(computeBaseFiltered().map(p => p._idx))
       : null;
 
@@ -1222,7 +1309,7 @@ const Explorer = (function () {
     updateCounter(entries.length, Object.keys(dimMap || {}).length);
 
     if (!entries.length) {
-      el.innerHTML = '<p style="padding:12px;color:var(--text2);font-size:13px;">Sin resultados</p>';
+      el.innerHTML = `<p style="padding:12px;color:var(--text2);font-size:13px;">${escH(I18n.t('ex.empty.noResults'))}</p>`;
       return;
     }
 
@@ -1232,15 +1319,15 @@ const Explorer = (function () {
       const intCount = new Set(items.map(x => x.intIdx)).size;
       if (isField) {
         label    = key;
-        const unit = isFilter ? 'filtro' : 'uso';
-        sublabel = `${items.length} ${unit}${items.length !== 1 ? 's' : ''} · ${intCount} integracion${intCount !== 1 ? 'es' : ''}`;
+        const unitKey = isFilter ? 'ex.unit.filter' : 'ex.unit.usage';
+        sublabel = `${_plural(unitKey, items.length)} · ${_plural('ex.unit.integration', intCount)}`;
       } else {
         const parts = key.split('::');
         label = parts[1] || key;
         if (isFilter) {
-          sublabel = `${intCount} integracion${intCount !== 1 ? 'es' : ''} · ${items.length} filtro${items.length !== 1 ? 's' : ''}`;
+          sublabel = `${_plural('ex.unit.integration', intCount)} · ${_plural('ex.unit.filter', items.length)}`;
         } else {
-          sublabel = (parts[0] ? parts[0] + ' · ' : '') + `${intCount} integracion${intCount !== 1 ? 'es' : ''} · ${items.length} mapeo${items.length !== 1 ? 's' : ''}`;
+          sublabel = (parts[0] ? parts[0] + ' · ' : '') + `${_plural('ex.unit.integration', intCount)} · ${_plural('ex.unit.mapping', items.length)}`;
         }
       }
       return `<div class="ex-item${isActive ? ' active' : ''}" data-key="${escH(encodeURIComponent(key))}" onclick="Explorer.handleDimItemClick(this)">
@@ -1248,6 +1335,10 @@ const Explorer = (function () {
         <div class="ex-sub">${escH(sublabel)}</div>
       </div>`;
     }).join('');
+  }
+
+  function _plural(unitKey, n) {
+    return I18n.t(unitKey + (n === 1 ? '.one' : '.many'), { n });
   }
 
   function handleDimItemClick(el) {
@@ -1264,9 +1355,13 @@ const Explorer = (function () {
     const det = document.getElementById('ex-detail');
     if (!det) return;
 
-    const mapKey = DIM_MAP_KEY[dim];
-    const items  = mapKey && indexes[mapKey] ? (indexes[mapKey][key] || []) : [];
-    if (!items.length) { det.innerHTML = '<p class="docs-hint">Sin datos para esta clave</p>'; return; }
+    const mapKey  = DIM_MAP_KEY[dim];
+    const rawItems = mapKey && indexes[mapKey] ? (indexes[mapKey][key] || []) : [];
+    const baseIdxSet = (activePA.size > 0 || (showPromoted && cidsProdTasks))
+      ? new Set(computeBaseFiltered().map(p => p._idx))
+      : null;
+    const items = baseIdxSet ? rawItems.filter(x => baseIdxSet.has(x.intIdx)) : rawItems;
+    if (!items.length) { det.innerHTML = `<p class="docs-hint">${escH(I18n.t('ex.empty.noData'))}</p>`; return; }
 
     const isField  = dim === 'dst-field'    || dim === 'src-field'    || dim === 'filter-field';
     const isDst    = dim === 'dst-table'    || dim === 'dst-field';
@@ -1275,13 +1370,13 @@ const Explorer = (function () {
     const displayName = isField ? key : (parts[1] || key);
     const displayDS   = isField ? '' : (parts[0] || '');
     const intCount    = new Set(items.map(x => x.intIdx)).size;
-    const unitLabel   = isFilter ? 'filtro' : 'mapeo';
+    const unitKey     = isFilter ? 'ex.unit.filter' : 'ex.unit.mapping';
 
     let html = `
       <div class="ex-header-card">
         <div class="ex-h-title">${escH(displayName)}</div>
-        ${displayDS ? `<div class="ex-h-flow">Datastore: ${escH(displayDS)}</div>` : ''}
-        <div class="ex-h-sub">${escH(DIM_LABELS[dim] || dim)} · ${items.length} ${unitLabel}${items.length !== 1 ? 's' : ''} en ${intCount} integracion${intCount !== 1 ? 'es' : ''}</div>
+        ${displayDS ? `<div class="ex-h-flow">${escH(I18n.t('ex.label.datastore'))}: ${escH(displayDS)}</div>` : ''}
+        <div class="ex-h-sub">${escH(dimLabel(dim) || dim)} · ${escH(_plural(unitKey, items.length))} · ${escH(_plural('ex.unit.integration', intCount))}</div>
       </div>`;
 
     if (isFilter) {
@@ -1304,21 +1399,21 @@ const Explorer = (function () {
             <div class="ex-section-header" onclick="var b=document.getElementById('${secId}');b.classList.toggle('collapsed');this.querySelector('.ex-arr').textContent=b.classList.contains('collapsed')?'▶':'▼';">
               <span>
                 <span class="ex-type-badge ex-type-${p.tipoIntegracion || 'MD'}">${escH(p.tipoIntegracion || 'MD')}</span>
-                ${escH(p.dataflowName || p.jobName)}
+                ${escH(p.jobName)}${p.dataflowName && p.dataflowName !== p.jobName ? ` <span style="color:var(--text2);font-size:11px;">↳ ${escH(p.dataflowName)}</span>` : ''}
                 <span style="color:var(--text2);font-weight:400;font-size:11px;margin-left:6px;">${escH(p._zipName)}</span>
               </span>
               <span style="display:flex;gap:6px;align-items:center">
-                <span style="color:var(--text2);font-size:11px;">${uniqueFIdx.length} filtro${uniqueFIdx.length !== 1 ? 's' : ''}</span>
-                <span class="ex-chain-pill" onclick="event.stopPropagation();Explorer.goToIntegration(${intIdx})" title="Ver integracion completa">Ver</span>
-                <span class="ex-arr">▼</span>
+                <span style="color:var(--text2);font-size:11px;">${escH(_plural('ex.unit.filter', uniqueFIdx.length))}</span>
+                <span class="ex-chain-pill" onclick="event.stopPropagation();Explorer.goToIntegration(${intIdx})" title="${I18n.t('ex.btn.viewFull')}">${I18n.t('ex.btn.viewFull').split(' ')[0]}</span>
+                <span class="ex-arr">▶</span>
               </span>
             </div>
-            <div class="ex-section-body" id="${secId}">
+            <div class="ex-section-body collapsed" id="${secId}">
               ${uniqueFIdx.map(fIdx => {
                 const f = p.filters[fIdx];
                 if (!f) return '';
                 return `<div class="ex-filter-row">
-                  ${f.sourceTable ? `<div class="ex-filter-table">Tabla: ${escH(f.sourceTable)}</div>` : ''}
+                  ${f.sourceTable ? `<div class="ex-filter-table">${escH(I18n.t('ex.label.table'))}: ${escH(f.sourceTable)}</div>` : ''}
                   <pre class="ex-filter-expr">${escH(f.expression)}</pre>
                 </div>`;
               }).join('')}
@@ -1343,22 +1438,22 @@ const Explorer = (function () {
             <div class="ex-section-header" onclick="var b=document.getElementById('${secId}');b.classList.toggle('collapsed');this.querySelector('.ex-arr').textContent=b.classList.contains('collapsed')?'▶':'▼';">
               <span>
                 <span class="ex-type-badge ex-type-${p.tipoIntegracion || 'MD'}">${escH(p.tipoIntegracion || 'MD')}</span>
-                ${escH(p.dataflowName || p.jobName)}
+                ${escH(p.jobName)}${p.dataflowName && p.dataflowName !== p.jobName ? ` <span style="color:var(--text2);font-size:11px;">↳ ${escH(p.dataflowName)}</span>` : ''}
                 <span style="color:var(--text2);font-weight:400;font-size:11px;margin-left:6px;">${escH(p._zipName)}</span>
               </span>
               <span style="display:flex;gap:6px;align-items:center">
                 <span style="color:var(--text2);font-size:11px;">${mIdxList.length} campo${mIdxList.length !== 1 ? 's' : ''}</span>
-                <span class="ex-chain-pill" onclick="event.stopPropagation();Explorer.goToIntegration(${intIdx})" title="Ver integracion completa">Ver</span>
-                <span class="ex-arr">▼</span>
+                <span class="ex-chain-pill" onclick="event.stopPropagation();Explorer.goToIntegration(${intIdx})" title="${I18n.t('ex.btn.viewFull')}">${I18n.t('ex.btn.viewFull').split(' ')[0]}</span>
+                <span class="ex-arr">▶</span>
               </span>
             </div>
-            <div class="ex-section-body" id="${secId}">
+            <div class="ex-section-body collapsed" id="${secId}">
               <div style="overflow-x:auto">
                 <table class="ex-mapping-table">
                   <thead><tr>
                     ${isDst
-                      ? '<th style="min-width:120px">Campo Destino</th><th style="min-width:130px">Origen</th><th>Transformacion</th>'
-                      : '<th style="min-width:130px">Campo Origen</th><th style="min-width:120px">Campo Destino</th><th>Transformacion</th>'}
+                      ? `<th style="min-width:120px">${escH(I18n.t('ex.table.dstField'))}</th><th style="min-width:130px">${escH(I18n.t('ex.table.source'))}</th><th>${escH(I18n.t('ex.table.transform'))}</th>`
+                      : `<th style="min-width:130px">${escH(I18n.t('ex.table.srcField'))}</th><th style="min-width:120px">${escH(I18n.t('ex.table.dstField'))}</th><th>${escH(I18n.t('ex.table.transform'))}</th>`}
                   </tr></thead>
                   <tbody>${mIdxList.map(mIdx => {
                     const m = p.mappings[mIdx];
@@ -1441,7 +1536,10 @@ const Explorer = (function () {
 
     const typeColors = { MD: '#F7A800', KF: '#29ABE2', FILE: '#E8622A' };
 
-    const nodes = new vis.DataSet(integrations.map(p => {
+    const visibleInts  = computeBaseFiltered();
+    const visibleIdxSet = new Set(visibleInts.map(p => p._idx));
+
+    const nodes = new vis.DataSet(visibleInts.map(p => {
       const rawLabel = p.dataflowName || p.jobName || '';
       // Partir en dos líneas si es largo (vis-network respeta \n en label)
       const label = rawLabel.length > 30
@@ -1453,10 +1551,10 @@ const Explorer = (function () {
         label,
         title: makeTooltip([
           `<b>${escH(p.dataflowName || p.jobName)}</b>`,
-          p.dataflowName && p.jobName !== p.dataflowName ? `Job: ${escH(p.jobName)}` : '',
+          p.dataflowName && p.jobName !== p.dataflowName ? `${escH(I18n.t('ex.label.job'))}: ${escH(p.jobName)}` : '',
           `${escH(p.srcDSName || '?')} → ${escH(p.dstDSName || '?')}`,
-          `Target: <b>${escH(p.targetTable)}</b>`,
-          `ZIP: ${escH(p._zipName)}`,
+          `${escH(I18n.t('ex.label.target'))}: <b>${escH(p.targetTable)}</b>`,
+          `${escH(I18n.t('ex.label.zip'))}: ${escH(p._zipName)}`,
         ].filter(Boolean)),
         color: { background: col, border: col, highlight: { background: '#fff', border: col } },
         font:  { color: '#000', size: 12, multi: false },
@@ -1471,14 +1569,14 @@ const Explorer = (function () {
       lookup: { color: '#a78bfa', dashes: [2, 3, 8, 3], width: 1.5 },
     };
 
-    const edges = new vis.DataSet(chainEdges.map((e, i) => {
+    const edges = new vis.DataSet(chainEdges.filter(e => visibleIdxSet.has(e.from) && visibleIdxSet.has(e.to)).map((e, i) => {
       const st = edgeStyle[e.via] || edgeStyle.table;
       return {
         id:     i,
         from:   e.from,
         to:     e.to,
         label:  e.label && e.label.length > 24 ? e.label.slice(0, 22) + '…' : (e.label || ''),
-        title:  makeTooltip([`Tipo: <b>${escH(e.via)}</b>`, `Vía: ${escH(e.label)}`]),
+        title:  makeTooltip([`${escH(I18n.t('ex.tooltip.type'))} <b>${escH(e.via)}</b>`, `${escH(I18n.t('ex.tooltip.via'))} ${escH(e.label)}`]),
         arrows: 'to',
         dashes: st.dashes,
         color:  { color: st.color, highlight: '#fff' },
@@ -1507,10 +1605,53 @@ const Explorer = (function () {
     });
   }
 
+  // ── Resizer panel izquierdo ──────────────────────────────
+  function initMasterResizer() {
+    const resizer = document.getElementById('ex-resizer');
+    const split   = document.getElementById('ex-list-view');
+    const master  = document.getElementById('ex-master');
+    if (!resizer || !split || !master) return;
+
+    const startDrag = (startX) => {
+      resizer.classList.add('dragging');
+      document.body.style.cursor = 'col-resize';
+      const startW = master.offsetWidth;
+
+      const onMove = (clientX) => {
+        const newW = Math.max(160, Math.min(Math.floor(split.offsetWidth * 0.65), startW + (clientX - startX)));
+        split.style.setProperty('--ex-master-w', newW + 'px');
+      };
+      const endDrag = () => {
+        resizer.classList.remove('dragging');
+        document.body.style.cursor = '';
+        document.removeEventListener('mousemove', onMouseMove);
+        document.removeEventListener('mouseup',   endDrag);
+        document.removeEventListener('touchmove', onTouchMove);
+        document.removeEventListener('touchend',  endDrag);
+      };
+      const onMouseMove = (e) => onMove(e.clientX);
+      const onTouchMove = (e) => { if (e.touches[0]) { onMove(e.touches[0].clientX); e.preventDefault(); } };
+
+      document.addEventListener('mousemove', onMouseMove);
+      document.addEventListener('mouseup',   endDrag);
+      document.addEventListener('touchmove', onTouchMove, { passive: false });
+      document.addEventListener('touchend',  endDrag);
+    };
+
+    resizer.addEventListener('mousedown',  (e) => { e.preventDefault(); startDrag(e.clientX); });
+    resizer.addEventListener('touchstart', (e) => { if (e.touches[0]) { e.preventDefault(); startDrag(e.touches[0].clientX); } }, { passive: false });
+  }
+
+  function toggleUploadPanel() {
+    const panel = document.getElementById('ex-upload-panel');
+    if (panel) panel.classList.toggle('collapsed');
+  }
+
   // ── Init ─────────────────────────────────────────────────
   function init() {
     initDropZone();
-    renderCidsBar();
+    initMasterResizer();
+    I18n.ready.then(() => renderCidsBar());
   }
 
   // ── API pública ──────────────────────────────────────────
@@ -1524,6 +1665,8 @@ const Explorer = (function () {
     handleDimItemClick,
     goToIntegration,
     togglePA,
+    toggleSrcDS,
+    toggleDstDS,
     openCidsModal,
     closeCidsModal,
     submitCidsConnect,
@@ -1533,8 +1676,28 @@ const Explorer = (function () {
     renderDataflowNodeDetail,
     openDataflowFullscreen,
     closeDataflowFullscreen,
+    toggleUploadPanel,
     init
   };
+
+  // Re-render del Integration Explorer al cambiar idioma.
+  // Reconstruye barra CI-DS, filtro PA, lista master/dim, contador y detalle activo.
+  document.addEventListener('i18n:change', function () {
+    try {
+      if (!integrations || !integrations.length) return;
+      renderCidsBar();
+      renderPlanAreaFilter();
+      renderDSFilter();
+      const q = (document.getElementById('ex-search') || {}).value || '';
+      if (currentDim === 'integration') {
+        applySearch(q);
+        if (selectedIdx !== null) renderDetail(selectedIdx);
+      } else {
+        renderMasterForDim(currentDim, q);
+        if (selectedDimKey !== null) renderDetailDimByKey(selectedDimKey, currentDim);
+      }
+    } catch (e) { console.warn('[explorer i18n re-render]', e); }
+  });
 
 })();
 

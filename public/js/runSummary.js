@@ -29,31 +29,36 @@ function buildResumenMeta(ws, opts) {
 
   ws.addRow([]);
 
+  var _lang = (window.I18n && I18n.getLang && I18n.getLang() === 'en') ? 'en-US' : 'es-CL';
+  var _prods = I18n.t('xls.resumen.prods');
+
   /* ── Bloque 1: Informacion de la ejecucion ── */
-  secRow('INFORMACION DE LA EJECUCION');
+  secRow(I18n.t('xls.resumen.execInfo'));
   var dt = opts.generatedAt || new Date();
-  kvRow('Generado el', dt.toLocaleString('es-CL'));
-  kvRow('Analizador', opts.analyzer || '—');
-  kvRow('Archivo Excel', opts.fileName || '—');
+  kvRow(I18n.t('xls.resumen.generatedAt'), dt.toLocaleString(_lang));
+  kvRow(I18n.t('xls.resumen.analyzer'), opts.analyzer || '—');
+  kvRow(I18n.t('xls.resumen.excelFile'), opts.fileName || '—');
 
   /* ── Bloque 2: Conexion SAP IBP ── */
   ws.addRow([]);
-  secRow('CONEXION SAP IBP');
+  secRow(I18n.t('xls.resumen.connection'));
   var cfg = opts.cfg || {};
   kvRow('API Base URL', cfg.url || '—');
   kvRow('Planning Area ID', cfg.pa || '—');
-  kvRow('Version', cfg.pver || '(Baseline)');
-  kvRow('Filtro OData aplicado', opts.paFilter || '(sin filtro de PA/Version)');
+  kvRow(I18n.t('xls.resumen.version'), cfg.pver || I18n.t('xls.resumen.baseline'));
+  kvRow(I18n.t('xls.resumen.odataFilter'), opts.paFilter || I18n.t('xls.resumen.noFilter'));
 
   /* ── Bloque 3: Entidades OData utilizadas ── */
   ws.addRow([]);
   var ents = opts.entities || [];
-  secRow('ENTIDADES ODATA UTILIZADAS (' + ents.length + ')');
+  secRow(I18n.t('xls.resumen.entities', { n: ents.length }));
   if (ents.length === 0) {
-    kvRow('(sin entidades registradas)', '');
+    kvRow(I18n.t('xls.resumen.noEntities'), '');
   } else {
     ents.forEach(function(e) {
-      var detail = (e.downloaded != null ? e.downloaded.toLocaleString('es-CL') + ' registros descargados' : 'n/a');
+      var detail = (e.downloaded != null
+        ? I18n.t('xls.resumen.recordsDownloaded', { n: e.downloaded.toLocaleString(_lang) })
+        : I18n.t('xls.resumen.notAvailable'));
       if (e.note) detail += ' — ' + e.note;
       kvRow(e.name, detail);
     });
@@ -67,10 +72,10 @@ function buildResumenMeta(ws, opts) {
     var incl = mtKeys.filter(function(k) { return !mc[k].excluded; });
     var excl = mtKeys.filter(function(k) { return mc[k].excluded; });
     var catted = incl.filter(function(k) { return mc[k].categories && mc[k].categories.size > 0; });
-    secRow('TIPOS DE MATERIAL — ' + mtKeys.length + ' detectados | ' + incl.length + ' incluidos | ' + excl.length + ' excluidos | ' + catted.length + ' categorizados');
+    secRow(I18n.t('xls.resumen.mattypeHeader', { total: mtKeys.length, incl: incl.length, excl: excl.length, catted: catted.length }));
 
     if (incl.length) {
-      ws.addRow(['Tipos incluidos en el analisis', 'Productos', 'Categorias asignadas']);
+      ws.addRow([I18n.t('xls.resumen.includedTypes'), I18n.t('xls.resumen.products'), I18n.t('xls.resumen.assignedCats')]);
       incl.forEach(function(mt) {
         var cfg = mc[mt];
         var cats = (cfg.categories && cfg.categories.size > 0)
@@ -78,17 +83,17 @@ function buildResumenMeta(ws, opts) {
               var found = (typeof MATTYPE_CATS !== 'undefined' ? MATTYPE_CATS : []).filter(function(x) { return x.id === c; });
               return found.length ? found[0].label : c;
             }).join(', ')
-          : 'Sin categoria — reglas permisivas (' + '⚠' + ')';
-        ws.addRow([mt, (cfg.count || 0) + ' prods', cats]);
+          : I18n.t('xls.resumen.uncategorized');
+        ws.addRow([mt, (cfg.count || 0) + ' ' + _prods, cats]);
       });
     }
 
     if (excl.length) {
       ws.addRow([]);
-      ws.addRow(['Tipos excluidos del analisis principal', 'Productos omitidos', '']);
+      ws.addRow([I18n.t('xls.resumen.excludedTypes'), I18n.t('xls.resumen.omittedProds'), '']);
       excl.forEach(function(mt) {
         var cfg = mc[mt];
-        ws.addRow([mt, (cfg.count || 0) + ' prods', '']);
+        ws.addRow([mt, (cfg.count || 0) + ' ' + _prods, '']);
       });
     }
   }
@@ -97,7 +102,7 @@ function buildResumenMeta(ws, opts) {
   var kpis = opts.kpis || [];
   if (kpis.length) {
     ws.addRow([]);
-    secRow('METRICAS GLOBALES DE LA EJECUCION');
+    secRow(I18n.t('xls.resumen.globalMetrics'));
     kpis.forEach(function(kpi) {
       kvRow(kpi.label, kpi.value);
     });

@@ -32,32 +32,32 @@
 
   <!-- ═══ MOBILE HEADER (desktop: hidden, sidebar handles nav) ═══ -->
   <div class="app-header" id="mobileHeader">
-    <button class="sidebar-toggle" id="sidebarToggle" onclick="toggleSidebar()" aria-label="Abrir menú">☰</button>
+    <button class="sidebar-toggle" id="sidebarToggle" onclick="toggleSidebar()" data-i18n-aria-label="app.mobile.openMenu" aria-label="Abrir menú">☰</button>
     <img src="logo-goscm.png" alt="GoSCM" class="logo-img" style="height:28px;">
-    <div class="app-title" style="font-size:var(--text-base);">Applications Hub</div>
+    <div class="app-title" style="font-size:var(--text-base);" data-i18n="app.title">Applications Hub</div>
   </div>
 
   <!-- ═══ CONNECTION DIALOG ═══ -->
   <dialog id="connectDialog" class="connect-dialog">
     <div class="connect-dialog-header">
-      <span class="connect-dialog-title">Conexión a SAP IBP</span>
-      <button type="button" class="dialog-close-btn" onclick="closeConnectDialog()" aria-label="Cerrar">✕</button>
+      <span class="connect-dialog-title" data-i18n="connDlg.title">Conexión a SAP IBP</span>
+      <button type="button" class="dialog-close-btn" onclick="closeConnectDialog()" aria-label="Cerrar" data-i18n-aria-label="common.close">✕</button>
     </div>
     <!-- Wizard step indicator -->
     <div class="conn-wizard-stepper">
       <div class="stepper-step active" id="connStepDot1">
         <div class="step-circle">1</div>
-        <span class="step-label">Credenciales</span>
+        <span class="step-label" data-i18n="connDlg.step1">Credenciales</span>
       </div>
       <div class="stepper-connector" id="connStepConn1"></div>
       <div class="stepper-step" id="connStepDot2">
         <div class="step-circle">2</div>
-        <span class="step-label">Planning Area</span>
+        <span class="step-label" data-i18n="connDlg.step2">Planning Area</span>
       </div>
       <div class="stepper-connector" id="connStepConn2"></div>
       <div class="stepper-step" id="connStepDot3">
         <div class="step-circle">3</div>
-        <span class="step-label">Versión</span>
+        <span class="step-label" data-i18n="connDlg.step3">Versión</span>
       </div>
     </div>
     <div class="connect-dialog-body">
@@ -71,69 +71,69 @@
             <datalist id="urlsList"></datalist>
           </div>
           <div class="form-group">
-            <label>Usuario</label>
+            <label data-i18n="connDlg.user">Usuario</label>
             <input type="text" id="inpUser" name="username" autocomplete="username" placeholder="COMM_USER" required>
           </div>
           <div class="form-group">
-            <label>Contraseña</label>
+            <label data-i18n="connDlg.password">Contraseña</label>
             <input type="password" id="inpPass" name="password" autocomplete="current-password" placeholder="••••••••" required>
           </div>
         </div>
         <div class="btn-row" style="margin-top:20px;">
-          <button type="button" class="btn btn-primary" id="btnConnStep1" onclick="doConnStep1()">Continuar &#8594;</button>
-          <button type="button" class="btn btn-secondary" onclick="closeConnectDialog()">Cancelar</button>
+          <button type="button" class="btn btn-primary" id="btnConnStep1" onclick="doConnStep1()" data-i18n="common.continue">Continuar &#8594;</button>
+          <button type="button" class="btn btn-secondary" onclick="closeConnectDialog()" data-i18n="common.cancel">Cancelar</button>
         </div>
       </div>
       <!-- Paso 2: Planning Area -->
       <div class="conn-step" id="connStep2">
         <div class="form-group" style="max-width:420px;">
-          <label>Planning Area</label>
+          <label data-i18n="connDlg.step2">Planning Area</label>
           <select id="selPA" class="conn-select" required></select>
         </div>
         <div class="btn-row" style="margin-top:20px;">
-          <button type="button" class="btn btn-primary" id="btnConnStep2" onclick="doConnStep2()">Continuar &#8594;</button>
-          <button type="button" class="btn btn-secondary" onclick="showConnStep(1)">&#8592; Volver</button>
+          <button type="button" class="btn btn-primary" id="btnConnStep2" onclick="doConnStep2()" data-i18n="common.continue">Continuar &#8594;</button>
+          <button type="button" class="btn btn-secondary" onclick="showConnStep(1)" data-i18n="common.back">&#8592; Volver</button>
         </div>
       </div>
       <!-- Paso 3: Versión -->
       <div class="conn-step" id="connStep3">
         <div class="form-group" style="max-width:420px;">
-          <label>Versión</label>
+          <label data-i18n="connDlg.step3">Versión</label>
           <select id="selPver" class="conn-select"></select>
-          <p style="font-size:11px;color:var(--text3);margin:6px 0 0;">"Baseline (vacío)" ejecuta sin filtro de versión.</p>
+          <p style="font-size:11px;color:var(--text3);margin:6px 0 0;" data-i18n="connDlg.baselineNote">"Baseline (vacío)" ejecuta sin filtro de versión.</p>
         </div>
         <div class="btn-row" style="margin-top:20px;">
-          <button type="button" class="btn btn-primary" id="btnConnect" onclick="doConnStep3()">Conectar y detectar entidades</button>
-          <button type="button" class="btn btn-secondary" onclick="showConnStep(2)">&#8592; Volver</button>
+          <button type="button" class="btn btn-primary" id="btnConnect" onclick="doConnStep3()" data-i18n="connDlg.connectBtn">Conectar y detectar entidades</button>
+          <button type="button" class="btn btn-secondary" onclick="showConnStep(2)" data-i18n="common.back">&#8592; Volver</button>
         </div>
       </div>
       <!-- Panel: conexión activa (visible cuando IS_CONNECTED=true) -->
       <div class="conn-step" id="connPanelActive">
         <div class="conn-active-status">
           <span class="status-dot on" style="width:10px;height:10px;flex-shrink:0;"></span>
-          Conexión activa
+          <span data-i18n="connDlg.activeStatus">Conexión activa</span>
         </div>
         <div class="conn-active-grid">
           <div class="conn-active-row">
-            <span class="conn-active-label">URL</span>
+            <span class="conn-active-label" data-i18n="connDlg.url">URL</span>
             <span class="conn-active-value" id="connInfoUrl"></span>
           </div>
           <div class="conn-active-row">
-            <span class="conn-active-label">Usuario</span>
+            <span class="conn-active-label" data-i18n="connDlg.user">Usuario</span>
             <span class="conn-active-value" id="connInfoUser"></span>
           </div>
           <div class="conn-active-row">
-            <span class="conn-active-label">Planning Area</span>
+            <span class="conn-active-label" data-i18n="connDlg.step2">Planning Area</span>
             <span class="conn-active-value" id="connInfoPA"></span>
           </div>
           <div class="conn-active-row">
-            <span class="conn-active-label">Versión</span>
+            <span class="conn-active-label" data-i18n="connDlg.versionLbl">Versión</span>
             <span class="conn-active-value" id="connInfoPver"></span>
           </div>
         </div>
         <div class="btn-row" style="margin-top:20px;">
-          <button type="button" class="btn btn-primary" onclick="closeConnectDialog()">Cerrar</button>
-          <button type="button" class="btn btn-secondary" onclick="startNewConnection()">Nueva conexión</button>
+          <button type="button" class="btn btn-primary" onclick="closeConnectDialog()" data-i18n="connDlg.btnClose">Cerrar</button>
+          <button type="button" class="btn btn-secondary" onclick="startNewConnection()" data-i18n="connDlg.newConn">Nueva conexión</button>
         </div>
       </div>
       <!-- Inputs ocultos — leídos por doConnect() internamente -->
@@ -142,7 +142,7 @@
       <div id="connStatus" style="display:none;font-size:12px;margin-top:12px;align-items:center;gap:8px;">
         <span id="connStatusText"></span>
         <button id="btnToggleConnLogs" class="btn btn-secondary btn-small" style="padding:2px 8px;font-size:11px;"
-          onclick="toggleConnLogs()">Ver logs técnicos</button>
+          onclick="toggleConnLogs()" data-i18n="common.viewLogs">Ver logs técnicos</button>
       </div>
       <div class="log-area hidden" id="logConnect"></div>
     </div>
@@ -151,19 +151,19 @@
   <!-- ═══ TECHNICAL REQUIREMENTS DIALOG ═══ -->
   <dialog id="techReqDialog" class="tech-req-dialog">
     <div class="tech-req-header">
-      <span class="connect-dialog-title">Requisitos técnicos</span>
-      <button type="button" class="dialog-close-btn" onclick="closeTechReqDialog()" aria-label="Cerrar">✕</button>
+      <span class="connect-dialog-title" data-i18n="techReq.title">Requisitos técnicos</span>
+      <button type="button" class="dialog-close-btn" onclick="closeTechReqDialog()" aria-label="Cerrar" data-i18n-aria-label="common.close">✕</button>
     </div>
     <!-- Tabs -->
     <div
       style="display:flex;gap:0;border-bottom:1px solid var(--border);padding:0 24px;background:var(--bg);overflow-x:auto;">
-      <button id="treqTab-conexion" onclick="switchTechTab('conexion')"
+      <button id="treqTab-conexion" onclick="switchTechTab('conexion')" data-i18n="techReq.tab.conexion"
         style="padding:10px 18px;font-size:12px;cursor:pointer;background:none;border:none;border-bottom:2px solid var(--accent);color:var(--text);font-weight:600;white-space:nowrap;font-family:var(--font);">Conexión</button>
-      <button id="treqTab-usuario" onclick="switchTechTab('usuario')"
+      <button id="treqTab-usuario" onclick="switchTechTab('usuario')" data-i18n="techReq.tab.usuario"
         style="padding:10px 18px;font-size:12px;cursor:pointer;background:none;border:none;border-bottom:2px solid transparent;color:var(--text2);font-weight:400;white-space:nowrap;font-family:var(--font);">Usuario SAP IBP</button>
-      <button id="treqTab-comm" onclick="switchTechTab('comm')"
+      <button id="treqTab-comm" onclick="switchTechTab('comm')" data-i18n="techReq.tab.comm"
         style="padding:10px 18px;font-size:12px;cursor:pointer;background:none;border:none;border-bottom:2px solid transparent;color:var(--text2);font-weight:400;white-space:nowrap;font-family:var(--font);">Acceso a SAP IBP</button>
-      <button id="treqTab-entidades" onclick="switchTechTab('entidades')"
+      <button id="treqTab-entidades" onclick="switchTechTab('entidades')" data-i18n="techReq.tab.entidades"
         style="padding:10px 18px;font-size:12px;cursor:pointer;background:none;border:none;border-bottom:2px solid transparent;color:var(--text2);font-weight:400;white-space:nowrap;font-family:var(--font);">Datos por aplicación</button>
     </div>
     <!-- Content -->
@@ -173,24 +173,24 @@
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;">
           <div>
             <div
-              style="font-size:11px;font-weight:600;color:var(--accent);text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px;">
+              style="font-size:11px;font-weight:600;color:var(--accent);text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px;" data-i18n="techReq.conn.addrTitle">
               Dirección de tu sistema SAP IBP</div>
             <div
               style="background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:10px 14px;font-family:var(--mono);font-size:12px;color:var(--cyan);">
               https://{instancia}-api.scmibp.ondemand.com</div>
-            <div style="font-size:11px;color:var(--text2);margin-top:6px;">Reemplaza <code
+            <div style="font-size:11px;color:var(--text2);margin-top:6px;" data-i18n-html="techReq.conn.addrHelp">Reemplaza <code
                 style="color:var(--accent);font-family:var(--mono);">{instancia}</code> con el ID de tu tenant SAP IBP.
             </div>
           </div>
           <div>
             <div
-              style="font-size:11px;font-weight:600;color:var(--accent);text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px;">
+              style="font-size:11px;font-weight:600;color:var(--accent);text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px;" data-i18n="techReq.conn.checklistTitle">
               Qué necesitas tener listo</div>
             <div style="display:flex;flex-direction:column;gap:6px;font-size:12px;color:var(--text2);">
-              <div>✓ &nbsp;Usuario y contraseña de acceso a la API</div>
-              <div>✓ &nbsp;Planning Area configurada en SAP IBP</div>
-              <div>✓ &nbsp;Versión (opcional — vacío equivale a Baseline)</div>
-              <div>✓ &nbsp;Acceso habilitado en SAP IBP (ver pestaña <em>Acceso a SAP IBP</em>)</div>
+              <div data-i18n-html="techReq.conn.check1">✓ &nbsp;Usuario y contraseña de acceso a la API</div>
+              <div data-i18n-html="techReq.conn.check2">✓ &nbsp;Planning Area configurada en SAP IBP</div>
+              <div data-i18n-html="techReq.conn.check3">✓ &nbsp;Versión (opcional — vacío equivale a Baseline)</div>
+              <div data-i18n-html="techReq.conn.check4">✓ &nbsp;Acceso habilitado en SAP IBP (ver pestaña <em>Acceso a SAP IBP</em>)</div>
             </div>
           </div>
         </div>
@@ -200,32 +200,32 @@
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;">
           <div>
             <div
-              style="font-size:11px;font-weight:600;color:var(--accent);text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px;">
+              style="font-size:11px;font-weight:600;color:var(--accent);text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px;" data-i18n="techReq.user.typeTitle">
               Tipo de usuario requerido</div>
             <div style="display:flex;flex-direction:column;gap:8px;font-size:12px;color:var(--text2);">
-              <div>✓ &nbsp;Debe ser un <strong style="color:var(--text);">Communication User</strong> — un usuario dedicado a la integración con sistemas externos, distinto al usuario de negocio habitual</div>
-              <div>✓ &nbsp;Debe tener permisos de lectura sobre los datos de planificación</div>
-              <div>✓ &nbsp;La contraseña no debe estar vencida</div>
-              <div>✓ &nbsp;Debe estar vinculado al escenario de integración configurado</div>
+              <div data-i18n-html="techReq.user.type1">✓ &nbsp;Debe ser un <strong style="color:var(--text);">Communication User</strong> — un usuario dedicado a la integración con sistemas externos, distinto al usuario de negocio habitual</div>
+              <div data-i18n-html="techReq.user.type2">✓ &nbsp;Debe tener permisos de lectura sobre los datos de planificación</div>
+              <div data-i18n-html="techReq.user.type3">✓ &nbsp;La contraseña no debe estar vencida</div>
+              <div data-i18n-html="techReq.user.type4">✓ &nbsp;Debe estar vinculado al escenario de integración configurado</div>
             </div>
           </div>
           <div>
             <div
-              style="font-size:11px;font-weight:600;color:var(--accent);text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px;">
+              style="font-size:11px;font-weight:600;color:var(--accent);text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px;" data-i18n="techReq.user.howTitle">
               Cómo crearlo en SAP IBP</div>
             <div style="display:flex;flex-direction:column;gap:6px;font-size:12px;color:var(--text2);">
-              <div><span style="color:var(--accent);font-weight:600;">1.</span> &nbsp;Ir a SAP IBP → Administration</div>
-              <div><span style="color:var(--accent);font-weight:600;">2.</span> &nbsp;Communication Users → New</div>
-              <div><span style="color:var(--accent);font-weight:600;">3.</span> &nbsp;Tipo: Communication User</div>
-              <div><span style="color:var(--accent);font-weight:600;">4.</span> &nbsp;Asignar contraseña segura</div>
-              <div><span style="color:var(--accent);font-weight:600;">5.</span> &nbsp;Asignar rol: IBP Administrator</div>
+              <div data-i18n-html="techReq.user.how1"><span style="color:var(--accent);font-weight:600;">1.</span> &nbsp;Ir a SAP IBP → Administration</div>
+              <div data-i18n-html="techReq.user.how2"><span style="color:var(--accent);font-weight:600;">2.</span> &nbsp;Communication Users → New</div>
+              <div data-i18n-html="techReq.user.how3"><span style="color:var(--accent);font-weight:600;">3.</span> &nbsp;Tipo: Communication User</div>
+              <div data-i18n-html="techReq.user.how4"><span style="color:var(--accent);font-weight:600;">4.</span> &nbsp;Asignar contraseña segura</div>
+              <div data-i18n-html="techReq.user.how5"><span style="color:var(--accent);font-weight:600;">5.</span> &nbsp;Asignar rol: IBP Administrator</div>
             </div>
           </div>
         </div>
       </div>
 
       <div id="treqContent-comm" style="display:none;">
-        <div style="font-size:12px;color:var(--text2);margin-bottom:14px;line-height:1.6;">
+        <div style="font-size:12px;color:var(--text2);margin-bottom:14px;line-height:1.6;" data-i18n-html="techReq.comm.intro">
           Cada aplicación necesita que SAP IBP tenga habilitado un <strong style="color:var(--text);">escenario de integración</strong> específico. Estos escenarios controlan a qué datos puede acceder la aplicación. Las apps marcadas como <em>sin conexión</em> no requieren ninguna configuración en SAP IBP.</div>
         <!-- App cards grid -->
         <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;font-size:11px;margin-bottom:16px;">
@@ -235,7 +235,7 @@
             <div style="display:flex;flex-direction:column;gap:6px;">
               <div style="background:#1a2a1a;border:1px solid #2a4a2a;border-radius:4px;padding:6px 8px;">
                 <div style="font-family:var(--mono);color:var(--green);font-size:10px;margin-bottom:2px;">SAP_COM_0720</div>
-                <div style="color:var(--text3);font-size:10px;">Acceso a datos de producción y maestros IBP</div>
+                <div style="color:var(--text3);font-size:10px;" data-i18n="techReq.comm.scenarioDesc">Acceso a datos de producción y maestros IBP</div>
               </div>
             </div>
           </div>
@@ -245,7 +245,7 @@
             <div style="display:flex;flex-direction:column;gap:6px;">
               <div style="background:#1a2a1a;border:1px solid #2a4a2a;border-radius:4px;padding:6px 8px;">
                 <div style="font-family:var(--mono);color:var(--green);font-size:10px;margin-bottom:2px;">SAP_COM_0720</div>
-                <div style="color:var(--text3);font-size:10px;">Acceso a datos de producción y maestros IBP</div>
+                <div style="color:var(--text3);font-size:10px;" data-i18n="techReq.comm.scenarioDesc">Acceso a datos de producción y maestros IBP</div>
               </div>
             </div>
           </div>
@@ -255,7 +255,7 @@
             <div style="display:flex;flex-direction:column;gap:6px;">
               <div style="background:#1a2a1a;border:1px solid #2a4a2a;border-radius:4px;padding:6px 8px;">
                 <div style="font-family:var(--mono);color:var(--green);font-size:10px;margin-bottom:2px;">SAP_COM_0720</div>
-                <div style="color:var(--text3);font-size:10px;">Acceso a datos de producción y maestros IBP</div>
+                <div style="color:var(--text3);font-size:10px;" data-i18n="techReq.comm.scenarioDesc">Acceso a datos de producción y maestros IBP</div>
               </div>
             </div>
           </div>
@@ -265,7 +265,7 @@
             <div style="display:flex;flex-direction:column;gap:6px;">
               <div style="background:#1a2a1a;border:1px solid #2a4a2a;border-radius:4px;padding:6px 8px;">
                 <div style="font-family:var(--mono);color:var(--green);font-size:10px;margin-bottom:2px;">SAP_COM_0720</div>
-                <div style="color:var(--text3);font-size:10px;">Acceso a datos de producción y maestros IBP</div>
+                <div style="color:var(--text3);font-size:10px;" data-i18n="techReq.comm.scenarioDesc">Acceso a datos de producción y maestros IBP</div>
               </div>
             </div>
           </div>
@@ -274,18 +274,18 @@
             <div style="color:var(--cyan);font-weight:600;margin-bottom:8px;">📄 Mapping Dataflow Generator</div>
             <div style="display:flex;flex-direction:column;gap:6px;">
               <div>
-                <div style="color:var(--text3);font-style:italic;font-size:10px;margin-bottom:3px;">Modo ZIP</div>
-                <div style="background:#1a1a2a;border:1px solid #2a2a3a;border-radius:4px;padding:6px 8px;color:var(--text3);font-size:10px;">Sin conexión a SAP IBP</div>
+                <div style="color:var(--text3);font-style:italic;font-size:10px;margin-bottom:3px;" data-i18n="techReq.comm.modeZip">Modo ZIP</div>
+                <div style="background:#1a1a2a;border:1px solid #2a2a3a;border-radius:4px;padding:6px 8px;color:var(--text3);font-size:10px;" data-i18n="techReq.comm.noConn">Sin conexión a SAP IBP</div>
               </div>
               <div>
-                <div style="color:var(--text3);font-style:italic;font-size:10px;margin-bottom:3px;">Modo Application Jobs / ZIP+Jobs</div>
+                <div style="color:var(--text3);font-style:italic;font-size:10px;margin-bottom:3px;" data-i18n="techReq.comm.modeJobs">Modo Application Jobs / ZIP+Jobs</div>
                 <div style="background:#1a2a1a;border:1px solid #2a4a2a;border-radius:4px;padding:6px 8px;margin-bottom:4px;">
                   <div style="font-family:var(--mono);color:var(--green);font-size:10px;margin-bottom:2px;">SAP_COM_0720</div>
-                  <div style="color:var(--text3);font-size:10px;">Acceso a datos de producción y maestros IBP</div>
+                  <div style="color:var(--text3);font-size:10px;" data-i18n="techReq.comm.scenarioDesc">Acceso a datos de producción y maestros IBP</div>
                 </div>
                 <div style="background:#2a1a2a;border:1px solid #4a2a4a;border-radius:4px;padding:6px 8px;">
                   <div style="font-family:var(--mono);color:var(--purple);font-size:10px;margin-bottom:2px;">SAP_COM_0326</div>
-                  <div style="color:var(--text3);font-size:10px;">Acceso a los Application Jobs de IBP</div>
+                  <div style="color:var(--text3);font-size:10px;" data-i18n="techReq.comm.appJobsDesc">Acceso a los Application Jobs de IBP</div>
                 </div>
               </div>
             </div>
@@ -294,28 +294,28 @@
           <div style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:12px;">
             <div style="color:var(--cyan);font-weight:600;margin-bottom:8px;">🔎 Integration Explorer</div>
             <div style="display:flex;flex-direction:column;gap:4px;">
-              <div style="background:#1a1a2a;border:1px solid #2a2a3a;border-radius:4px;padding:6px 8px;color:var(--text3);font-size:10px;">Sin conexión a SAP IBP</div>
-              <div style="color:var(--text3);font-size:10px;margin-top:4px;line-height:1.5;">Funciona completamente offline. Solo necesitas subir los archivos ZIP exportados desde SAP CI-DS.</div>
+              <div style="background:#1a1a2a;border:1px solid #2a2a3a;border-radius:4px;padding:6px 8px;color:var(--text3);font-size:10px;" data-i18n="techReq.comm.noConn">Sin conexión a SAP IBP</div>
+              <div style="color:var(--text3);font-size:10px;margin-top:4px;line-height:1.5;" data-i18n="techReq.comm.explorerHelp">Funciona completamente offline. Solo necesitas subir los archivos ZIP exportados desde SAP CI-DS.</div>
             </div>
           </div>
         </div>
         <!-- Shared setup steps -->
         <div style="border-top:1px solid var(--border);padding-top:12px;">
-          <div style="font-size:11px;font-weight:600;color:var(--accent);text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px;">
+          <div style="font-size:11px;font-weight:600;color:var(--accent);text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px;" data-i18n="techReq.comm.setupTitle">
             Cómo configurar el acceso en SAP IBP</div>
           <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:6px;font-size:11px;color:var(--text2);">
-            <div><span style="color:var(--accent);font-weight:600;">1.</span> &nbsp;Crear un sistema de comunicación en SAP IBP</div>
-            <div><span style="color:var(--accent);font-weight:600;">2.</span> &nbsp;Asignarle el Communication User</div>
-            <div><span style="color:var(--accent);font-weight:600;">3.</span> &nbsp;Crear un acuerdo de integración (Communication Arrangement)</div>
-            <div><span style="color:var(--accent);font-weight:600;">4.</span> &nbsp;Seleccionar el escenario que corresponde a tu aplicación</div>
-            <div><span style="color:var(--accent);font-weight:600;">5.</span> &nbsp;Guardar la URL de integración generada</div>
+            <div data-i18n-html="techReq.comm.setup1"><span style="color:var(--accent);font-weight:600;">1.</span> &nbsp;Crear un sistema de comunicación en SAP IBP</div>
+            <div data-i18n-html="techReq.comm.setup2"><span style="color:var(--accent);font-weight:600;">2.</span> &nbsp;Asignarle el Communication User</div>
+            <div data-i18n-html="techReq.comm.setup3"><span style="color:var(--accent);font-weight:600;">3.</span> &nbsp;Crear un acuerdo de integración (Communication Arrangement)</div>
+            <div data-i18n-html="techReq.comm.setup4"><span style="color:var(--accent);font-weight:600;">4.</span> &nbsp;Seleccionar el escenario que corresponde a tu aplicación</div>
+            <div data-i18n-html="techReq.comm.setup5"><span style="color:var(--accent);font-weight:600;">5.</span> &nbsp;Guardar la URL de integración generada</div>
           </div>
         </div>
       </div>
 
       <div id="treqContent-entidades" style="display:none;">
         <div
-          style="font-size:11px;font-weight:600;color:var(--accent);text-transform:uppercase;letter-spacing:.08em;margin-bottom:12px;">
+          style="font-size:11px;font-weight:600;color:var(--accent);text-transform:uppercase;letter-spacing:.08em;margin-bottom:12px;" data-i18n="techReq.ent.title">
           Entidades OData consumidas por aplicación</div>
         <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:14px;font-size:11px;">
           <div>
@@ -324,9 +324,9 @@
               <div>• Production Source Header</div>
               <div>• Production Source Item</div>
               <div>• Production Source Resource</div>
-              <div>• Product <span style="color:var(--text3);">(maestro)</span></div>
-              <div>• Location <span style="color:var(--text3);">(maestro)</span></div>
-              <div>• Resource <span style="color:var(--text3);">(maestro)</span></div>
+              <div>• Product <span style="color:var(--text3);" data-i18n="common.master">(maestro)</span></div>
+              <div>• Location <span style="color:var(--text3);" data-i18n="common.master">(maestro)</span></div>
+              <div>• Resource <span style="color:var(--text3);" data-i18n="common.master">(maestro)</span></div>
             </div>
           </div>
           <div>
@@ -335,9 +335,9 @@
               <div>• Production Source Header</div>
               <div>• Production Source Item</div>
               <div>• Production Source Resource</div>
-              <div>• Product <span style="color:var(--text3);">(maestro)</span></div>
-              <div>• Location <span style="color:var(--text3);">(maestro)</span></div>
-              <div>• Resource <span style="color:var(--text3);">(maestro)</span></div>
+              <div>• Product <span style="color:var(--text3);" data-i18n="common.master">(maestro)</span></div>
+              <div>• Location <span style="color:var(--text3);" data-i18n="common.master">(maestro)</span></div>
+              <div>• Resource <span style="color:var(--text3);" data-i18n="common.master">(maestro)</span></div>
               <div>• Location Product</div>
               <div>• Location Source</div>
             </div>
@@ -351,9 +351,9 @@
               <div>• Customer Source</div>
               <div>• Location Product</div>
               <div>• Customer Product</div>
-              <div>• Product <span style="color:var(--text3);">(maestro)</span></div>
-              <div>• Location <span style="color:var(--text3);">(maestro)</span></div>
-              <div>• Customer <span style="color:var(--text3);">(maestro)</span></div>
+              <div>• Product <span style="color:var(--text3);" data-i18n="common.master">(maestro)</span></div>
+              <div>• Location <span style="color:var(--text3);" data-i18n="common.master">(maestro)</span></div>
+              <div>• Customer <span style="color:var(--text3);" data-i18n="common.master">(maestro)</span></div>
             </div>
           </div>
           <div>
@@ -365,36 +365,36 @@
               <div>• Customer Source</div>
               <div>• Location Product</div>
               <div>• Customer Product</div>
-              <div>• Product <span style="color:var(--text3);">(maestro)</span></div>
-              <div>• Location <span style="color:var(--text3);">(maestro)</span></div>
-              <div>• Customer <span style="color:var(--text3);">(maestro)</span></div>
+              <div>• Product <span style="color:var(--text3);" data-i18n="common.master">(maestro)</span></div>
+              <div>• Location <span style="color:var(--text3);" data-i18n="common.master">(maestro)</span></div>
+              <div>• Customer <span style="color:var(--text3);" data-i18n="common.master">(maestro)</span></div>
             </div>
           </div>
           <div>
             <div style="color:var(--cyan);font-weight:600;margin-bottom:6px;">📄 Mapping Dataflow Generator</div>
             <div style="display:flex;flex-direction:column;gap:4px;color:var(--text2);">
-              <div style="color:var(--text3);font-style:italic;margin-bottom:2px;">Modo ZIP — siempre</div>
-              <div>• Procesa archivos ZIP CI-DS</div>
-              <div>• Extrae XMLs de dataflows</div>
-              <div style="color:var(--text3);font-style:italic;margin-top:6px;margin-bottom:2px;">Modo App Jobs / ZIP+Jobs</div>
+              <div style="color:var(--text3);font-style:italic;margin-bottom:2px;" data-i18n="techReq.ent.dgZipAlways">Modo ZIP — siempre</div>
+              <div data-i18n="techReq.ent.dgZipDesc1">• Procesa archivos ZIP CI-DS</div>
+              <div data-i18n="techReq.ent.dgZipDesc2">• Extrae XMLs de dataflows</div>
+              <div style="color:var(--text3);font-style:italic;margin-top:6px;margin-bottom:2px;" data-i18n="techReq.ent.dgJobs">Modo App Jobs / ZIP+Jobs</div>
               <div>• JobTemplateSet</div>
               <div>• JobTemplateSequenceSet</div>
               <div>• JobTemplateParameterValueDataSet</div>
-              <div style="color:var(--text3);font-style:italic;margin-top:6px;margin-bottom:2px;">Maestros IBP (si conectado)</div>
-              <div>• Product <span style="color:var(--text3);">(maestro)</span></div>
-              <div>• Location <span style="color:var(--text3);">(maestro)</span></div>
-              <div>• Customer <span style="color:var(--text3);">(maestro)</span></div>
+              <div style="color:var(--text3);font-style:italic;margin-top:6px;margin-bottom:2px;" data-i18n="techReq.ent.dgMasters">Maestros IBP (si conectado)</div>
+              <div>• Product <span style="color:var(--text3);" data-i18n="common.master">(maestro)</span></div>
+              <div>• Location <span style="color:var(--text3);" data-i18n="common.master">(maestro)</span></div>
+              <div>• Customer <span style="color:var(--text3);" data-i18n="common.master">(maestro)</span></div>
               <div>• Production Source Header</div>
             </div>
           </div>
           <div>
             <div style="color:var(--cyan);font-weight:600;margin-bottom:6px;">🔎 Integration Explorer</div>
             <div style="display:flex;flex-direction:column;gap:4px;color:var(--text2);">
-              <div style="background:#1a1a2a;border:1px solid #2a2a3a;border-radius:4px;padding:6px 8px;color:var(--text3);font-size:10px;margin-bottom:4px;">No consume entidades OData</div>
-              <div>• Procesa archivos ZIP CI-DS</div>
-              <div>• Extrae XMLs de dataflows</div>
-              <div>• Construye índice de dependencias</div>
-              <div style="color:var(--text3);margin-top:4px;font-size:10px;line-height:1.5;">Funciona 100% offline — no requiere conexión a SAP IBP.</div>
+              <div style="background:#1a1a2a;border:1px solid #2a2a3a;border-radius:4px;padding:6px 8px;color:var(--text3);font-size:10px;margin-bottom:4px;" data-i18n="techReq.ent.exNoOData">No consume entidades OData</div>
+              <div data-i18n="techReq.ent.exDesc1">• Procesa archivos ZIP CI-DS</div>
+              <div data-i18n="techReq.ent.exDesc2">• Extrae XMLs de dataflows</div>
+              <div data-i18n="techReq.ent.exDesc3">• Construye índice de dependencias</div>
+              <div style="color:var(--text3);margin-top:4px;font-size:10px;line-height:1.5;" data-i18n="techReq.ent.exOffline">Funciona 100% offline — no requiere conexión a SAP IBP.</div>
             </div>
           </div>
         </div>
@@ -407,7 +407,7 @@
         style="display:inline-flex;align-items:center;gap:8px;padding:8px 16px;background:var(--accent);color:#000;font-size:12px;font-weight:600;border-radius:6px;text-decoration:none;font-family:var(--font);transition:opacity .15s;"
         onmouseover="this.style.opacity='.85'" onmouseout="this.style.opacity='1'">
         <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-        Descargar guia de configuracion
+        <span data-i18n="techReq.footer.download">Descargar guía de configuración</span>
       </a>
     </div>
   </dialog>
@@ -424,16 +424,22 @@
       <!-- Brand -->
       <div class="sidebar-brand">
         <img src="logo-goscm.png" alt="GoSCM" class="logo-img" style="height:28px;">
-        <div class="app-title">Applications Hub</div>
+        <div class="app-title" data-i18n="app.title">Applications Hub</div>
+      </div>
+
+      <!-- Language toggle -->
+      <div class="sidebar-lang" role="group" data-i18n-aria-label="lang.switch.aria" aria-label="Cambiar idioma">
+        <button type="button" class="lang-btn" id="langBtnEs" data-lang="es" data-i18n="lang.es" aria-pressed="false">ES</button>
+        <button type="button" class="lang-btn" id="langBtnEn" data-lang="en" data-i18n="lang.en" aria-pressed="false">EN</button>
       </div>
 
       <!-- Connection status -->
       <div class="sidebar-conn">
         <div class="conn-status-row">
           <div class="status-dot off" id="statusDot"></div>
-          <span id="statusText">Desconectado</span>
+          <span id="statusText" data-i18n="sidebar.conn.disconnected">Desconectado</span>
         </div>
-        <button onclick="openConnectDialog()" id="btnHeaderConnect" class="btn btn-primary sidebar-connect-btn">
+        <button onclick="openConnectDialog()" id="btnHeaderConnect" class="btn btn-primary sidebar-connect-btn" data-i18n="sidebar.conn.button">
           🔗 Conectar SAP IBP
         </button>
       </div>
@@ -442,42 +448,42 @@
       <nav class="sidebar-nav">
         <button class="nav-item req-conn" onclick="switchTab('bom')" id="tabBtn-bom">
           <span class="nav-icon">📦</span>
-          <span class="nav-label">Production Visualizer</span>
+          <span class="nav-label" data-i18n="nav.bom">Production Visualizer</span>
           <span class="nav-lock-badge lock-icon">🔒</span>
         </button>
         <button class="nav-item req-conn" onclick="switchTab('pa')" id="tabBtn-pa">
           <span class="nav-icon">🔬</span>
-          <span class="nav-label">Production Analyzer</span>
+          <span class="nav-label" data-i18n="nav.pa">Production Analyzer</span>
           <span class="nav-lock-badge lock-icon">🔒</span>
         </button>
         <button class="nav-item req-conn" onclick="switchTab('visualizer')" id="tabBtn-visualizer">
           <span class="nav-icon">🔭</span>
-          <span class="nav-label">Network Visualizer</span>
+          <span class="nav-label" data-i18n="nav.visualizer">Network Visualizer</span>
           <span class="nav-lock-badge lock-icon">🔒</span>
         </button>
         <button class="nav-item req-conn" onclick="switchTab('network')" id="tabBtn-network">
           <span class="nav-icon">🌐</span>
-          <span class="nav-label">Network Analyzer</span>
+          <span class="nav-label" data-i18n="nav.network">Network Analyzer</span>
           <span class="nav-lock-badge lock-icon">🔒</span>
         </button>
         <button class="nav-item nav-glosario" onclick="switchTab('glosario')" id="tabBtn-glosario">
           <span class="nav-icon">📖</span>
-          <span class="nav-label">Glosario Analyzers</span>
+          <span class="nav-label" data-i18n="nav.glosario">Glosario Analyzers</span>
         </button>
         <div class="nav-divider"></div>
         <button class="nav-item nav-docs" onclick="switchTab('docs')" id="tabBtn-docs">
           <span class="nav-icon">📄</span>
-          <span class="nav-label">Mapping Dataflow Generator</span>
+          <span class="nav-label" data-i18n="nav.docs">Mapping Dataflow Generator</span>
         </button>
         <button class="nav-item nav-docs" onclick="switchTab('explorer')" id="tabBtn-explorer">
           <span class="nav-icon">🔎</span>
-          <span class="nav-label">Integration Explorer</span>
+          <span class="nav-label" data-i18n="nav.explorer">Integration Explorer</span>
         </button>
         <div class="nav-divider"></div>
-        <span class="nav-section-label">SUITE GOSCM</span>
+        <span class="nav-section-label" data-i18n="nav.suite">SUITE GOSCM</span>
         <a class="nav-item nav-external" href="https://ibp-bom-v8.vercel.app" target="_blank" rel="noopener noreferrer">
           <span class="nav-icon">🏗️</span>
-          <span class="nav-label">SAP IBP Control Tower</span>
+          <span class="nav-label" data-i18n="nav.controlTower">SAP IBP Control Tower</span>
           <svg class="nav-external-icon" xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
         </a>
       </nav>
@@ -486,7 +492,7 @@
       <div class="sidebar-footer">
         <button onclick="openTechReqDialog()" class="nav-item nav-footer-item" id="btnTechReq">
           <span class="nav-icon">⚙</span>
-          <span class="nav-label">Requisitos técnicos</span>
+          <span class="nav-label" data-i18n="nav.techReq">Requisitos técnicos</span>
         </button>
       </div>
 
@@ -501,7 +507,7 @@
     <div class="tab-info-banner" id="infoBannerBom">
       <span class="tab-info-icon">📦</span>
       <div class="tab-info-content">
-        <div class="tab-info-desc">Explora la estructura de producción BOM de cualquier material desde SAP IBP. Navega
+        <div class="tab-info-desc" data-i18n="banner.bom">Explora la estructura de producción BOM de cualquier material desde SAP IBP. Navega
           cada nivel de la jerarquía, identifica co-productos y componentes, y visualiza las plantas de producción
           asociadas.</div>
       </div>
@@ -509,13 +515,13 @@
 
     <div class="locked-message empty-state" style="display:none; margin-top:40px;">
       <div class="icon" style="font-size:48px; opacity:0.8; margin-bottom:16px;">🔒</div>
-      <strong style="font-size:16px;color:var(--text)">Módulo restringido</strong>
-      <p style="font-size:13px;color:var(--text2);margin-top:8px;max-width:400px;margin-left:auto;margin-right:auto;">
+      <strong style="font-size:16px;color:var(--text)" data-i18n="locked.title">Módulo restringido</strong>
+      <p style="font-size:13px;color:var(--text2);margin-top:8px;max-width:400px;margin-left:auto;margin-right:auto;" data-i18n="locked.bom">
         La jerarquía de producción requiere leer datos en tiempo real. Por favor, conéctate a tu entorno de SAP IBP para
         acceder.
       </p>
       <button class="btn btn-primary" style="margin-top:20px; font-size:13px; padding:10px 20px;"
-        onclick="openConnectDialog()">
+        onclick="openConnectDialog()" data-i18n="locked.connectBtn">
         🔗 Conectar a SAP IBP
       </button>
     </div>
@@ -524,11 +530,11 @@
     <div class="panel hidden" id="panelMDT">
       <div class="panel-title" onclick="toggleMappingBody('bodyMDT', 'arrMDT')"
         style="cursor:pointer;display:flex;justify-content:space-between;align-items:center;">
-        <span>MAPEO DE ENTIDADES</span>
+        <span data-i18n="mdt.title">MAPEO DE ENTIDADES</span>
         <span id="arrMDT" style="font-size:11px;">▼</span>
       </div>
       <div id="bodyMDT">
-        <p style="font-size:12px;color:var(--text2);margin-bottom:8px;">
+        <p style="font-size:12px;color:var(--text2);margin-bottom:8px;" data-i18n="mdt.autoDetect">
           La auto-detección asignó las entidades más probables. Ajusta manualmente si es necesario.
         </p>
         <div class="mdt-grid">
@@ -536,7 +542,7 @@
             <div class="mdt-label">Production Source Header</div>
             <div class="ss-wrap">
               <input type="hidden" id="selHeader">
-              <input class="ss-input-vis" id="ssVis-selHeader" type="text" placeholder="Buscar entidad..."
+              <input class="ss-input-vis" id="ssVis-selHeader" type="text" data-i18n-placeholder="common.searchEntity" placeholder="Buscar entidad..."
                 autocomplete="off">
               <div class="ss-list" id="ssList-selHeader"></div>
             </div>
@@ -546,7 +552,7 @@
             <div class="mdt-label">Production Source Item</div>
             <div class="ss-wrap">
               <input type="hidden" id="selItem">
-              <input class="ss-input-vis" id="ssVis-selItem" type="text" placeholder="Buscar entidad..."
+              <input class="ss-input-vis" id="ssVis-selItem" type="text" data-i18n-placeholder="common.searchEntity" placeholder="Buscar entidad..."
                 autocomplete="off">
               <div class="ss-list" id="ssList-selItem"></div>
             </div>
@@ -556,7 +562,7 @@
             <div class="mdt-label">Production Source Item Sub</div>
             <div class="ss-wrap">
               <input type="hidden" id="selItemSub">
-              <input class="ss-input-vis" id="ssVis-selItemSub" type="text" placeholder="Buscar entidad..."
+              <input class="ss-input-vis" id="ssVis-selItemSub" type="text" data-i18n-placeholder="common.searchEntity" placeholder="Buscar entidad..."
                 autocomplete="off">
               <div class="ss-list" id="ssList-selItemSub"></div>
             </div>
@@ -566,7 +572,7 @@
             <div class="mdt-label">Production Source Resource</div>
             <div class="ss-wrap">
               <input type="hidden" id="selResource">
-              <input class="ss-input-vis" id="ssVis-selResource" type="text" placeholder="Buscar entidad..."
+              <input class="ss-input-vis" id="ssVis-selResource" type="text" data-i18n-placeholder="common.searchEntity" placeholder="Buscar entidad..."
                 autocomplete="off">
               <div class="ss-list" id="ssList-selResource"></div>
             </div>
@@ -576,27 +582,27 @@
             <div class="mdt-label">Product</div>
             <div class="ss-wrap">
               <input type="hidden" id="selProduct">
-              <input class="ss-input-vis" id="ssVis-selProduct" type="text" placeholder="Buscar entidad..."
+              <input class="ss-input-vis" id="ssVis-selProduct" type="text" data-i18n-placeholder="common.searchEntity" placeholder="Buscar entidad..."
                 autocomplete="off">
               <div class="ss-list" id="ssList-selProduct"></div>
             </div>
             <div class="mdt-fields" id="fieldsProduct"></div>
           </div>
           <div class="mdt-card">
-            <div class="mdt-label">Location <span style="font-size:10px;color:var(--text3)">(maestro)</span></div>
+            <div class="mdt-label">Location <span style="font-size:10px;color:var(--text3)" data-i18n="common.master">(maestro)</span></div>
             <div class="ss-wrap">
               <input type="hidden" id="selBomLocMaster">
-              <input class="ss-input-vis" id="ssVis-selBomLocMaster" type="text" placeholder="Buscar entidad..."
+              <input class="ss-input-vis" id="ssVis-selBomLocMaster" type="text" data-i18n-placeholder="common.searchEntity" placeholder="Buscar entidad..."
                 autocomplete="off">
               <div class="ss-list" id="ssList-selBomLocMaster"></div>
             </div>
             <div class="mdt-fields" id="fieldsBomLocMaster"></div>
           </div>
           <div class="mdt-card">
-            <div class="mdt-label">Resource <span style="font-size:10px;color:var(--text3)">(maestro)</span></div>
+            <div class="mdt-label">Resource <span style="font-size:10px;color:var(--text3)" data-i18n="common.master">(maestro)</span></div>
             <div class="ss-wrap">
               <input type="hidden" id="selBomResMaster">
-              <input class="ss-input-vis" id="ssVis-selBomResMaster" type="text" placeholder="Buscar entidad..."
+              <input class="ss-input-vis" id="ssVis-selBomResMaster" type="text" data-i18n-placeholder="common.searchEntity" placeholder="Buscar entidad..."
                 autocomplete="off">
               <div class="ss-list" id="ssList-selBomResMaster"></div>
             </div>
@@ -604,9 +610,9 @@
           </div>
         </div>
         <div class="btn-row">
-          <button class="btn btn-primary" id="btnFetch" onclick="doFetchAll()">Descargar datos y construir
+          <button class="btn btn-primary" id="btnFetch" onclick="doFetchAll()" data-i18n="mdt.bom.fetchBtn">Descargar datos y construir
             jerarquía</button>
-          <button class="btn btn-secondary btn-small" onclick="doConnect()">Reconectar</button>
+          <button class="btn btn-secondary btn-small" onclick="doConnect()" data-i18n="common.reconnect">Reconectar</button>
         </div>
         <div class="fm-correction-container" id="fmPanelBOM"></div>
         <div class="progress-bar hidden" id="progBar">
@@ -616,20 +622,20 @@
           style="display:none;font-size:12px;color:var(--text2);margin-top:4px;align-items:center;gap:8px;">
           <span id="progStatusText"></span>
           <button id="btnToggleLogs" class="btn btn-secondary btn-small" style="padding:2px 8px;font-size:11px;"
-            onclick="toggleFetchLogs()">Ver logs técnicos</button>
+            onclick="toggleFetchLogs()" data-i18n="common.viewLogs">Ver logs técnicos</button>
         </div>
         <div class="log-area hidden" id="logFetch"></div>
       </div>
     </div>
 
     <!-- ═══ CYCLE BANNER ═══ -->
-    <div class="cycle-banner" id="cycleBanner">⚠️ <strong>Ciclos detectados:</strong> <span id="cycleList"></span></div>
+    <div class="cycle-banner" id="cycleBanner"><span data-i18n-html="cycleBanner.label">⚠️ <strong>Ciclos detectados:</strong></span> <span id="cycleList"></span></div>
 
     <!-- ═══ MULTI-PRODUCT TAB BAR + CONTENT (wrapper for fullscreen) ═══ -->
     <div id="bomTreeWrapper">
       <div class="bom-tabs-bar hidden" id="bomTabsBar">
         <div class="bom-tabs-scroll" id="bomTabsScroll"></div>
-        <button class="btn btn-secondary btn-small bom-fs-btn" id="btnBomFullscreen" onclick="bomToggleFullscreen()" title="Pantalla completa">&#x26F6; Pantalla completa</button>
+        <button class="btn btn-secondary btn-small bom-fs-btn" id="btnBomFullscreen" onclick="bomToggleFullscreen()" title="Pantalla completa" data-i18n-title="bom.fullscreenTitle" data-i18n="bom.fullscreenBtn">&#x26F6; Pantalla completa</button>
       </div>
 
       <!-- ═══ TAB CONTENT CONTAINER ═══ -->
@@ -644,7 +650,7 @@
     <div class="tab-info-banner" id="infoBannerNetwork">
       <span class="tab-info-icon">🌐</span>
       <div class="tab-info-content">
-        <div class="tab-info-desc">Descarga y analiza la red logística completa de todos los materiales. Genera un
+        <div class="tab-info-desc" data-i18n="banner.network">Descarga y analiza la red logística completa de todos los materiales. Genera un
           informe Excel con métricas de resiliencia, nodos críticos, ghost nodes y calidad general de la red de
           suministro.</div>
       </div>
@@ -652,31 +658,31 @@
 
     <div class="locked-message empty-state" style="display:none; margin-top:40px;">
       <div class="icon" style="font-size:48px; opacity:0.8; margin-bottom:16px;">🔒</div>
-      <strong style="font-size:16px;color:var(--text)">Módulo restringido</strong>
-      <p style="font-size:13px;color:var(--text2);margin-top:8px;max-width:400px;margin-left:auto;margin-right:auto;">
+      <strong style="font-size:16px;color:var(--text)" data-i18n="locked.title">Módulo restringido</strong>
+      <p style="font-size:13px;color:var(--text2);margin-top:8px;max-width:400px;margin-left:auto;margin-right:auto;" data-i18n="locked.network">
         El análisis de red evalúa múltiples entidades. Por favor, conéctate a tu entorno de SAP IBP para acceder.
       </p>
       <button class="btn btn-primary" style="margin-top:20px; font-size:13px; padding:10px 20px;"
-        onclick="openConnectDialog()">
+        onclick="openConnectDialog()" data-i18n="locked.connectBtn">
         🔗 Conectar a SAP IBP
       </button>
     </div>
 
     <!-- ═══ SUPPLY NETWORK: INFO GUIDE ═══ -->
     <div class="panel" id="panelSNGuide" style="border-left:3px solid var(--cyan);padding:14px 18px;">
-      <div class="panel-title" style="margin-bottom:6px;font-size:13px;">Interpretacion de resultados</div>
-      <p style="font-size:13px;color:var(--text2);margin:0;">Consulta la pestana <strong style="color:var(--accent);">Glosario Analyzers</strong> para entender los campos que entrega este analizador y los analisis que realiza.</p>
+      <div class="panel-title" style="margin-bottom:6px;font-size:13px;" data-i18n="guide.interp.title">Interpretación de resultados</div>
+      <p style="font-size:13px;color:var(--text2);margin:0;" data-i18n-html="guide.interp.body">Consulta la pestaña <strong style="color:var(--accent);">Glosario Analyzers</strong> para entender los campos que entrega este analizador y los análisis que realiza.</p>
     </div><!-- /panelSNGuide -->
 
     <!-- ═══ SUPPLY NETWORK: MDT MAPPING ═══ -->
     <div class="panel hidden" id="panelSNMDT">
       <div class="panel-title" onclick="toggleMappingBody('bodySNMDT', 'arrSNMDT')"
         style="cursor:pointer;display:flex;justify-content:space-between;align-items:center;">
-        <span>MAPEO DE ENTIDADES</span>
+        <span data-i18n="mdt.title">MAPEO DE ENTIDADES</span>
         <span id="arrSNMDT" style="font-size:11px;">▼</span>
       </div>
       <div id="bodySNMDT">
-        <p style="font-size:12px;color:var(--text2);margin-bottom:8px;">
+        <p style="font-size:12px;color:var(--text2);margin-bottom:8px;" data-i18n="mdt.snHint">
           Selecciona las entidades de datos maestros para analizar la red de suministro. La auto-detección asignó las
           más
           probables.
@@ -686,7 +692,7 @@
             <div class="mdt-label">Location Source</div>
             <div class="ss-wrap">
               <input type="hidden" id="selSNLocation">
-              <input class="ss-input-vis" id="ssVis-selSNLocation" type="text" placeholder="Buscar entidad..."
+              <input class="ss-input-vis" id="ssVis-selSNLocation" type="text" data-i18n-placeholder="common.searchEntity" placeholder="Buscar entidad..."
                 autocomplete="off">
               <div class="ss-list" id="ssList-selSNLocation"></div>
             </div>
@@ -696,7 +702,7 @@
             <div class="mdt-label">Customer Source</div>
             <div class="ss-wrap">
               <input type="hidden" id="selSNCustomer">
-              <input class="ss-input-vis" id="ssVis-selSNCustomer" type="text" placeholder="Buscar entidad..."
+              <input class="ss-input-vis" id="ssVis-selSNCustomer" type="text" data-i18n-placeholder="common.searchEntity" placeholder="Buscar entidad..."
                 autocomplete="off">
               <div class="ss-list" id="ssList-selSNCustomer"></div>
             </div>
@@ -706,7 +712,7 @@
             <div class="mdt-label">Product</div>
             <div class="ss-wrap">
               <input type="hidden" id="selSNProduct">
-              <input class="ss-input-vis" id="ssVis-selSNProduct" type="text" placeholder="Buscar entidad..."
+              <input class="ss-input-vis" id="ssVis-selSNProduct" type="text" data-i18n-placeholder="common.searchEntity" placeholder="Buscar entidad..."
                 autocomplete="off">
               <div class="ss-list" id="ssList-selSNProduct"></div>
             </div>
@@ -716,7 +722,7 @@
             <div class="mdt-label">Production Source Header</div>
             <div class="ss-wrap">
               <input type="hidden" id="selSNSourceProd">
-              <input class="ss-input-vis" id="ssVis-selSNSourceProd" type="text" placeholder="Buscar entidad..."
+              <input class="ss-input-vis" id="ssVis-selSNSourceProd" type="text" data-i18n-placeholder="common.searchEntity" placeholder="Buscar entidad..."
                 autocomplete="off">
               <div class="ss-list" id="ssList-selSNSourceProd"></div>
             </div>
@@ -726,7 +732,7 @@
             <div class="mdt-label">Location</div>
             <div class="ss-wrap">
               <input type="hidden" id="selSNLocMaster">
-              <input class="ss-input-vis" id="ssVis-selSNLocMaster" type="text" placeholder="Buscar entidad..."
+              <input class="ss-input-vis" id="ssVis-selSNLocMaster" type="text" data-i18n-placeholder="common.searchEntity" placeholder="Buscar entidad..."
                 autocomplete="off">
               <div class="ss-list" id="ssList-selSNLocMaster"></div>
             </div>
@@ -736,7 +742,7 @@
             <div class="mdt-label">Customer</div>
             <div class="ss-wrap">
               <input type="hidden" id="selSNCustMaster">
-              <input class="ss-input-vis" id="ssVis-selSNCustMaster" type="text" placeholder="Buscar entidad..."
+              <input class="ss-input-vis" id="ssVis-selSNCustMaster" type="text" data-i18n-placeholder="common.searchEntity" placeholder="Buscar entidad..."
                 autocomplete="off">
               <div class="ss-list" id="ssList-selSNCustMaster"></div>
             </div>
@@ -746,7 +752,7 @@
             <div class="mdt-label">Production Source Item</div>
             <div class="ss-wrap">
               <input type="hidden" id="selSNSourceItem">
-              <input class="ss-input-vis" id="ssVis-selSNSourceItem" type="text" placeholder="Buscar entidad..."
+              <input class="ss-input-vis" id="ssVis-selSNSourceItem" type="text" data-i18n-placeholder="common.searchEntity" placeholder="Buscar entidad..."
                 autocomplete="off">
               <div class="ss-list" id="ssList-selSNSourceItem"></div>
             </div>
@@ -756,7 +762,7 @@
             <div class="mdt-label">Location Product</div>
             <div class="ss-wrap">
               <input type="hidden" id="selSNLocProd">
-              <input class="ss-input-vis" id="ssVis-selSNLocProd" type="text" placeholder="Buscar entidad..."
+              <input class="ss-input-vis" id="ssVis-selSNLocProd" type="text" data-i18n-placeholder="common.searchEntity" placeholder="Buscar entidad..."
                 autocomplete="off">
               <div class="ss-list" id="ssList-selSNLocProd"></div>
             </div>
@@ -766,7 +772,7 @@
             <div class="mdt-label">Customer Product</div>
             <div class="ss-wrap">
               <input type="hidden" id="selSNCustProd">
-              <input class="ss-input-vis" id="ssVis-selSNCustProd" type="text" placeholder="Buscar entidad..."
+              <input class="ss-input-vis" id="ssVis-selSNCustProd" type="text" data-i18n-placeholder="common.searchEntity" placeholder="Buscar entidad..."
                 autocomplete="off">
               <div class="ss-list" id="ssList-selSNCustProd"></div>
             </div>
@@ -774,8 +780,8 @@
           </div>
         </div>
         <div class="btn-row">
-          <button class="btn btn-primary" id="btnConfirmMapping" onclick="doConfirmMapping()">Continuar &#8594;</button>
-          <button class="btn btn-secondary btn-small" onclick="doConnect()">Reconectar</button>
+          <button class="btn btn-primary" id="btnConfirmMapping" onclick="doConfirmMapping()" data-i18n="common.continue">Continuar &#8594;</button>
+          <button class="btn btn-secondary btn-small" onclick="doConnect()" data-i18n="common.reconnect">Reconectar</button>
         </div>
         <div class="fm-correction-container" id="fmPanelSN"></div>
       </div>
@@ -785,20 +791,20 @@
     <div class="mattype-panel hidden" id="panelSNExclude">
       <div class="mattype-panel-header" onclick="snMattypeToggleExcludePanel()">
         <div class="mattype-panel-title">
-          ② Excluir tipos de material
-          <span class="mattype-optional-badge">Opcional</span>
+          <span data-i18n="mattype.exclude.title">② Excluir tipos de material</span>
+          <span class="mattype-optional-badge" data-i18n="common.optional">Opcional</span>
         </div>
         <div class="mattype-panel-actions">
-          <span class="mattype-summary" id="snmattypeExcludeSummary">Todos los tipos incluidos — sin configurar</span>
-          <button class="mattype-reset-btn" onclick="event.stopPropagation();snMattypeResetExclude()">Restablecer</button>
+          <span class="mattype-summary" id="snmattypeExcludeSummary" data-i18n="mattype.exclude.summary">Todos los tipos incluidos — sin configurar</span>
+          <button class="mattype-reset-btn" onclick="event.stopPropagation();snMattypeResetExclude()" data-i18n="common.reset">Restablecer</button>
           <span class="mattype-arr" id="snmattypeExcludeArr">▶</span>
         </div>
       </div>
       <div class="mattype-panel-body" id="snmattypeExcludeBody" style="display:none;">
         <div id="snmattypeExcludeWrap"></div>
         <div class="btn-row" style="margin-top:12px;">
-          <button class="btn btn-primary btn-small" onclick="snContinueToCategories()">Continuar &#8594;</button>
-          <button class="btn btn-secondary btn-small" onclick="doBackToMapping()">&#8592; Volver al mapeo</button>
+          <button class="btn btn-primary btn-small" onclick="snContinueToCategories()" data-i18n="common.continue">Continuar &#8594;</button>
+          <button class="btn btn-secondary btn-small" onclick="doBackToMapping()" data-i18n="mattype.backToMapping">&#8592; Volver al mapeo</button>
         </div>
       </div>
     </div>
@@ -807,20 +813,20 @@
     <div class="mattype-panel hidden" id="panelSNCategories">
       <div class="mattype-panel-header" onclick="snMattypeToggleCatPanel()">
         <div class="mattype-panel-title">
-          ③ Categorizar tipos de material
-          <span class="mattype-optional-badge">Opcional</span>
+          <span data-i18n="mattype.cat.title">③ Categorizar tipos de material</span>
+          <span class="mattype-optional-badge" data-i18n="common.optional">Opcional</span>
         </div>
         <div class="mattype-panel-actions">
-          <span class="mattype-summary" id="snmattypeCatSummary">Sin categorización — análisis estándar</span>
-          <button class="mattype-reset-btn" onclick="event.stopPropagation();snMattypeResetCat()">Restablecer</button>
+          <span class="mattype-summary" id="snmattypeCatSummary" data-i18n="mattype.cat.summary">Sin categorización — análisis estándar</span>
+          <button class="mattype-reset-btn" onclick="event.stopPropagation();snMattypeResetCat()" data-i18n="common.reset">Restablecer</button>
           <span class="mattype-arr" id="snmattypeCatArr">▶</span>
         </div>
       </div>
       <div class="mattype-panel-body" id="snmattypeCatBody" style="display:none;">
         <div id="snmattypeCatWrap"></div>
         <div class="btn-row" style="margin-top:12px;">
-          <button class="btn btn-primary btn-small" onclick="snContinueToExtraFields()">Continuar &#8594;</button>
-          <button class="btn btn-secondary btn-small" onclick="snBackToExclude()">&#8592; Volver</button>
+          <button class="btn btn-primary btn-small" onclick="snContinueToExtraFields()" data-i18n="common.continue">Continuar &#8594;</button>
+          <button class="btn btn-secondary btn-small" onclick="snBackToExclude()" data-i18n="common.back">&#8592; Volver</button>
         </div>
       </div>
     </div>
@@ -829,8 +835,8 @@
     <div class="mattype-panel hidden" id="panelSNExtraFields">
       <div class="mattype-panel-header" onclick="efToggleEFBody('sn')">
         <div class="mattype-panel-title">
-          ④ Campos adicionales de datos maestros
-          <span class="mattype-optional-badge">Opcional</span>
+          <span data-i18n="mattype.ef.title">④ Campos adicionales de datos maestros</span>
+          <span class="mattype-optional-badge" data-i18n="common.optional">Opcional</span>
         </div>
         <div class="mattype-panel-actions">
           <span class="mattype-arr" id="snEFArr">▶</span>
@@ -839,22 +845,22 @@
       <div class="mattype-panel-body" id="snEFBody" style="display:none;">
         <div class="ef-entity-buttons" id="efButtons_sn"></div>
         <div class="btn-row" style="margin-top:16px;">
-          <button class="btn btn-primary btn-small" onclick="snContinueToRun()">Continuar a ejecución &#8594;</button>
-          <button class="btn btn-secondary btn-small" onclick="snBackFromExtraFieldsToCategories()">&#8592; Volver</button>
+          <button class="btn btn-primary btn-small" onclick="snContinueToRun()" data-i18n="run.continueExec">Continuar a ejecución &#8594;</button>
+          <button class="btn btn-secondary btn-small" onclick="snBackFromExtraFieldsToCategories()" data-i18n="common.back">&#8592; Volver</button>
         </div>
       </div>
     </div>
 
     <!-- ═══ SN: EJECUTAR ANÁLISIS ═══ -->
     <div class="panel hidden" id="panelSNExportMode">
-      <div class="panel-title">⑤ Ejecutar análisis</div>
+      <div class="panel-title" data-i18n="run.title">⑤ Ejecutar análisis</div>
       <div id="bodySNExportMode">
-        <div id="snRunSummary" style="font-size:12px;color:var(--text2);margin-bottom:14px;padding:10px 12px;background:rgba(41,171,226,.05);border-left:3px solid var(--cyan);border-radius:4px;">
+        <div id="snRunSummary" style="font-size:12px;color:var(--text2);margin-bottom:14px;padding:10px 12px;background:rgba(41,171,226,.05);border-left:3px solid var(--cyan);border-radius:4px;" data-i18n="run.snDefault">
           Configuración por defecto — análisis estándar para todos los tipos
         </div>
         <div class="btn-row">
-          <button class="btn btn-primary" id="btnFetchSN" onclick="doAnalyzeAndExport()">&#9654; Ejecutar análisis</button>
-          <button class="btn btn-secondary btn-small" onclick="snBackToExtraFields()">&#8592; Volver</button>
+          <button class="btn btn-primary" id="btnFetchSN" onclick="doAnalyzeAndExport()" data-i18n="run.execBtn">&#9654; Ejecutar análisis</button>
+          <button class="btn btn-secondary btn-small" onclick="snBackToExtraFields()" data-i18n="common.back">&#8592; Volver</button>
         </div>
         <div class="progress-bar hidden" id="progBarSN">
           <div class="fill" id="progFillSN" style="width:0%"></div>
@@ -863,7 +869,7 @@
           style="display:none;font-size:12px;color:var(--text2);margin-top:4px;align-items:center;gap:8px;">
           <span id="progStatusTextSN"></span>
           <button id="btnToggleSNLogs" class="btn btn-secondary btn-small" style="padding:2px 8px;font-size:11px;"
-            onclick="toggleSNLogs()">Ver logs técnicos</button>
+            onclick="toggleSNLogs()" data-i18n="common.viewLogs">Ver logs técnicos</button>
         </div>
         <div class="log-area hidden" id="logSN"></div>
       </div>
@@ -871,8 +877,8 @@
 
     <div class="empty-state hidden" id="snSuccessBanner" style="margin-top:40px;">
       <div class="icon">✅</div>
-      <strong style="font-size:15px;color:var(--green)">¡Análisis completado!</strong>
-      <p style="font-size:13px;color:var(--text2);margin-top:6px;">El informe ha sido descargado exitosamente.</p>
+      <strong style="font-size:15px;color:var(--green)" data-i18n="run.successTitle">¡Análisis completado!</strong>
+      <p style="font-size:13px;color:var(--text2);margin-top:6px;" data-i18n="run.successDesc">El informe ha sido descargado exitosamente.</p>
     </div>
 
   </div><!-- /tab-network -->
@@ -883,7 +889,7 @@
     <div class="tab-info-banner" id="infoBannerVisualizer">
       <span class="tab-info-icon">🔭</span>
       <div class="tab-info-content">
-        <div class="tab-info-desc">Visualiza interactivamente la red logística de un material específico. Confirma el
+        <div class="tab-info-desc" data-i18n="banner.visualizer">Visualiza interactivamente la red logística de un material específico. Confirma el
           mapeo para cargar el catálogo de materiales, selecciona uno y haz click en "Cargar red logística" para ver su
           diagrama.</div>
       </div>
@@ -891,13 +897,13 @@
 
     <div class="locked-message empty-state" style="display:none; margin-top:40px;">
       <div class="icon" style="font-size:48px; opacity:0.8; margin-bottom:16px;">🔒</div>
-      <strong style="font-size:16px;color:var(--text)">Módulo restringido</strong>
-      <p style="font-size:13px;color:var(--text2);margin-top:8px;max-width:400px;margin-left:auto;margin-right:auto;">
+      <strong style="font-size:16px;color:var(--text)" data-i18n="locked.title">Módulo restringido</strong>
+      <p style="font-size:13px;color:var(--text2);margin-top:8px;max-width:400px;margin-left:auto;margin-right:auto;" data-i18n="locked.visualizer">
         El visualizador dinámico requiere extraer nodos y dependencias. Por favor, conéctate a tu entorno de SAP IBP
         para acceder.
       </p>
       <button class="btn btn-primary" style="margin-top:20px; font-size:13px; padding:10px 20px;"
-        onclick="openConnectDialog()">
+        onclick="openConnectDialog()" data-i18n="locked.connectBtn">
         🔗 Conectar a SAP IBP
       </button>
     </div>
@@ -906,11 +912,11 @@
     <div class="panel" id="panelVizMDT" style="display:none;">
       <div class="panel-title" onclick="toggleMappingBody('bodyVizMDT', 'arrVizMDT')"
         style="cursor:pointer;display:flex;justify-content:space-between;align-items:center;">
-        <span>MAPEO DE ENTIDADES</span>
+        <span data-i18n="mdt.title">MAPEO DE ENTIDADES</span>
         <span id="arrVizMDT" style="font-size:11px;">▼</span>
       </div>
       <div id="bodyVizMDT">
-        <p style="font-size:12px;color:var(--text2);margin-bottom:8px;">
+        <p style="font-size:12px;color:var(--text2);margin-bottom:8px;" data-i18n="mdt.vizHint">
           Selecciona las entidades. La auto-detección asignó las más probables. Confirma para cargar el catálogo de
           productos.
         </p>
@@ -919,7 +925,7 @@
             <div class="mdt-label">Location Source</div>
             <div class="ss-wrap">
               <input type="hidden" id="selVizLocation">
-              <input class="ss-input-vis" id="ssVis-selVizLocation" type="text" placeholder="Buscar entidad..."
+              <input class="ss-input-vis" id="ssVis-selVizLocation" type="text" data-i18n-placeholder="common.searchEntity" placeholder="Buscar entidad..."
                 autocomplete="off">
               <div class="ss-list" id="ssList-selVizLocation"></div>
             </div>
@@ -929,7 +935,7 @@
             <div class="mdt-label">Customer Source</div>
             <div class="ss-wrap">
               <input type="hidden" id="selVizCustomer">
-              <input class="ss-input-vis" id="ssVis-selVizCustomer" type="text" placeholder="Buscar entidad..."
+              <input class="ss-input-vis" id="ssVis-selVizCustomer" type="text" data-i18n-placeholder="common.searchEntity" placeholder="Buscar entidad..."
                 autocomplete="off">
               <div class="ss-list" id="ssList-selVizCustomer"></div>
             </div>
@@ -939,7 +945,7 @@
             <div class="mdt-label">Product</div>
             <div class="ss-wrap">
               <input type="hidden" id="selVizProduct">
-              <input class="ss-input-vis" id="ssVis-selVizProduct" type="text" placeholder="Buscar entidad..."
+              <input class="ss-input-vis" id="ssVis-selVizProduct" type="text" data-i18n-placeholder="common.searchEntity" placeholder="Buscar entidad..."
                 autocomplete="off">
               <div class="ss-list" id="ssList-selVizProduct"></div>
             </div>
@@ -949,7 +955,7 @@
             <div class="mdt-label">Production Source Header</div>
             <div class="ss-wrap">
               <input type="hidden" id="selVizSourceProd">
-              <input class="ss-input-vis" id="ssVis-selVizSourceProd" type="text" placeholder="Buscar entidad..."
+              <input class="ss-input-vis" id="ssVis-selVizSourceProd" type="text" data-i18n-placeholder="common.searchEntity" placeholder="Buscar entidad..."
                 autocomplete="off">
               <div class="ss-list" id="ssList-selVizSourceProd"></div>
             </div>
@@ -959,7 +965,7 @@
             <div class="mdt-label">Location</div>
             <div class="ss-wrap">
               <input type="hidden" id="selVizLocMaster">
-              <input class="ss-input-vis" id="ssVis-selVizLocMaster" type="text" placeholder="Buscar entidad..."
+              <input class="ss-input-vis" id="ssVis-selVizLocMaster" type="text" data-i18n-placeholder="common.searchEntity" placeholder="Buscar entidad..."
                 autocomplete="off">
               <div class="ss-list" id="ssList-selVizLocMaster"></div>
             </div>
@@ -969,7 +975,7 @@
             <div class="mdt-label">Customer</div>
             <div class="ss-wrap">
               <input type="hidden" id="selVizCustMaster">
-              <input class="ss-input-vis" id="ssVis-selVizCustMaster" type="text" placeholder="Buscar entidad..."
+              <input class="ss-input-vis" id="ssVis-selVizCustMaster" type="text" data-i18n-placeholder="common.searchEntity" placeholder="Buscar entidad..."
                 autocomplete="off">
               <div class="ss-list" id="ssList-selVizCustMaster"></div>
             </div>
@@ -979,7 +985,7 @@
             <div class="mdt-label">Production Source Item</div>
             <div class="ss-wrap">
               <input type="hidden" id="selVizSourceItem">
-              <input class="ss-input-vis" id="ssVis-selVizSourceItem" type="text" placeholder="Buscar entidad..."
+              <input class="ss-input-vis" id="ssVis-selVizSourceItem" type="text" data-i18n-placeholder="common.searchEntity" placeholder="Buscar entidad..."
                 autocomplete="off">
               <div class="ss-list" id="ssList-selVizSourceItem"></div>
             </div>
@@ -989,7 +995,7 @@
             <div class="mdt-label">Location Product</div>
             <div class="ss-wrap">
               <input type="hidden" id="selVizLocProd">
-              <input class="ss-input-vis" id="ssVis-selVizLocProd" type="text" placeholder="Buscar entidad..."
+              <input class="ss-input-vis" id="ssVis-selVizLocProd" type="text" data-i18n-placeholder="common.searchEntity" placeholder="Buscar entidad..."
                 autocomplete="off">
               <div class="ss-list" id="ssList-selVizLocProd"></div>
             </div>
@@ -999,7 +1005,7 @@
             <div class="mdt-label">Customer Product</div>
             <div class="ss-wrap">
               <input type="hidden" id="selVizCustProd">
-              <input class="ss-input-vis" id="ssVis-selVizCustProd" type="text" placeholder="Buscar entidad..."
+              <input class="ss-input-vis" id="ssVis-selVizCustProd" type="text" data-i18n-placeholder="common.searchEntity" placeholder="Buscar entidad..."
                 autocomplete="off">
               <div class="ss-list" id="ssList-selVizCustProd"></div>
             </div>
@@ -1009,7 +1015,7 @@
         <div class="btn-row">
           <button class="btn btn-primary" id="btnVizConfirm" onclick="vizConfirmMapping()">Confirmar mapeo y cargar
             productos</button>
-          <button class="btn btn-secondary btn-small" onclick="doConnect()">Reconectar</button>
+          <button class="btn btn-secondary btn-small" onclick="doConnect()" data-i18n="common.reconnect">Reconectar</button>
         </div>
         <div class="fm-correction-container" id="fmPanelViz"></div>
         <div class="progress-bar hidden" id="progBarViz">
@@ -1019,7 +1025,7 @@
           style="display:none;font-size:12px;color:var(--text2);margin-top:4px;align-items:center;gap:8px;">
           <span id="progStatusTextViz"></span>
           <button id="btnToggleVizLogs" class="btn btn-secondary btn-small" style="padding:2px 8px;font-size:11px;"
-            onclick="toggleVizLogs()">Ver logs técnicos</button>
+            onclick="toggleVizLogs()" data-i18n="common.viewLogs">Ver logs técnicos</button>
         </div>
         <div class="log-area hidden" id="logViz"></div>
       </div>
@@ -1030,17 +1036,17 @@
       style="display:none;background:var(--bg2);border-bottom:1px solid var(--border);padding:8px 24px;">
       <!-- Row única: buscador + botones + estado -->
       <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
-        <span style="font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:var(--text3);white-space:nowrap;">Material</span>
+        <span style="font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:var(--text3);white-space:nowrap;" data-i18n="viz.material">Material</span>
         <div class="ss-wrap" style="width:260px;flex-shrink:0;">
-          <input class="ss-input-vis" id="vizPrdInput" type="text" placeholder="Buscar material..." autocomplete="off">
+          <input class="ss-input-vis" id="vizPrdInput" type="text" placeholder="Buscar material..." autocomplete="off" data-i18n-placeholder="viz.searchMaterial">
           <div class="ss-list" id="vizPrdList"></div>
         </div>
         <button class="btn btn-primary btn-small" id="btnVizLoadNet" onclick="vizLoadNetwork()" disabled
-          style="opacity:.5;white-space:nowrap;">Cargar red logística</button>
-        <button class="btn btn-secondary btn-small" onclick="vizFitGraph()">⊞ Ajustar</button>
-        <button class="btn btn-secondary btn-small" onclick="vizCompact()">⊟ Compactar</button>
-        <button class="btn btn-secondary btn-small" id="btnVizFilter" onclick="vizOpenFilter()" style="display:none;">▼ Filtros</button>
-        <button class="btn btn-secondary btn-small" id="btnVizFullscreen" onclick="vizOpenFullscreen()" style="display:none;">⛶ Pantalla completa</button>
+          style="opacity:.5;white-space:nowrap;" data-i18n="viz.loadBtn">Cargar red logística</button>
+        <button class="btn btn-secondary btn-small" onclick="vizFitGraph()" data-i18n="viz.fit">⊞ Ajustar</button>
+        <button class="btn btn-secondary btn-small" onclick="vizCompact()" data-i18n="viz.compact">⊟ Compactar</button>
+        <button class="btn btn-secondary btn-small" id="btnVizFilter" onclick="vizOpenFilter()" style="display:none;" data-i18n="viz.filters">▼ Filtros</button>
+        <button class="btn btn-secondary btn-small" id="btnVizFullscreen" onclick="vizOpenFullscreen()" style="display:none;" data-i18n="viz.fullscreen">⛶ Pantalla completa</button>
         <span id="vizStatus" style="font-size:11px;color:var(--text2);margin-left:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:340px;"></span>
       </div>
     </div>
@@ -1050,7 +1056,7 @@
       style="display:none;background:var(--bg2);border-bottom:1px solid var(--border);padding:6px 24px;align-items:center;gap:8px;font-size:12px;color:var(--text2);">
       <span id="vizLoadStatusText" style="flex:1;"></span>
       <button id="btnToggleNetLogs" class="btn btn-secondary btn-small" style="padding:2px 8px;font-size:11px;"
-        onclick="toggleNetLogs()">Ver logs técnicos</button>
+        onclick="toggleNetLogs()" data-i18n="common.viewLogs">Ver logs técnicos</button>
     </div>
     <div class="log-area hidden" id="logNet"></div>
     <!-- Detail panel (selected element info) -->
@@ -1058,7 +1064,7 @@
       style="display:none;padding:10px 24px;background:var(--bg2);border-bottom:1px solid var(--border);font-size:12px;">
       <div style="display:flex;align-items:center;gap:10px;">
         <span
-          style="color:var(--text3);font-size:10px;text-transform:uppercase;letter-spacing:.06em;flex-shrink:0;">Seleccionado</span>
+          style="color:var(--text3);font-size:10px;text-transform:uppercase;letter-spacing:.06em;flex-shrink:0;" data-i18n="viz.selected">Seleccionado</span>
         <span style="flex:1;"></span>
         <button class="btn btn-secondary btn-small"
           onclick="document.getElementById('vizDetail').style.display='none'"
@@ -1071,36 +1077,36 @@
     <div style="position:relative;">
       <div id="vizLegend"
         style="display:none;position:absolute;top:12px;right:20px;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:10px 14px;font-size:11px;z-index:10;">
-        <div style="font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:var(--text3);margin-bottom:8px;">
+        <div style="font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:var(--text3);margin-bottom:8px;" data-i18n="common.legend">
           Leyenda</div>
         <div style="display:flex;flex-direction:column;gap:6px;">
-          <label style="display:flex;align-items:center;gap:8px;cursor:pointer;" title="Mostrar/ocultar plantas">
+          <label style="display:flex;align-items:center;gap:8px;cursor:pointer;" title="Mostrar/ocultar plantas" data-i18n-title="viz.legend.tt.plant">
             <input type="checkbox" id="vizChkPlant" checked onchange="vizToggleType('plant',    this.checked)"
               style="accent-color:#F59E0B;cursor:pointer;">
             <span
               style="width:12px;height:12px;border-radius:2px;background:#F59E0B;display:inline-block;flex-shrink:0;"></span>
-            <span>Planta</span>
+            <span data-i18n="viz.legend.plant">Planta</span>
           </label>
-          <label style="display:flex;align-items:center;gap:8px;cursor:pointer;" title="Mostrar/ocultar ubicaciones">
+          <label style="display:flex;align-items:center;gap:8px;cursor:pointer;" title="Mostrar/ocultar ubicaciones" data-i18n-title="viz.legend.tt.location">
             <input type="checkbox" id="vizChkLocation" checked onchange="vizToggleType('location', this.checked)"
               style="accent-color:#06B6D4;cursor:pointer;">
             <span
               style="width:12px;height:12px;border-radius:50%;background:#06B6D4;display:inline-block;flex-shrink:0;"></span>
-            <span>Ubicación</span>
+            <span data-i18n="viz.legend.location">Ubicación</span>
           </label>
-          <label style="display:flex;align-items:center;gap:8px;cursor:pointer;" title="Mostrar/ocultar clientes">
+          <label style="display:flex;align-items:center;gap:8px;cursor:pointer;" title="Mostrar/ocultar clientes" data-i18n-title="viz.legend.tt.customer">
             <input type="checkbox" id="vizChkCustomer" checked onchange="vizToggleType('customer', this.checked)"
               style="accent-color:#10B981;cursor:pointer;">
             <span
               style="width:12px;height:12px;border-radius:2px;background:#10B981;display:inline-block;flex-shrink:0;"></span>
-            <span>Cliente</span>
+            <span data-i18n="viz.legend.customer">Cliente</span>
           </label>
-          <label style="display:flex;align-items:center;gap:8px;cursor:pointer;" title="Mostrar/ocultar proveedores">
+          <label style="display:flex;align-items:center;gap:8px;cursor:pointer;" title="Mostrar/ocultar proveedores" data-i18n-title="viz.legend.tt.supplier">
             <input type="checkbox" id="vizChkSupplier" checked onchange="vizToggleType('supplier', this.checked)"
               style="accent-color:#a78bfa;cursor:pointer;">
             <span
               style="width:12px;height:12px;transform:rotate(45deg);background:#a78bfa;display:inline-block;flex-shrink:0;"></span>
-            <span>Proveedor</span>
+            <span data-i18n="viz.legend.supplier">Proveedor</span>
           </label>
         </div>
       </div>
@@ -1108,7 +1114,7 @@
       <div id="vizEmpty" class="empty-state"
         style="display:none;position:absolute;top:0;left:0;width:100%;padding-top:100px;z-index:5;pointer-events:none;">
         <div class="icon">🔭</div>
-        <p>Busca un material para visualizar su red logística</p>
+        <p data-i18n="viz.empty">Busca un material para visualizar su red logística</p>
       </div>
       <div id="vizCanvas" style="width:100%;height:0;background:var(--bg);"></div>
     </div>
@@ -1118,25 +1124,25 @@
       <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">
         <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
           <button id="btnVizRutasToggle" onclick="vizRutasToggle()"
-            style="background:none;border:1px solid var(--border);border-radius:6px;color:var(--text2);font-size:11px;cursor:pointer;padding:2px 10px;line-height:1.6;white-space:nowrap;">▶ Rutas</button>
+            style="background:none;border:1px solid var(--border);border-radius:6px;color:var(--text2);font-size:11px;cursor:pointer;padding:2px 10px;line-height:1.6;white-space:nowrap;" data-i18n="viz.rutas.btn">▶ Rutas</button>
           <span id="vizRutasSummary" style="font-size:11px;color:var(--text2);"></span>
         </div>
         <button id="btnVizRutasCsv" onclick="vizRutasCsv()"
-          class="btn btn-secondary btn-small" style="display:none;font-size:11px;">↓ Exportar CSV</button>
+          class="btn btn-secondary btn-small" style="display:none;font-size:11px;" data-i18n="common.exportCsv">↓ Exportar CSV</button>
       </div>
       <div id="vizRutasBody" style="display:none;margin-top:10px;">
         <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;flex-wrap:wrap;">
-          <span style="font-size:11px;color:var(--text2);">Tipo:</span>
-          <button id="vizRutasBtn_all"        onclick="vizRutasSetTipo('all')"        style="background:none;border:none;font-size:11px;cursor:pointer;padding:2px 6px;color:var(--accent);font-weight:700;">Todas</button>
-          <button id="vizRutasBtn_customer"  onclick="vizRutasSetTipo('customer')"  style="background:none;border:none;font-size:11px;cursor:pointer;padding:2px 6px;color:var(--text2);font-weight:400;">Con llegada a cliente</button>
-          <button id="vizRutasBtn_nocustomer" onclick="vizRutasSetTipo('nocustomer')" style="background:none;border:none;font-size:11px;cursor:pointer;padding:2px 6px;color:var(--text2);font-weight:400;">Sin llegada a cliente</button>
+          <span style="font-size:11px;color:var(--text2);" data-i18n="viz.rutas.type">Tipo:</span>
+          <button id="vizRutasBtn_all"        onclick="vizRutasSetTipo('all')"        style="background:none;border:none;font-size:11px;cursor:pointer;padding:2px 6px;color:var(--accent);font-weight:700;" data-i18n="viz.rutas.all">Todas</button>
+          <button id="vizRutasBtn_customer"  onclick="vizRutasSetTipo('customer')"  style="background:none;border:none;font-size:11px;cursor:pointer;padding:2px 6px;color:var(--text2);font-weight:400;" data-i18n="viz.rutas.withCust">Con llegada a cliente</button>
+          <button id="vizRutasBtn_nocustomer" onclick="vizRutasSetTipo('nocustomer')" style="background:none;border:none;font-size:11px;cursor:pointer;padding:2px 6px;color:var(--text2);font-weight:400;" data-i18n="viz.rutas.noCust">Sin llegada a cliente</button>
           <span id="vizRutasSubFilter" style="display:none;align-items:center;gap:4px;border-left:1px solid var(--border);padding-left:8px;margin-left:2px;">
-            <span style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;">Causa:</span>
-            <button id="vizRutasBtnSub_all"     onclick="vizRutasSetSubtipo('all')"     style="background:none;border:none;font-size:11px;cursor:pointer;padding:2px 6px;color:var(--accent);font-weight:700;">Todas</button>
-            <button id="vizRutasBtnSub_deadend" onclick="vizRutasSetSubtipo('deadend')" style="background:none;border:none;font-size:11px;cursor:pointer;padding:2px 6px;color:var(--text2);font-weight:400;">Dead-end</button>
-            <button id="vizRutasBtnSub_cycle"   onclick="vizRutasSetSubtipo('cycle')"   style="background:none;border:none;font-size:11px;cursor:pointer;padding:2px 6px;color:var(--text2);font-weight:400;">Ciclo</button>
+            <span style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;" data-i18n="viz.rutas.cause">Causa:</span>
+            <button id="vizRutasBtnSub_all"     onclick="vizRutasSetSubtipo('all')"     style="background:none;border:none;font-size:11px;cursor:pointer;padding:2px 6px;color:var(--accent);font-weight:700;" data-i18n="viz.rutas.all">Todas</button>
+            <button id="vizRutasBtnSub_deadend" onclick="vizRutasSetSubtipo('deadend')" style="background:none;border:none;font-size:11px;cursor:pointer;padding:2px 6px;color:var(--text2);font-weight:400;" data-i18n="viz.rutas.deadend">Dead-end</button>
+            <button id="vizRutasBtnSub_cycle"   onclick="vizRutasSetSubtipo('cycle')"   style="background:none;border:none;font-size:11px;cursor:pointer;padding:2px 6px;color:var(--text2);font-weight:400;" data-i18n="viz.rutas.cycle">Ciclo</button>
           </span>
-          <input id="vizRutasSearch" type="text" placeholder="Buscar planta, nodo final o cliente…"
+          <input id="vizRutasSearch" type="text" placeholder="Buscar planta, nodo final o cliente…" data-i18n-placeholder="viz.rutas.search"
             oninput="vizRutasSetQ(this.value,'vizRutasSearch')"
             style="font-size:11px;padding:2px 8px;border-radius:4px;border:1px solid var(--border);background:var(--bg);color:var(--text);width:200px;">
         </div>
@@ -1154,9 +1160,9 @@
         <span id="vizFullTitle"
           style="font-size:13px;font-weight:600;color:var(--text);font-family:var(--mono);"></span>
         <div style="display:flex;gap:6px;">
-          <button class="btn btn-secondary btn-small" onclick="vizFsFit()">⊞ Ajustar</button>
-          <button class="btn btn-secondary btn-small" onclick="vizCompact()">⊟ Compactar</button>
-          <button class="btn btn-secondary btn-small" onclick="vizCloseFullscreen()">✕ Cerrar</button>
+          <button class="btn btn-secondary btn-small" onclick="vizFsFit()" data-i18n="viz.fs.fit">⊞ Ajustar</button>
+          <button class="btn btn-secondary btn-small" onclick="vizCompact()" data-i18n="viz.fs.compact">⊟ Compactar</button>
+          <button class="btn btn-secondary btn-small" onclick="vizCloseFullscreen()" data-i18n="viz.fs.close">✕ Cerrar</button>
         </div>
       </div>
       <!-- Fullscreen node detail panel -->
@@ -1172,7 +1178,7 @@
       <!-- Leyenda fullscreen -->
       <div
         style="position:absolute;top:58px;right:20px;background:rgba(30,30,40,0.92);border:1px solid rgba(255,255,255,0.15);border-radius:8px;padding:10px 14px;font-size:11px;z-index:10;color:#e2e8f0;">
-        <div style="font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:#94a3b8;margin-bottom:8px;">
+        <div style="font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:#94a3b8;margin-bottom:8px;" data-i18n="common.legend">
           Leyenda</div>
         <div style="display:flex;flex-direction:column;gap:6px;">
           <label style="display:flex;align-items:center;gap:8px;cursor:pointer;color:#e2e8f0;">
@@ -1180,28 +1186,28 @@
               style="accent-color:#F59E0B;cursor:pointer;">
             <span
               style="width:12px;height:12px;border-radius:2px;background:#F59E0B;display:inline-block;flex-shrink:0;"></span>
-            <span>Planta</span>
+            <span data-i18n="viz.legend.plant">Planta</span>
           </label>
           <label style="display:flex;align-items:center;gap:8px;cursor:pointer;color:#e2e8f0;">
             <input type="checkbox" id="vizFsChkLocation" checked onchange="vizToggleType('location', this.checked)"
               style="accent-color:#06B6D4;cursor:pointer;">
             <span
               style="width:12px;height:12px;border-radius:50%;background:#06B6D4;display:inline-block;flex-shrink:0;"></span>
-            <span>Ubicación</span>
+            <span data-i18n="viz.legend.location">Ubicación</span>
           </label>
           <label style="display:flex;align-items:center;gap:8px;cursor:pointer;color:#e2e8f0;">
             <input type="checkbox" id="vizFsChkCustomer" checked onchange="vizToggleType('customer', this.checked)"
               style="accent-color:#10B981;cursor:pointer;">
             <span
               style="width:12px;height:12px;border-radius:2px;background:#10B981;display:inline-block;flex-shrink:0;"></span>
-            <span>Cliente</span>
+            <span data-i18n="viz.legend.customer">Cliente</span>
           </label>
           <label style="display:flex;align-items:center;gap:8px;cursor:pointer;color:#e2e8f0;">
             <input type="checkbox" id="vizFsChkSupplier" checked onchange="vizToggleType('supplier', this.checked)"
               style="accent-color:#a78bfa;cursor:pointer;">
             <span
               style="width:12px;height:12px;transform:rotate(45deg);background:#a78bfa;display:inline-block;flex-shrink:0;"></span>
-            <span>Proveedor</span>
+            <span data-i18n="viz.legend.supplier">Proveedor</span>
           </label>
         </div>
       </div>
@@ -1211,25 +1217,25 @@
         <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">
           <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
             <button id="btnVizFsRutasToggle" onclick="vizFsRutasToggle()"
-              style="background:none;border:1px solid var(--border);border-radius:6px;color:var(--text2);font-size:11px;cursor:pointer;padding:2px 10px;line-height:1.6;white-space:nowrap;">▶ Rutas</button>
+              style="background:none;border:1px solid var(--border);border-radius:6px;color:var(--text2);font-size:11px;cursor:pointer;padding:2px 10px;line-height:1.6;white-space:nowrap;" data-i18n="viz.rutas.btn">▶ Rutas</button>
             <span id="vizFsRutasSummary" style="font-size:11px;color:var(--text2);"></span>
           </div>
           <button id="btnVizFsRutasCsv" onclick="vizRutasCsv()"
-            class="btn btn-secondary btn-small" style="display:none;font-size:11px;">↓ Exportar CSV</button>
+            class="btn btn-secondary btn-small" style="display:none;font-size:11px;" data-i18n="common.exportCsv">↓ Exportar CSV</button>
         </div>
         <div id="vizFsRutasBody" style="display:none;margin-top:8px;">
           <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;flex-wrap:wrap;">
-            <span style="font-size:11px;color:var(--text2);">Tipo:</span>
-            <button id="vizFsRutasBtn_all"         onclick="vizRutasSetTipo('all')"         style="background:none;border:none;font-size:11px;cursor:pointer;padding:2px 6px;color:var(--accent);font-weight:700;">Todas</button>
-            <button id="vizFsRutasBtn_customer"    onclick="vizRutasSetTipo('customer')"    style="background:none;border:none;font-size:11px;cursor:pointer;padding:2px 6px;color:var(--text2);font-weight:400;">Con llegada a cliente</button>
-            <button id="vizFsRutasBtn_nocustomer"  onclick="vizRutasSetTipo('nocustomer')"  style="background:none;border:none;font-size:11px;cursor:pointer;padding:2px 6px;color:var(--text2);font-weight:400;">Sin llegada a cliente</button>
+            <span style="font-size:11px;color:var(--text2);" data-i18n="viz.rutas.type">Tipo:</span>
+            <button id="vizFsRutasBtn_all"         onclick="vizRutasSetTipo('all')"         style="background:none;border:none;font-size:11px;cursor:pointer;padding:2px 6px;color:var(--accent);font-weight:700;" data-i18n="viz.rutas.all">Todas</button>
+            <button id="vizFsRutasBtn_customer"    onclick="vizRutasSetTipo('customer')"    style="background:none;border:none;font-size:11px;cursor:pointer;padding:2px 6px;color:var(--text2);font-weight:400;" data-i18n="viz.rutas.withCust">Con llegada a cliente</button>
+            <button id="vizFsRutasBtn_nocustomer"  onclick="vizRutasSetTipo('nocustomer')"  style="background:none;border:none;font-size:11px;cursor:pointer;padding:2px 6px;color:var(--text2);font-weight:400;" data-i18n="viz.rutas.noCust">Sin llegada a cliente</button>
             <span id="vizFsRutasSubFilter" style="display:none;align-items:center;gap:4px;border-left:1px solid var(--border);padding-left:8px;margin-left:2px;">
-              <span style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;">Causa:</span>
-              <button id="vizFsRutasBtnSub_all"     onclick="vizRutasSetSubtipo('all')"     style="background:none;border:none;font-size:11px;cursor:pointer;padding:2px 6px;color:var(--accent);font-weight:700;">Todas</button>
-              <button id="vizFsRutasBtnSub_deadend" onclick="vizRutasSetSubtipo('deadend')" style="background:none;border:none;font-size:11px;cursor:pointer;padding:2px 6px;color:var(--text2);font-weight:400;">Dead-end</button>
-              <button id="vizFsRutasBtnSub_cycle"   onclick="vizRutasSetSubtipo('cycle')"   style="background:none;border:none;font-size:11px;cursor:pointer;padding:2px 6px;color:var(--text2);font-weight:400;">Ciclo</button>
+              <span style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;" data-i18n="viz.rutas.cause">Causa:</span>
+              <button id="vizFsRutasBtnSub_all"     onclick="vizRutasSetSubtipo('all')"     style="background:none;border:none;font-size:11px;cursor:pointer;padding:2px 6px;color:var(--accent);font-weight:700;" data-i18n="viz.rutas.all">Todas</button>
+              <button id="vizFsRutasBtnSub_deadend" onclick="vizRutasSetSubtipo('deadend')" style="background:none;border:none;font-size:11px;cursor:pointer;padding:2px 6px;color:var(--text2);font-weight:400;" data-i18n="viz.rutas.deadend">Dead-end</button>
+              <button id="vizFsRutasBtnSub_cycle"   onclick="vizRutasSetSubtipo('cycle')"   style="background:none;border:none;font-size:11px;cursor:pointer;padding:2px 6px;color:var(--text2);font-weight:400;" data-i18n="viz.rutas.cycle">Ciclo</button>
             </span>
-            <input id="vizFsRutasSearch" type="text" placeholder="Buscar planta, nodo final o cliente…"
+            <input id="vizFsRutasSearch" type="text" placeholder="Buscar planta, nodo final o cliente…" data-i18n-placeholder="viz.rutas.search"
               oninput="vizRutasSetQ(this.value,'vizFsRutasSearch')"
               style="font-size:11px;padding:2px 8px;border-radius:4px;border:1px solid var(--border);background:var(--bg);color:var(--text);width:200px;">
           </div>
@@ -1245,7 +1251,7 @@
       style="border:none;border-radius:12px;padding:0;width:720px;max-width:95vw;background:var(--surface);box-shadow:0 20px 60px rgba(0,0,0,0.5);">
       <div
         style="display:flex;justify-content:space-between;align-items:center;padding:16px 20px;border-bottom:1px solid var(--border);">
-        <span style="font-size:14px;font-weight:600;color:var(--text);">Filtros de red</span>
+        <span style="font-size:14px;font-weight:600;color:var(--text);" data-i18n="viz.filter.title">Filtros de red</span>
         <button onclick="document.getElementById('vizFilterDlg').close()"
           style="background:none;border:none;cursor:pointer;color:var(--text2);font-size:18px;line-height:1;padding:0;">✕</button>
       </div>
@@ -1255,16 +1261,15 @@
           style="flex:1;padding:16px;border-right:1px solid var(--border);display:flex;flex-direction:column;gap:8px;min-width:0;">
           <div style="display:flex;align-items:center;gap:6px;">
             <span
-              style="font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--text3);font-weight:600;">Ubicaciones</span>
+              style="font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--text3);font-weight:600;" data-i18n="viz.filter.locations">Ubicaciones</span>
             <span id="vizFltLocCount" style="font-size:11px;color:var(--text2);"></span>
           </div>
-          <input type="text" id="vizFltLocSearch" placeholder="Buscar... (ej: *T1, T1*, *US*)"
+          <input type="text" id="vizFltLocSearch" placeholder="Buscar... (ej: *T1, T1*, *US*)" data-i18n-placeholder="viz.filter.searchHint"
             oninput="vizFilterSearch('loc')"
             style="width:100%;box-sizing:border-box;padding:6px 10px;border-radius:6px;border:1px solid var(--border);background:var(--bg);color:var(--text);font-size:12px;outline:none;">
           <label
             style="display:flex;align-items:center;gap:8px;font-size:12px;color:var(--text2);cursor:pointer;padding:2px 6px;">
-            <input type="checkbox" id="vizFltLocAll" onchange="vizFilterSelectAll('loc', this.checked)"> Seleccionar
-            todo
+            <input type="checkbox" id="vizFltLocAll" onchange="vizFilterSelectAll('loc', this.checked)"> <span data-i18n="common.selectAll">Seleccionar todo</span>
           </label>
           <div style="width:100%;height:1px;background:var(--border);"></div>
           <div id="vizFltLocList" style="flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:2px;"></div>
@@ -1273,24 +1278,23 @@
         <div style="flex:1;padding:16px;display:flex;flex-direction:column;gap:8px;min-width:0;">
           <div style="display:flex;align-items:center;gap:6px;">
             <span
-              style="font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--text3);font-weight:600;">Clientes</span>
+              style="font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--text3);font-weight:600;" data-i18n="viz.filter.customers">Clientes</span>
             <span id="vizFltCustCount" style="font-size:11px;color:var(--text2);"></span>
           </div>
-          <input type="text" id="vizFltCustSearch" placeholder="Buscar... (ej: *T1, T1*, *US*)"
+          <input type="text" id="vizFltCustSearch" placeholder="Buscar... (ej: *T1, T1*, *US*)" data-i18n-placeholder="viz.filter.searchHint"
             oninput="vizFilterSearch('cust')"
             style="width:100%;box-sizing:border-box;padding:6px 10px;border-radius:6px;border:1px solid var(--border);background:var(--bg);color:var(--text);font-size:12px;outline:none;">
           <label
             style="display:flex;align-items:center;gap:8px;font-size:12px;color:var(--text2);cursor:pointer;padding:2px 6px;">
-            <input type="checkbox" id="vizFltCustAll" onchange="vizFilterSelectAll('cust', this.checked)"> Seleccionar
-            todo
+            <input type="checkbox" id="vizFltCustAll" onchange="vizFilterSelectAll('cust', this.checked)"> <span data-i18n="common.selectAll">Seleccionar todo</span>
           </label>
           <div style="width:100%;height:1px;background:var(--border);"></div>
           <div id="vizFltCustList" style="flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:2px;"></div>
         </div>
       </div>
       <div style="padding:14px 20px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;gap:8px;">
-        <button class="btn btn-secondary btn-small" onclick="vizClearFilter()">Limpiar todo</button>
-        <button class="btn btn-primary btn-small" onclick="vizApplyFilter()">Aplicar</button>
+        <button class="btn btn-secondary btn-small" onclick="vizClearFilter()" data-i18n="common.clearAll">Limpiar todo</button>
+        <button class="btn btn-primary btn-small" onclick="vizApplyFilter()" data-i18n="common.apply">Aplicar</button>
       </div>
     </dialog>
 
@@ -1302,7 +1306,7 @@
     <div class="tab-info-banner" id="infoBannerPA">
       <span class="tab-info-icon">🔬</span>
       <div class="tab-info-content">
-        <div class="tab-info-desc">Analiza la consistencia y calidad de la configuración de producción en SAP IBP.
+        <div class="tab-info-desc" data-i18n="banner.pa">Analiza la consistencia y calidad de la configuración de producción en SAP IBP.
           Detecta insumos sin red de compras, productos no habilitados en plantas, componentes sin Lead Time y más.
           Descarga un Excel con todos los hallazgos clasificados por severidad.</div>
       </div>
@@ -1310,31 +1314,31 @@
 
     <div class="locked-message empty-state" style="display:none; margin-top:40px;">
       <div class="icon" style="font-size:48px; opacity:0.8; margin-bottom:16px;">🔒</div>
-      <strong style="font-size:16px;color:var(--text)">Módulo restringido</strong>
-      <p style="font-size:13px;color:var(--text2);margin-top:8px;max-width:400px;margin-left:auto;margin-right:auto;">
+      <strong style="font-size:16px;color:var(--text)" data-i18n="locked.title">Módulo restringido</strong>
+      <p style="font-size:13px;color:var(--text2);margin-top:8px;max-width:400px;margin-left:auto;margin-right:auto;" data-i18n="locked.pa">
         El analizador de producción requiere acceso a múltiples entidades de SAP IBP. Por favor, conéctate primero.
       </p>
       <button class="btn btn-primary" style="margin-top:20px; font-size:13px; padding:10px 20px;"
-        onclick="openConnectDialog()">
+        onclick="openConnectDialog()" data-i18n="locked.connectBtn">
         🔗 Conectar a SAP IBP
       </button>
     </div>
 
     <!-- ═══ PA: INFO GUIDE ═══ -->
     <div class="panel" id="panelPAGuide" style="border-left:3px solid var(--cyan);padding:14px 18px;">
-      <div class="panel-title" style="margin-bottom:6px;font-size:13px;">Interpretacion de resultados</div>
-      <p style="font-size:13px;color:var(--text2);margin:0;">Consulta la pestana <strong style="color:var(--accent);">Glosario Analyzers</strong> para entender los campos que entrega este analizador y los analisis que realiza.</p>
+      <div class="panel-title" style="margin-bottom:6px;font-size:13px;" data-i18n="guide.interp.title">Interpretación de resultados</div>
+      <p style="font-size:13px;color:var(--text2);margin:0;" data-i18n-html="guide.interp.body">Consulta la pestaña <strong style="color:var(--accent);">Glosario Analyzers</strong> para entender los campos que entrega este analizador y los análisis que realiza.</p>
     </div><!-- /panelPAGuide -->
 
     <!-- ═══ PA: MDT MAPPING ═══ -->
     <div class="panel hidden" id="panelPAMDT">
       <div class="panel-title" onclick="toggleMappingBody('bodyPAMDT', 'arrPAMDT')"
         style="cursor:pointer;display:flex;justify-content:space-between;align-items:center;">
-        <span>MAPEO DE ENTIDADES</span>
+        <span data-i18n="mdt.title">MAPEO DE ENTIDADES</span>
         <span id="arrPAMDT" style="font-size:11px;">▼</span>
       </div>
       <div id="bodyPAMDT">
-        <p style="font-size:12px;color:var(--text2);margin-bottom:8px;">
+        <p style="font-size:12px;color:var(--text2);margin-bottom:8px;" data-i18n="mdt.autoDetect">
           La auto-detección asignó las entidades más probables. Ajusta manualmente si es necesario.
         </p>
         <div class="mdt-grid">
@@ -1342,7 +1346,7 @@
             <div class="mdt-label">Production Source Header</div>
             <div class="ss-wrap">
               <input type="hidden" id="selPAHeader">
-              <input class="ss-input-vis" id="ssVis-selPAHeader" type="text" placeholder="Buscar entidad..." autocomplete="off">
+              <input class="ss-input-vis" id="ssVis-selPAHeader" type="text" data-i18n-placeholder="common.searchEntity" placeholder="Buscar entidad..." autocomplete="off">
               <div class="ss-list" id="ssList-selPAHeader"></div>
             </div>
             <div class="mdt-fields" id="fieldsPAHeader"></div>
@@ -1351,7 +1355,7 @@
             <div class="mdt-label">Production Source Item</div>
             <div class="ss-wrap">
               <input type="hidden" id="selPAItem">
-              <input class="ss-input-vis" id="ssVis-selPAItem" type="text" placeholder="Buscar entidad..." autocomplete="off">
+              <input class="ss-input-vis" id="ssVis-selPAItem" type="text" data-i18n-placeholder="common.searchEntity" placeholder="Buscar entidad..." autocomplete="off">
               <div class="ss-list" id="ssList-selPAItem"></div>
             </div>
             <div class="mdt-fields" id="fieldsPAItem"></div>
@@ -1360,7 +1364,7 @@
             <div class="mdt-label">Production Source Item Sub</div>
             <div class="ss-wrap">
               <input type="hidden" id="selPAItemSub">
-              <input class="ss-input-vis" id="ssVis-selPAItemSub" type="text" placeholder="Buscar entidad..." autocomplete="off">
+              <input class="ss-input-vis" id="ssVis-selPAItemSub" type="text" data-i18n-placeholder="common.searchEntity" placeholder="Buscar entidad..." autocomplete="off">
               <div class="ss-list" id="ssList-selPAItemSub"></div>
             </div>
             <div class="mdt-fields" id="fieldsPAItemSub"></div>
@@ -1369,7 +1373,7 @@
             <div class="mdt-label">Production Source Resource</div>
             <div class="ss-wrap">
               <input type="hidden" id="selPAResource">
-              <input class="ss-input-vis" id="ssVis-selPAResource" type="text" placeholder="Buscar entidad..." autocomplete="off">
+              <input class="ss-input-vis" id="ssVis-selPAResource" type="text" data-i18n-placeholder="common.searchEntity" placeholder="Buscar entidad..." autocomplete="off">
               <div class="ss-list" id="ssList-selPAResource"></div>
             </div>
             <div class="mdt-fields" id="fieldsPAResource"></div>
@@ -1378,34 +1382,34 @@
             <div class="mdt-label">Product</div>
             <div class="ss-wrap">
               <input type="hidden" id="selPAProduct">
-              <input class="ss-input-vis" id="ssVis-selPAProduct" type="text" placeholder="Buscar entidad..." autocomplete="off">
+              <input class="ss-input-vis" id="ssVis-selPAProduct" type="text" data-i18n-placeholder="common.searchEntity" placeholder="Buscar entidad..." autocomplete="off">
               <div class="ss-list" id="ssList-selPAProduct"></div>
             </div>
             <div class="mdt-fields" id="fieldsPAProduct"></div>
           </div>
           <div class="mdt-card">
-            <div class="mdt-label">Location <span style="font-size:10px;color:var(--text3)">(maestro)</span></div>
+            <div class="mdt-label">Location <span style="font-size:10px;color:var(--text3)" data-i18n="common.master">(maestro)</span></div>
             <div class="ss-wrap">
               <input type="hidden" id="selPALocMaster">
-              <input class="ss-input-vis" id="ssVis-selPALocMaster" type="text" placeholder="Buscar entidad..." autocomplete="off">
+              <input class="ss-input-vis" id="ssVis-selPALocMaster" type="text" data-i18n-placeholder="common.searchEntity" placeholder="Buscar entidad..." autocomplete="off">
               <div class="ss-list" id="ssList-selPALocMaster"></div>
             </div>
             <div class="mdt-fields" id="fieldsPALocMaster"></div>
           </div>
           <div class="mdt-card">
-            <div class="mdt-label">Resource <span style="font-size:10px;color:var(--text3)">(maestro)</span></div>
+            <div class="mdt-label">Resource <span style="font-size:10px;color:var(--text3)" data-i18n="common.master">(maestro)</span></div>
             <div class="ss-wrap">
               <input type="hidden" id="selPAResMaster">
-              <input class="ss-input-vis" id="ssVis-selPAResMaster" type="text" placeholder="Buscar entidad..." autocomplete="off">
+              <input class="ss-input-vis" id="ssVis-selPAResMaster" type="text" data-i18n-placeholder="common.searchEntity" placeholder="Buscar entidad..." autocomplete="off">
               <div class="ss-list" id="ssList-selPAResMaster"></div>
             </div>
             <div class="mdt-fields" id="fieldsPAResMaster"></div>
           </div>
           <div class="mdt-card">
-            <div class="mdt-label">Resource Location <span style="font-size:10px;color:var(--text3)">(maestro)</span></div>
+            <div class="mdt-label">Resource Location <span style="font-size:10px;color:var(--text3)" data-i18n="common.master">(maestro)</span></div>
             <div class="ss-wrap">
               <input type="hidden" id="selPAResLoc">
-              <input class="ss-input-vis" id="ssVis-selPAResLoc" type="text" placeholder="Buscar entidad..." autocomplete="off">
+              <input class="ss-input-vis" id="ssVis-selPAResLoc" type="text" data-i18n-placeholder="common.searchEntity" placeholder="Buscar entidad..." autocomplete="off">
               <div class="ss-list" id="ssList-selPAResLoc"></div>
             </div>
             <div class="mdt-fields" id="fieldsPAResLoc"></div>
@@ -1414,7 +1418,7 @@
             <div class="mdt-label">Location Product</div>
             <div class="ss-wrap">
               <input type="hidden" id="selPALocProd">
-              <input class="ss-input-vis" id="ssVis-selPALocProd" type="text" placeholder="Buscar entidad..." autocomplete="off">
+              <input class="ss-input-vis" id="ssVis-selPALocProd" type="text" data-i18n-placeholder="common.searchEntity" placeholder="Buscar entidad..." autocomplete="off">
               <div class="ss-list" id="ssList-selPALocProd"></div>
             </div>
             <div class="mdt-fields" id="fieldsPALocProd"></div>
@@ -1423,15 +1427,15 @@
             <div class="mdt-label">Location Source</div>
             <div class="ss-wrap">
               <input type="hidden" id="selPALocSrc">
-              <input class="ss-input-vis" id="ssVis-selPALocSrc" type="text" placeholder="Buscar entidad..." autocomplete="off">
+              <input class="ss-input-vis" id="ssVis-selPALocSrc" type="text" data-i18n-placeholder="common.searchEntity" placeholder="Buscar entidad..." autocomplete="off">
               <div class="ss-list" id="ssList-selPALocSrc"></div>
             </div>
             <div class="mdt-fields" id="fieldsPALocSrc"></div>
           </div>
         </div>
         <div class="btn-row">
-          <button class="btn btn-primary" onclick="paConfirmMapping()">Continuar &#8594;</button>
-          <button class="btn btn-secondary btn-small" onclick="doConnect()">Reconectar</button>
+          <button class="btn btn-primary" onclick="paConfirmMapping()" data-i18n="common.continue">Continuar &#8594;</button>
+          <button class="btn btn-secondary btn-small" onclick="doConnect()" data-i18n="common.reconnect">Reconectar</button>
         </div>
         <div class="fm-correction-container" id="fmPanelPA"></div>
       </div>
@@ -1441,20 +1445,20 @@
     <div class="mattype-panel hidden" id="panelPAExclude">
       <div class="mattype-panel-header" onclick="mattypeToggleExcludePanel()">
         <div class="mattype-panel-title">
-          ② Excluir tipos de material
-          <span class="mattype-optional-badge">Opcional</span>
+          <span data-i18n="mattype.exclude.title">② Excluir tipos de material</span>
+          <span class="mattype-optional-badge" data-i18n="common.optional">Opcional</span>
         </div>
         <div class="mattype-panel-actions">
-          <span class="mattype-summary" id="mattypeExcludeSummary">Todos los tipos incluidos — sin configurar</span>
-          <button class="mattype-reset-btn" onclick="event.stopPropagation();mattypeResetExclude()">Restablecer</button>
+          <span class="mattype-summary" id="mattypeExcludeSummary" data-i18n="mattype.exclude.summary">Todos los tipos incluidos — sin configurar</span>
+          <button class="mattype-reset-btn" onclick="event.stopPropagation();mattypeResetExclude()" data-i18n="common.reset">Restablecer</button>
           <span class="mattype-arr" id="mattypeExcludeArr">▶</span>
         </div>
       </div>
       <div class="mattype-panel-body" id="mattypeExcludeBody" style="display:none;">
         <div id="mattypeExcludeWrap"></div>
         <div class="btn-row" style="margin-top:12px;">
-          <button class="btn btn-primary btn-small" onclick="paContinueToCategories()">Continuar &#8594;</button>
-          <button class="btn btn-secondary btn-small" onclick="paBackToMapping()">&#8592; Volver al mapeo</button>
+          <button class="btn btn-primary btn-small" onclick="paContinueToCategories()" data-i18n="common.continue">Continuar &#8594;</button>
+          <button class="btn btn-secondary btn-small" onclick="paBackToMapping()" data-i18n="mattype.backToMapping">&#8592; Volver al mapeo</button>
         </div>
       </div>
     </div>
@@ -1463,20 +1467,20 @@
     <div class="mattype-panel hidden" id="panelPACategories">
       <div class="mattype-panel-header" onclick="mattypeToggleCatPanel()">
         <div class="mattype-panel-title">
-          ③ Categorizar tipos de material
-          <span class="mattype-optional-badge">Opcional</span>
+          <span data-i18n="mattype.cat.title">③ Categorizar tipos de material</span>
+          <span class="mattype-optional-badge" data-i18n="common.optional">Opcional</span>
         </div>
         <div class="mattype-panel-actions">
-          <span class="mattype-summary" id="mattypeCatSummary">Sin categorización — análisis estándar</span>
-          <button class="mattype-reset-btn" onclick="event.stopPropagation();mattypeResetCat()">Restablecer</button>
+          <span class="mattype-summary" id="mattypeCatSummary" data-i18n="mattype.cat.summary">Sin categorización — análisis estándar</span>
+          <button class="mattype-reset-btn" onclick="event.stopPropagation();mattypeResetCat()" data-i18n="common.reset">Restablecer</button>
           <span class="mattype-arr" id="mattypeCatArr">▶</span>
         </div>
       </div>
       <div class="mattype-panel-body" id="mattypeCatBody" style="display:none;">
         <div id="mattypeCatWrap"></div>
         <div class="btn-row" style="margin-top:12px;">
-          <button class="btn btn-primary btn-small" onclick="paContinueToExtraFields()">Continuar &#8594;</button>
-          <button class="btn btn-secondary btn-small" onclick="paBackToExclude()">&#8592; Volver</button>
+          <button class="btn btn-primary btn-small" onclick="paContinueToExtraFields()" data-i18n="common.continue">Continuar &#8594;</button>
+          <button class="btn btn-secondary btn-small" onclick="paBackToExclude()" data-i18n="common.back">&#8592; Volver</button>
         </div>
       </div>
     </div>
@@ -1485,8 +1489,8 @@
     <div class="mattype-panel hidden" id="panelPAExtraFields">
       <div class="mattype-panel-header" onclick="efToggleEFBody('pa')">
         <div class="mattype-panel-title">
-          ④ Campos adicionales de datos maestros
-          <span class="mattype-optional-badge">Opcional</span>
+          <span data-i18n="mattype.ef.title">④ Campos adicionales de datos maestros</span>
+          <span class="mattype-optional-badge" data-i18n="common.optional">Opcional</span>
         </div>
         <div class="mattype-panel-actions">
           <span class="mattype-arr" id="paEFArr">▶</span>
@@ -1495,22 +1499,22 @@
       <div class="mattype-panel-body" id="paEFBody" style="display:none;">
         <div class="ef-entity-buttons" id="efButtons_pa"></div>
         <div class="btn-row" style="margin-top:16px;">
-          <button class="btn btn-primary btn-small" onclick="paContinueToRun()">Continuar a ejecución &#8594;</button>
-          <button class="btn btn-secondary btn-small" onclick="paBackFromExtraFieldsToCategories()">&#8592; Volver</button>
+          <button class="btn btn-primary btn-small" onclick="paContinueToRun()" data-i18n="run.continueExec">Continuar a ejecución &#8594;</button>
+          <button class="btn btn-secondary btn-small" onclick="paBackFromExtraFieldsToCategories()" data-i18n="common.back">&#8592; Volver</button>
         </div>
       </div>
     </div>
 
     <!-- ═══ PA: EJECUTAR ANÁLISIS ═══ -->
     <div class="panel hidden" id="panelPAExportMode">
-      <div class="panel-title">⑤ Ejecutar análisis</div>
+      <div class="panel-title" data-i18n="run.title">⑤ Ejecutar análisis</div>
       <div id="bodyPAExportMode">
-        <div id="paRunSummary" style="font-size:12px;color:var(--text2);margin-bottom:14px;padding:10px 12px;background:rgba(41,171,226,.05);border-left:3px solid var(--cyan);border-radius:4px;">
+        <div id="paRunSummary" style="font-size:12px;color:var(--text2);margin-bottom:14px;padding:10px 12px;background:rgba(41,171,226,.05);border-left:3px solid var(--cyan);border-radius:4px;" data-i18n="run.paDefault">
           Configuración por defecto — análisis estándar
         </div>
         <div class="btn-row">
-          <button class="btn btn-primary" id="btnFetchPA" onclick="doProductionAnalysis()">▶ Ejecutar análisis</button>
-          <button class="btn btn-secondary btn-small" onclick="paBackToExtraFields()">&#8592; Volver</button>
+          <button class="btn btn-primary" id="btnFetchPA" onclick="doProductionAnalysis()" data-i18n="run.execBtn">▶ Ejecutar análisis</button>
+          <button class="btn btn-secondary btn-small" onclick="paBackToExtraFields()" data-i18n="common.back">&#8592; Volver</button>
         </div>
         <div class="progress-bar hidden" id="progBarPA">
           <div class="fill" id="progFillPA" style="width:0%"></div>
@@ -1519,7 +1523,7 @@
           style="display:none;font-size:12px;color:var(--text2);margin-top:4px;align-items:center;gap:8px;">
           <span id="progStatusTextPA"></span>
           <button id="btnTogglePALogs" class="btn btn-secondary btn-small" style="padding:2px 8px;font-size:11px;"
-            onclick="togglePALogs()">Ver logs técnicos</button>
+            onclick="togglePALogs()" data-i18n="common.viewLogs">Ver logs técnicos</button>
         </div>
         <div class="log-area hidden" id="logPA"></div>
       </div>
@@ -1527,8 +1531,8 @@
 
     <div class="empty-state hidden" id="paSuccessBanner" style="margin-top:40px;">
       <div class="icon">✅</div>
-      <strong style="font-size:15px;color:var(--green)">¡Análisis completado!</strong>
-      <p style="font-size:13px;color:var(--text2);margin-top:6px;">El informe ha sido descargado exitosamente.</p>
+      <strong style="font-size:15px;color:var(--green)" data-i18n="run.successTitle">¡Análisis completado!</strong>
+      <p style="font-size:13px;color:var(--text2);margin-top:6px;" data-i18n="run.successDesc">El informe ha sido descargado exitosamente.</p>
     </div>
 
   </div><!-- /tab-pa -->
@@ -1538,15 +1542,15 @@
     <div class="tab-info-banner" id="infoBannerDocs">
       <span class="tab-info-icon">📄</span>
       <div class="tab-info-content">
-        <div class="tab-info-desc">Generador de Mapping Dataflow para tareas de integración de SAP CI-DS</div>
+        <div class="tab-info-desc" data-i18n="banner.docs">Generador de Mapping Dataflow para tareas de integración de SAP CI-DS</div>
       </div>
     </div>
 
     <!-- MODE TOGGLE -->
     <div class="docs-mode-toggle">
-      <button class="mode-btn active" id="mode-zip" onclick="switchDocsMode('zip')">📦 Desde archivos ZIP</button>
-      <button class="mode-btn" id="mode-jobs" onclick="switchDocsMode('jobs')">🔄 Desde Application Jobs</button>
-      <button class="mode-btn" id="mode-zipjobs" onclick="switchDocsMode('zipjobs')">🔗 ZIP + Jobs</button>
+      <button class="mode-btn active" id="mode-zip" onclick="switchDocsMode('zip')" data-i18n="docs.mode.zip">📦 Desde archivos ZIP</button>
+      <button class="mode-btn" id="mode-jobs" onclick="switchDocsMode('jobs')" data-i18n="docs.mode.jobs">🔄 Desde Application Jobs</button>
+      <button class="mode-btn" id="mode-zipjobs" onclick="switchDocsMode('zipjobs')" data-i18n="docs.mode.zipjobs">🔗 ZIP + Jobs</button>
     </div>
 
     <!-- DOCS STEPPER -->
@@ -1555,7 +1559,7 @@
     <!-- PRO TIP BANNER -->
     <div class="pro-tip-banner">
       <span class="pro-tip-icon">💡</span>
-      <div class="pro-tip-content">
+      <div class="pro-tip-content" data-i18n-html="docs.proTip">
         <strong>Pro tip:</strong> Si conectas tu sistema SAP IBP obtendrás una documentación enriquecida con las descripciones y datos de SAP IBP.
       </div>
     </div>
@@ -1564,11 +1568,11 @@
     <div id="docs-zip-panels">
       <div class="panel">
         <div class="panel-title" style="display:flex;align-items:center;gap:8px;">
-          📦 Archivos ZIP de entrada
+          <span data-i18n="docs.zip.panelTitle">📦 Archivos ZIP de entrada</span>
           <span class="zip-help-icon" tabindex="0">?
             <div class="zip-help-tooltip">
               <img src="ci-ds-export.png" alt="CI-DS Export" style="width:100%;border-radius:6px;margin-bottom:8px;">
-              <p>Debes exportar el project desde CI-DS y obtendrás el archivo comprimido, luego adjúntalo aquí. Puedes
+              <p data-i18n="docs.zip.help">Debes exportar el project desde CI-DS y obtendrás el archivo comprimido, luego adjúntalo aquí. Puedes
                 exportar y adjuntar los que necesites.</p>
             </div>
           </span>
@@ -1576,30 +1580,30 @@
         <div class="drop-zone" id="dz">
           <input type="file" id="fi" accept=".zip" multiple>
           <span class="drop-icon">🗂️</span>
-          <p class="drop-title">Arrastra los ZIP aquí</p>
-          <p class="drop-hint">o haz click para seleccionar &nbsp;·&nbsp; <b>Múltiples archivos</b> permitidos</p>
+          <p class="drop-title" data-i18n="docs.zip.dropTitle">Arrastra los ZIP aquí</p>
+          <p class="drop-hint" data-i18n-html="docs.zip.dropHint">o haz click para seleccionar &nbsp;·&nbsp; <b>Múltiples archivos</b> permitidos</p>
         </div>
         <div id="file-list"></div>
         <div class="progress-wrap" id="pw">
           <div class="progress-bar" id="pb"></div>
         </div>
         <div class="btn-row">
-          <button class="btn btn-primary" id="gen-btn" disabled onclick="generate()">⚙️ Analizar Integraciones</button>
+          <button class="btn btn-primary" id="gen-btn" disabled onclick="generate()" data-i18n="docs.zip.analyzeBtn">⚙️ Analizar Integraciones</button>
         </div>
       </div>
 
       <!-- ATL opcional — ZIP mode -->
       <div class="panel" id="zip-atl-panel">
-        <div class="panel-title">📋 Archivos ATL (opcional)</div>
-        <p class="panel-desc">
+        <div class="panel-title" data-i18n="docs.atl.panelTitleZip">📋 Archivos ATL (opcional)</div>
+        <p class="panel-desc" data-i18n="docs.atl.descZip">
           Sube los archivos ATL de SAP Data Services para enriquecer el Excel con el nombre del
           proceso y el grupo al que pertenece cada dataflow. Se asocian por GUID o nombre del dataflow.
         </p>
         <div class="drop-zone" id="zip-atl-dz">
           <input type="file" id="zip-atl-fi" accept=".atl,.txt" multiple>
           <span class="drop-icon">📋</span>
-          <p class="drop-title">Arrastra los ATL aquí</p>
-          <p class="drop-hint">o haz click para seleccionar &nbsp;·&nbsp; <b>Múltiples archivos</b> permitidos</p>
+          <p class="drop-title" data-i18n="docs.atl.dropTitle">Arrastra los ATL aquí</p>
+          <p class="drop-hint" data-i18n-html="docs.zip.dropHint">o haz click para seleccionar &nbsp;·&nbsp; <b>Múltiples archivos</b> permitidos</p>
         </div>
         <div id="zip-atl-file-list"></div>
       </div>
@@ -1610,21 +1614,21 @@
 
       <!-- Step 1: Fetch Jobs -->
       <div class="panel">
-        <div class="panel-title">🔄 Application Jobs desde SAP IBP</div>
-        <p class="panel-desc">Conecta tu sistema SAP IBP para obtener los Application Jobs configurados. Requiere Communication Arrangement <b>SAP_COM_0326</b>.</p>
+        <div class="panel-title" data-i18n="docs.jobs.panelTitle">🔄 Application Jobs desde SAP IBP</div>
+        <p class="panel-desc" data-i18n-html="docs.jobs.desc">Conecta tu sistema SAP IBP para obtener los Application Jobs configurados. Requiere Communication Arrangement <b>SAP_COM_0326</b>.</p>
         <div class="btn-row">
-          <button class="btn btn-primary" id="fetch-jobs-btn" onclick="fetchAndDisplayJobs()">🔍 Obtener Application Jobs</button>
+          <button class="btn btn-primary" id="fetch-jobs-btn" onclick="fetchAndDisplayJobs()" data-i18n="docs.jobs.fetchBtn">🔍 Obtener Application Jobs</button>
         </div>
       </div>
 
       <!-- Step 2: Job Selection -->
       <div class="panel" id="jobs-sel-card" style="display:none">
-        <div class="panel-title">✅ Selección de Jobs</div>
+        <div class="panel-title" data-i18n="docs.jobs.selTitle">✅ Selección de Jobs</div>
         <div class="sel-toolbar">
-          <input class="sel-search" id="jobs-search" type="text" placeholder="🔍  Buscar por nombre de job…"
+          <input class="sel-search" id="jobs-search" type="text" placeholder="🔍  Buscar por nombre de job…" data-i18n-placeholder="docs.jobs.searchPh"
             oninput="filterJobsList()">
-          <button class="btn-sm" onclick="toggleJobsFiltered(true)">Activar filtrados</button>
-          <button class="btn-sm" onclick="toggleJobsFiltered(false)">Desactivar filtrados</button>
+          <button class="btn-sm" onclick="toggleJobsFiltered(true)" data-i18n="docs.jobs.enableFiltered">Activar filtrados</button>
+          <button class="btn-sm" onclick="toggleJobsFiltered(false)" data-i18n="docs.jobs.disableFiltered">Desactivar filtrados</button>
           <span class="sel-counter" id="jobs-counter"></span>
         </div>
         <div class="sel-list" id="jobs-list"></div>
@@ -1633,51 +1637,51 @@
       <!-- Step 3: ATL Upload -->
       <div class="panel" id="atl-upload-panel" style="display:none">
         <div class="panel-title" style="display:flex;align-items:center;gap:8px;">
-          📄 Archivos ATL de procesos CI-DS
+          <span data-i18n="docs.atl.panelTitleJobs">📄 Archivos ATL de procesos CI-DS</span>
           <span class="zip-help-icon" tabindex="0">?
             <div class="zip-help-tooltip">
-              <p>Exporta los procesos (tasks) CI-DS en formato ATL desde SAP Data Services. El archivo ATL contiene la estructura de ejecución: grupos paralelos y orden de dataflows.</p>
+              <p data-i18n="docs.atl.helpJobs">Exporta los procesos (tasks) CI-DS en formato ATL desde SAP Data Services. El archivo ATL contiene la estructura de ejecución: grupos paralelos y orden de dataflows.</p>
             </div>
           </span>
         </div>
         <div class="drop-zone" id="atl-dz">
           <input type="file" id="atl-fi" accept=".atl,.txt" multiple>
           <span class="drop-icon">📄</span>
-          <p class="drop-title">Arrastra archivos ATL aquí</p>
-          <p class="drop-hint">Formato .atl o .txt &nbsp;·&nbsp; <b>Múltiples archivos</b> permitidos</p>
+          <p class="drop-title" data-i18n="docs.atl.dropTitleJobs">Arrastra archivos ATL aquí</p>
+          <p class="drop-hint" data-i18n-html="docs.atl.dropHintJobs">Formato .atl o .txt &nbsp;·&nbsp; <b>Múltiples archivos</b> permitidos</p>
         </div>
         <div id="atl-file-list"></div>
       </div>
 
       <!-- Step 4: ZIP Upload (jobs mode) -->
       <div class="panel" id="jobs-zip-panel" style="display:none">
-        <div class="panel-title">📦 Archivos ZIP de integraciones CI-DS</div>
+        <div class="panel-title" data-i18n="docs.jobsZip.panelTitle">📦 Archivos ZIP de integraciones CI-DS</div>
         <div class="drop-zone" id="jobs-zip-dz">
           <input type="file" id="jobs-zip-fi" accept=".zip" multiple>
           <span class="drop-icon">🗂️</span>
-          <p class="drop-title">Arrastra los ZIP aquí</p>
-          <p class="drop-hint">Los mismos exports de CI-DS que usarías en el modo ZIP</p>
+          <p class="drop-title" data-i18n="docs.zip.dropTitle">Arrastra los ZIP aquí</p>
+          <p class="drop-hint" data-i18n="docs.zip.dropHintJobs">Los mismos exports de CI-DS que usarías en el modo ZIP</p>
         </div>
         <div id="jobs-zip-file-list"></div>
         <div class="btn-row">
-          <button class="btn btn-primary" id="jobs-gen-btn" disabled onclick="generateFromJobs()">⚙️ Analizar y Generar</button>
+          <button class="btn btn-primary" id="jobs-gen-btn" disabled onclick="generateFromJobs()" data-i18n="docs.jobs.analyzeBtn">⚙️ Analizar y Generar</button>
         </div>
       </div>
 
       <!-- Communication Arrangement Guide -->
       <div class="panel" id="comm-arr-guide">
-        <div class="panel-title">🔧 Configuración: Communication Arrangement</div>
+        <div class="panel-title" data-i18n="docs.commGuide.title">🔧 Configuración: Communication Arrangement</div>
         <div class="comm-guide-content">
-          <p>Para usar la funcionalidad de Application Jobs, necesitas configurar el escenario <b>SAP_COM_0326</b> en tu sistema SAP IBP:</p>
+          <p data-i18n-html="docs.commGuide.intro">Para usar la funcionalidad de Application Jobs, necesitas configurar el escenario <b>SAP_COM_0326</b> en tu sistema SAP IBP:</p>
           <ol>
-            <li><b>Communication User:</b> Crea un usuario técnico en <em>Maintain Communication Users</em></li>
-            <li><b>Communication System:</b> Crea un sistema en <em>Communication Systems</em> apuntando a tu tenant IBP</li>
-            <li><b>Communication Arrangement:</b> Crea un arrangement con escenario <b>SAP_COM_0326</b> (External Scheduler - Application Job Administration Integration)</li>
-            <li>Asigna el Communication User y System al arrangement</li>
-            <li>Configura autenticación <b>Basic Auth</b> (usuario y contraseña)</li>
-            <li>Usa las mismas credenciales en el panel de conexión de GoSCM</li>
+            <li data-i18n-html="docs.commGuide.s1"><b>Communication User:</b> Crea un usuario técnico en <em>Maintain Communication Users</em></li>
+            <li data-i18n-html="docs.commGuide.s2"><b>Communication System:</b> Crea un sistema en <em>Communication Systems</em> apuntando a tu tenant IBP</li>
+            <li data-i18n-html="docs.commGuide.s3"><b>Communication Arrangement:</b> Crea un arrangement con escenario <b>SAP_COM_0326</b> (External Scheduler - Application Job Administration Integration)</li>
+            <li data-i18n="docs.commGuide.s4">Asigna el Communication User y System al arrangement</li>
+            <li data-i18n-html="docs.commGuide.s5">Configura autenticación <b>Basic Auth</b> (usuario y contraseña)</li>
+            <li data-i18n="docs.commGuide.s6">Usa las mismas credenciales en el panel de conexión de GoSCM</li>
           </ol>
-          <p class="panel-desc">Este Communication Arrangement expone el servicio <code>BC_EXT_APPJOB_MANAGEMENT</code> que permite leer los Application Jobs y sus pasos.</p>
+          <p class="panel-desc" data-i18n-html="docs.commGuide.outro">Este Communication Arrangement expone el servicio <code>BC_EXT_APPJOB_MANAGEMENT</code> que permite leer los Application Jobs y sus pasos.</p>
         </div>
       </div>
 
@@ -1688,8 +1692,8 @@
 
       <!-- ZIP Upload (zip+jobs mode) -->
       <div class="panel" id="zipjobs-zip-panel">
-        <div class="panel-title">📦 Archivos ZIP de integraciones CI-DS</div>
-        <p class="panel-desc">
+        <div class="panel-title" data-i18n="docs.jobsZip.panelTitle">📦 Archivos ZIP de integraciones CI-DS</div>
+        <p class="panel-desc" data-i18n-html="docs.zipjobs.desc">
           Sube los mismos ZIPs de CI-DS que usarías en el modo ZIP. El sistema los analiza y
           <b>enriquece automáticamente</b> con los Jobs y Steps de SAP IBP usando
           <code>JobTemplateSequenceSet</code>.
@@ -1697,15 +1701,15 @@
         <div class="drop-zone" id="zipjobs-dz">
           <input type="file" id="zipjobs-fi" accept=".zip" multiple>
           <span class="drop-icon">🗂️</span>
-          <p class="drop-title">Arrastra los ZIP aquí</p>
-          <p class="drop-hint">o haz click para seleccionar &nbsp;·&nbsp; <b>Múltiples archivos</b> permitidos</p>
+          <p class="drop-title" data-i18n="docs.zip.dropTitle">Arrastra los ZIP aquí</p>
+          <p class="drop-hint" data-i18n-html="docs.zip.dropHint">o haz click para seleccionar &nbsp;·&nbsp; <b>Múltiples archivos</b> permitidos</p>
         </div>
         <div id="zipjobs-file-list"></div>
         <div class="progress-wrap" id="zipjobs-pw">
           <div class="progress-bar" id="zipjobs-pb"></div>
         </div>
         <div class="btn-row">
-          <button class="btn btn-primary" id="zipjobs-gen-btn" disabled onclick="generateZipJobs()">
+          <button class="btn btn-primary" id="zipjobs-gen-btn" disabled onclick="generateZipJobs()" data-i18n="docs.zipjobs.analyzeBtn">
             ⚙️ Analizar ZIPs + Enriquecer con Jobs IBP
           </button>
         </div>
@@ -1715,44 +1719,44 @@
 
     <!-- SELECTION PANEL -->
     <div class="panel" id="sel-card" style="display:none">
-      <div class="panel-title">✅ Selección de integraciones</div>
+      <div class="panel-title" data-i18n="docs.sel.title">✅ Selección de integraciones</div>
       <div class="sel-toolbar">
-        <input class="sel-search" id="sel-search" type="text" placeholder="🔍  Buscar por nombre, tipo, dataflow…"
+        <input class="sel-search" id="sel-search" type="text" placeholder="🔍  Buscar por nombre, tipo, dataflow…" data-i18n-placeholder="docs.sel.searchPh"
           oninput="filterSelList()">
-        <button class="btn-sm" onclick="toggleFiltered(true)">Activar filtradas</button>
-        <button class="btn-sm" onclick="toggleFiltered(false)">Desactivar filtradas</button>
+        <button class="btn-sm" onclick="toggleFiltered(true)" data-i18n="docs.sel.enableFiltered">Activar filtradas</button>
+        <button class="btn-sm" onclick="toggleFiltered(false)" data-i18n="docs.sel.disableFiltered">Desactivar filtradas</button>
         <span class="sel-counter" id="sel-counter"></span>
       </div>
       <div class="sel-list" id="sel-list"></div>
       <div class="btn-row">
-        <button class="btn btn-primary" style="margin-top:18px" onclick="buildExcel()">⚙️ Generar Excel</button>
+        <button class="btn btn-primary" style="margin-top:18px" onclick="buildExcel()" data-i18n="docs.sel.genExcel">⚙️ Generar Excel</button>
         <button class="btn btn-primary" id="dl-btn"
-          style="display:none; margin-top:18px; background: var(--green);" onclick="downloadExcel()">⬇️ Descargar Excel</button>
+          style="display:none; margin-top:18px; background: var(--green);" onclick="downloadExcel()" data-i18n="docs.sel.dlExcel">⬇️ Descargar Excel</button>
       </div>
     </div>
 
     <!-- RESULTS PANEL -->
     <div class="panel" id="stats-card" style="display:none">
-      <div class="panel-title">📊 Resultado</div>
+      <div class="panel-title" data-i18n="docs.stats.title">📊 Resultado</div>
       <div class="stats-grid">
         <div class="stat-box"><span class="stat-num blue" id="s-jobs">0</span><span
-            class="stat-label">Integraciones</span></div>
-        <div class="stat-box"><span class="stat-num purple" id="s-maps">0</span><span class="stat-label">Mapeos</span>
+            class="stat-label" data-i18n="docs.stats.integrations">Integraciones</span></div>
+        <div class="stat-box"><span class="stat-num purple" id="s-maps">0</span><span class="stat-label" data-i18n="docs.stats.mappings">Mapeos</span>
         </div>
-        <div class="stat-box"><span class="stat-num green" id="s-filt">0</span><span class="stat-label">Filtros</span>
+        <div class="stat-box"><span class="stat-num green" id="s-filt">0</span><span class="stat-label" data-i18n="docs.stats.filters">Filtros</span>
         </div>
       </div>
       <div class="btn-row">
         <button class="btn btn-primary" id="dl-btn-shared"
-          style="background: var(--green);" onclick="downloadExcel()">⬇️ Descargar Excel</button>
+          style="background: var(--green);" onclick="downloadExcel()" data-i18n="docs.sel.dlExcel">⬇️ Descargar Excel</button>
       </div>
     </div>
 
     <!-- LOGS PANEL -->
     <div class="panel">
-      <div class="panel-title">📋 Log de procesamiento</div>
+      <div class="panel-title" data-i18n="docs.logs.title">📋 Log de procesamiento</div>
       <div id="docs-log"></div>
-      <p class="docs-hint" id="docs-log-hint">Sube un ZIP para comenzar</p>
+      <p class="docs-hint" id="docs-log-hint" data-i18n="docs.logs.hint">Sube un ZIP para comenzar</p>
     </div>
 
   </div><!-- /tab-docs -->
@@ -1761,22 +1765,22 @@
     <div class="tab-info-banner" id="infoBannerExplorer">
       <span class="tab-info-icon">🔎</span>
       <div class="tab-info-content">
-        <div class="tab-info-desc">Explora visualmente las integraciones CI-DS. Sube ZIPs, navega mappings/filtros/lookups y detecta cadenas consecutivas entre dataflows.</div>
+        <div class="tab-info-desc" data-i18n="banner.explorer">Explora visualmente las integraciones CI-DS. Sube ZIPs, navega mappings/filtros/lookups y detecta cadenas consecutivas entre dataflows.</div>
       </div>
     </div>
 
     <!-- Upload -->
-    <div class="panel">
-      <div class="panel-title">📦 ZIPs de integraciones CI-DS</div>
+    <div class="panel" id="ex-upload-panel">
+      <div class="panel-title collapsible" onclick="Explorer.toggleUploadPanel()" data-i18n="ex.panelTitle">📦 ZIPs de integraciones CI-DS</div>
       <div class="drop-zone" id="ex-dz">
         <input type="file" id="ex-fi" accept=".zip" multiple style="display:none">
         <span class="drop-icon">🗂️</span>
-        <p class="drop-title">Arrastra los ZIP aquí o haz click para seleccionar</p>
-        <p class="drop-hint">Múltiples archivos permitidos · Se reutiliza el parser de Doc Generator</p>
+        <p class="drop-title" data-i18n="ex.dropTitle">Arrastra los ZIP aquí o haz click para seleccionar</p>
+        <p class="drop-hint" data-i18n="ex.dropHint">Múltiples archivos permitidos · Se reutiliza el parser de Doc Generator</p>
       </div>
       <div id="ex-file-list"></div>
       <div class="btn-row ex-upload-actions">
-        <button class="btn btn-primary" id="ex-analyze-btn" disabled onclick="Explorer.analyze()">🔬 Explorar integraciones</button>
+        <button class="btn btn-primary" id="ex-analyze-btn" disabled onclick="Explorer.analyze()" data-i18n="ex.analyzeBtn">🔬 Explorar integraciones</button>
         <div id="ex-cids-bar"></div>
       </div>
     </div>
@@ -1785,31 +1789,33 @@
     <div class="panel" id="ex-results" style="display:none">
       <div class="ex-toolbar">
         <div class="ex-dim-toggle">
-          <button class="dim-btn active" id="ex-dim-integration"   onclick="Explorer.switchDimension('integration')">🔗 Integración</button>
-          <button class="dim-btn" id="ex-dim-dst-table"            onclick="Explorer.switchDimension('dst-table')">📤 Tabla Destino</button>
-          <button class="dim-btn" id="ex-dim-src-table"            onclick="Explorer.switchDimension('src-table')">📥 Tabla Origen</button>
-          <button class="dim-btn" id="ex-dim-dst-field"            onclick="Explorer.switchDimension('dst-field')">📋 Campo Destino</button>
-          <button class="dim-btn" id="ex-dim-src-field"            onclick="Explorer.switchDimension('src-field')">📋 Campo Origen</button>
-          <button class="dim-btn" id="ex-dim-filter-table"         onclick="Explorer.switchDimension('filter-table')">🔍 Tabla Filtro/Join</button>
-          <button class="dim-btn" id="ex-dim-filter-field"         onclick="Explorer.switchDimension('filter-field')">🎯 Campo Filtro/Join</button>
+          <button class="dim-btn active" id="ex-dim-integration"   onclick="Explorer.switchDimension('integration')" data-i18n="ex.dim.integration">🔗 Integración</button>
+          <button class="dim-btn" id="ex-dim-dst-table"            onclick="Explorer.switchDimension('dst-table')" data-i18n="ex.dim.dstTable">📤 Tabla Destino</button>
+          <button class="dim-btn" id="ex-dim-src-table"            onclick="Explorer.switchDimension('src-table')" data-i18n="ex.dim.srcTable">📥 Tabla Origen</button>
+          <button class="dim-btn" id="ex-dim-dst-field"            onclick="Explorer.switchDimension('dst-field')" data-i18n="ex.dim.dstField">📋 Campo Destino</button>
+          <button class="dim-btn" id="ex-dim-src-field"            onclick="Explorer.switchDimension('src-field')" data-i18n="ex.dim.srcField">📋 Campo Origen</button>
+          <button class="dim-btn" id="ex-dim-filter-table"         onclick="Explorer.switchDimension('filter-table')" data-i18n="ex.dim.filterTable">🔍 Tabla Filtro/Join</button>
+          <button class="dim-btn" id="ex-dim-filter-field"         onclick="Explorer.switchDimension('filter-field')" data-i18n="ex.dim.filterField">🎯 Campo Filtro/Join</button>
         </div>
         <div class="ex-toolbar-row2">
-          <input class="sel-search" id="ex-search" placeholder="🔍 Buscar..." oninput="Explorer.applySearch(this.value)">
+          <input class="sel-search" id="ex-search" placeholder="🔍 Buscar..." data-i18n-placeholder="ex.searchPh" oninput="Explorer.applySearch(this.value)">
           <div class="ex-view-toggle" id="ex-view-toggle">
-            <button class="mode-btn active" id="ex-view-list" onclick="Explorer.switchView('list')">📋 Lista</button>
-            <button class="mode-btn" id="ex-view-graph" onclick="Explorer.switchView('graph')">🕸️ Grafo</button>
+            <button class="mode-btn active" id="ex-view-list" onclick="Explorer.switchView('list')" data-i18n="ex.view.list">📋 Lista</button>
+            <button class="mode-btn" id="ex-view-graph" onclick="Explorer.switchView('graph')" data-i18n="ex.view.graph">🕸️ Grafo</button>
           </div>
           <span class="sel-counter" id="ex-counter"></span>
         </div>
         <div id="ex-cids-toggle" style="display:none"></div>
         <div class="ex-pa-filter" id="ex-pa-filter" style="display:none"></div>
+        <div class="ex-ds-filter" id="ex-ds-filter" style="display:none"></div>
       </div>
 
       <!-- Vista LISTA -->
       <div class="ex-split" id="ex-list-view">
         <div class="ex-master" id="ex-master"></div>
+        <div id="ex-resizer" class="ex-resizer"></div>
         <div class="ex-detail" id="ex-detail">
-          <p class="docs-hint">Selecciona una integración a la izquierda para explorar sus campos</p>
+          <p class="docs-hint" data-i18n="ex.master.hint">Selecciona una integración a la izquierda para explorar sus campos</p>
         </div>
       </div>
 
@@ -1817,16 +1823,16 @@
       <div id="ex-graph-wrap" style="display:none; position:relative;">
         <div id="ex-graph-view" style="height:640px; border:1px solid var(--border); border-radius:8px;"></div>
         <div id="ex-graph-legend" class="ex-graph-legend">
-          <div class="ex-legend-title">Leyenda</div>
-          <div class="ex-legend-section-label">Conexiones</div>
-          <div class="ex-legend-item"><svg width="32" height="10"><line x1="0" y1="5" x2="26" y2="5" stroke="#34d399" stroke-width="2.5"/><polygon points="20,1 26,5 20,9" fill="#34d399"/></svg> Tabla (DB)</div>
-          <div class="ex-legend-item"><svg width="32" height="10"><line x1="0" y1="5" x2="26" y2="5" stroke="#E8622A" stroke-width="2" stroke-dasharray="6 4"/><polygon points="20,1 26,5 20,9" fill="#E8622A"/></svg> Archivo</div>
-          <div class="ex-legend-item"><svg width="32" height="10"><line x1="0" y1="5" x2="26" y2="5" stroke="#a78bfa" stroke-width="2" stroke-dasharray="2 3 8 3"/><polygon points="20,1 26,5 20,9" fill="#a78bfa"/></svg> Lookup</div>
+          <div class="ex-legend-title" data-i18n="ex.legend.title">Leyenda</div>
+          <div class="ex-legend-section-label" data-i18n="ex.legend.conn">Conexiones</div>
+          <div class="ex-legend-item"><svg width="32" height="10"><line x1="0" y1="5" x2="26" y2="5" stroke="#34d399" stroke-width="2.5"/><polygon points="20,1 26,5 20,9" fill="#34d399"/></svg> <span data-i18n="ex.legend.tableDb">Tabla (DB)</span></div>
+          <div class="ex-legend-item"><svg width="32" height="10"><line x1="0" y1="5" x2="26" y2="5" stroke="#E8622A" stroke-width="2" stroke-dasharray="6 4"/><polygon points="20,1 26,5 20,9" fill="#E8622A"/></svg> <span data-i18n="ex.legend.file">Archivo</span></div>
+          <div class="ex-legend-item"><svg width="32" height="10"><line x1="0" y1="5" x2="26" y2="5" stroke="#a78bfa" stroke-width="2" stroke-dasharray="2 3 8 3"/><polygon points="20,1 26,5 20,9" fill="#a78bfa"/></svg> <span data-i18n="ex.legend.lookup">Lookup</span></div>
           <div class="ex-legend-sep"></div>
-          <div class="ex-legend-section-label">Nodos</div>
-          <div class="ex-legend-item"><span class="ex-legend-node" style="background:#F7A800;color:#000;">MD</span> Master data</div>
-          <div class="ex-legend-item"><span class="ex-legend-node" style="background:#29ABE2;color:#000;">KF</span> Key figure</div>
-          <div class="ex-legend-item"><span class="ex-legend-node" style="background:#E8622A;color:#fff;">FILE</span> Archivo</div>
+          <div class="ex-legend-section-label" data-i18n="ex.legend.nodes">Nodos</div>
+          <div class="ex-legend-item"><span class="ex-legend-node" style="background:#F7A800;color:#000;">MD</span> <span data-i18n="ex.legend.md">Master data</span></div>
+          <div class="ex-legend-item"><span class="ex-legend-node" style="background:#29ABE2;color:#000;">KF</span> <span data-i18n="ex.legend.kf">Key figure</span></div>
+          <div class="ex-legend-item"><span class="ex-legend-node" style="background:#E8622A;color:#fff;">FILE</span> <span data-i18n="ex.legend.fileNode">Archivo</span></div>
         </div>
       </div>
     </div>
@@ -1836,13 +1842,13 @@
   <div class="tab-panel" id="tab-glosario">
     <div class="glosario-shell">
       <div class="glosario-module-bar">
-        <button class="glosario-mod-btn active" id="glosModBtn-pa" onclick="glosarioSwitchModule('pa')">
+        <button class="glosario-mod-btn active" id="glosModBtn-pa" onclick="glosarioSwitchModule('pa')" data-i18n="glosario.mod.pa">
           🔬 Production Analyzer
         </button>
-        <button class="glosario-mod-btn" id="glosModBtn-sn" onclick="glosarioSwitchModule('sn')">
+        <button class="glosario-mod-btn" id="glosModBtn-sn" onclick="glosarioSwitchModule('sn')" data-i18n="glosario.mod.sn">
           🌐 Network Analyzer
         </button>
-        <button class="glosario-pdf-btn" id="glosarioPdfBtn" onclick="glosarioExportPDF()" title="Exportar glosario a PDF">
+        <button class="glosario-pdf-btn" id="glosarioPdfBtn" onclick="glosarioExportPDF()" title="Exportar glosario a PDF" data-i18n-title="glosario.pdfBtn.title" data-i18n="glosario.pdfBtn">
           ↓ Exportar PDF
         </button>
       </div>
@@ -1856,6 +1862,7 @@
     </div><!-- /main-content -->
   </div><!-- /app-shell -->
 
+  <script src="js/i18n.js"></script>
   <script src="js/extraFields.js"></script>
   <script src="js/state.js"></script>
   <script src="js/utils.js"></script>
@@ -1873,7 +1880,7 @@
   <script src="js/glosario.js"></script>
 
   <!-- Feedback button -->
-  <button onclick="openFeedback()" title="Reportar / Consultar / Sugerir"
+  <button onclick="openFeedback()" title="Reportar / Consultar / Sugerir" data-i18n-title="feedback.fab.title"
     style="position:fixed;bottom:24px;right:24px;z-index:9000;width:48px;height:48px;border-radius:50%;background:#6C63FF;border:none;cursor:pointer;box-shadow:0 4px 16px rgba(108,99,255,0.45);display:flex;align-items:center;justify-content:center;font-size:20px;color:#fff;transition:transform .2s;"
     onmouseenter="this.style.transform='scale(1.1)'" onmouseleave="this.style.transform='scale(1)'">💬</button>
 
@@ -1881,8 +1888,8 @@
   <div id="feedbackTooltip"
     style="display:none;position:fixed;bottom:80px;right:24px;z-index:9000;max-width:280px;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px 16px;box-shadow:0 8px 32px rgba(0,0,0,0.35);animation:fbTipIn .4s ease-out;">
     <button onclick="dismissFeedbackTip()"
-      style="position:absolute;top:6px;right:8px;background:none;border:none;color:var(--text3);cursor:pointer;font-size:14px;line-height:1;padding:2px;">✕</button>
-    <div style="font-size:13px;color:var(--text);line-height:1.5;padding-right:14px;">
+      style="position:absolute;top:6px;right:8px;background:none;border:none;color:var(--text3);cursor:pointer;font-size:14px;line-height:1;padding:2px;" aria-label="Cerrar" data-i18n-aria-label="common.close">✕</button>
+    <div style="font-size:13px;color:var(--text);line-height:1.5;padding-right:14px;" data-i18n-html="feedback.tip.body">
       <strong style="color:#6C63FF;">Escríbenos</strong> si encuentras un error, tienes una consulta o quieres sugerir una mejora. Te respondemos por email.
     </div>
     <div style="position:absolute;bottom:-8px;right:28px;width:16px;height:16px;background:var(--surface);border-right:1px solid var(--border);border-bottom:1px solid var(--border);transform:rotate(45deg);"></div>
@@ -1902,11 +1909,11 @@
     <div
       style="display:flex;justify-content:space-between;align-items:center;padding:20px 24px;border-bottom:1px solid var(--border);flex-shrink:0;">
       <div>
-        <div style="font-size:15px;font-weight:700;color:var(--text);">Contáctanos</div>
-        <div style="font-size:11px;color:var(--text3);margin-top:2px;">Errores · Consultas · Mejoras · Felicitaciones
+        <div style="font-size:15px;font-weight:700;color:var(--text);" data-i18n="feedback.title">Contáctanos</div>
+        <div style="font-size:11px;color:var(--text3);margin-top:2px;" data-i18n="feedback.subtitle">Errores · Consultas · Mejoras · Felicitaciones
         </div>
       </div>
-      <button onclick="closeFeedback()"
+      <button onclick="closeFeedback()" aria-label="Cerrar" data-i18n-aria-label="common.close"
         style="background:none;border:none;cursor:pointer;color:var(--text2);font-size:20px;line-height:1;padding:4px;">✕</button>
     </div>
     <!-- Form -->
@@ -1914,13 +1921,13 @@
       <div style="display:flex;flex-direction:column;gap:16px;">
         <div>
           <label
-            style="font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--text3);font-weight:600;display:block;margin-bottom:6px;">Nombre</label>
-          <input id="fbName" type="text" placeholder="Tu nombre"
+            style="font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--text3);font-weight:600;display:block;margin-bottom:6px;" data-i18n="feedback.lbl.name">Nombre</label>
+          <input id="fbName" type="text" placeholder="Tu nombre" data-i18n-placeholder="feedback.ph.name"
             style="width:100%;box-sizing:border-box;padding:8px 12px;border-radius:6px;border:1px solid var(--border);background:var(--bg);color:var(--text);font-size:13px;outline:none;">
         </div>
         <div>
           <label
-            style="font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--text3);font-weight:600;display:block;margin-bottom:6px;">App</label>
+            style="font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--text3);font-weight:600;display:block;margin-bottom:6px;" data-i18n="feedback.lbl.app">App</label>
           <select id="fbApp"
             style="width:100%;box-sizing:border-box;padding:8px 12px;border-radius:6px;border:1px solid var(--border);background:var(--bg);color:var(--text);font-size:13px;outline:none;cursor:pointer;">
             <option value="Production Hierarchy">Production Hierarchy</option>
@@ -1931,19 +1938,19 @@
         </div>
         <div>
           <label
-            style="font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--text3);font-weight:600;display:block;margin-bottom:6px;">Tipo</label>
+            style="font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--text3);font-weight:600;display:block;margin-bottom:6px;" data-i18n="feedback.lbl.type">Tipo</label>
           <select id="fbType"
             style="width:100%;box-sizing:border-box;padding:8px 12px;border-radius:6px;border:1px solid var(--border);background:var(--bg);color:var(--text);font-size:13px;outline:none;cursor:pointer;">
-            <option value="Error">🐛 Error</option>
-            <option value="Consulta">❓ Consulta</option>
-            <option value="Mejora">💡 Mejora</option>
-            <option value="Felicitación">⭐ Felicitación</option>
+            <option value="Error" data-i18n="feedback.opt.error">🐛 Error</option>
+            <option value="Consulta" data-i18n="feedback.opt.query">❓ Consulta</option>
+            <option value="Mejora" data-i18n="feedback.opt.improvement">💡 Mejora</option>
+            <option value="Felicitación" data-i18n="feedback.opt.kudos">⭐ Felicitación</option>
           </select>
         </div>
         <div>
           <label
-            style="font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--text3);font-weight:600;display:block;margin-bottom:6px;">Descripción</label>
-          <textarea id="fbDesc" placeholder="Describe tu comentario con el mayor detalle posible…" rows="6"
+            style="font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--text3);font-weight:600;display:block;margin-bottom:6px;" data-i18n="feedback.lbl.desc">Descripción</label>
+          <textarea id="fbDesc" placeholder="Describe tu comentario con el mayor detalle posible…" rows="6" data-i18n-placeholder="feedback.ph.desc"
             style="width:100%;box-sizing:border-box;padding:8px 12px;border-radius:6px;border:1px solid var(--border);background:var(--bg);color:var(--text);font-size:13px;outline:none;resize:vertical;font-family:inherit;line-height:1.5;"></textarea>
         </div>
         <div id="fbMsg" style="font-size:12px;min-height:18px;"></div>
@@ -1951,8 +1958,8 @@
     </div>
     <!-- Footer -->
     <div style="padding:16px 24px;border-top:1px solid var(--border);display:flex;gap:8px;flex-shrink:0;">
-      <button onclick="closeFeedback()" class="btn btn-secondary" style="flex:1;">Cancelar</button>
-      <button id="fbSendBtn" onclick="sendFeedback()" class="btn btn-primary" style="flex:2;">Enviar</button>
+      <button onclick="closeFeedback()" class="btn btn-secondary" style="flex:1;" data-i18n="common.cancel">Cancelar</button>
+      <button id="fbSendBtn" onclick="sendFeedback()" class="btn btn-primary" style="flex:2;" data-i18n="common.send">Enviar</button>
     </div>
   </div>
 
@@ -1960,18 +1967,18 @@
   <dialog id="efModal" class="connect-dialog ef-fields-dialog">
     <div class="connect-dialog-header">
       <span class="connect-dialog-title" id="efModalTitle"></span>
-      <button type="button" class="dialog-close-btn" onclick="efModalClose()" aria-label="Cerrar">✕</button>
+      <button type="button" class="dialog-close-btn" onclick="efModalClose()" aria-label="Cerrar" data-i18n-aria-label="common.close">✕</button>
     </div>
     <div class="ef-fields-dialog-body">
       <div class="ef-fields-search-wrap">
-        <input id="efModalSearch" type="text" placeholder="Buscar por ID o descripción..." oninput="efModalFilter()" class="ef-fields-search">
+        <input id="efModalSearch" type="text" placeholder="Buscar por ID o descripción..." data-i18n-placeholder="ef.searchPh" oninput="efModalFilter()" class="ef-fields-search">
       </div>
       <div id="efModalList" class="ef-fields-list"></div>
       <div class="ef-fields-footer">
         <span id="efModalCount" class="ef-fields-count"></span>
         <div class="btn-row" style="margin:0;">
-          <button type="button" class="btn btn-secondary" onclick="efModalClose()">Cancelar</button>
-          <button type="button" class="btn btn-primary" onclick="efModalSave()">Guardar</button>
+          <button type="button" class="btn btn-secondary" onclick="efModalClose()" data-i18n="common.cancel">Cancelar</button>
+          <button type="button" class="btn btn-primary" onclick="efModalSave()" data-i18n="common.save">Guardar</button>
         </div>
       </div>
     </div>
@@ -1980,37 +1987,37 @@
   <!-- Modal CI-DS -->
   <div id="cids-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:2000;align-items:center;justify-content:center;">
     <div class="cids-modal-box" onclick="event.stopPropagation()">
-      <div class="cids-modal-title">Conectar SAP CI-DS</div>
-      <div class="cids-modal-subtitle">Las credenciales solo se usan durante esta sesion y no se almacenan.</div>
+      <div class="cids-modal-title" data-i18n="cids.title">Conectar SAP CI-DS</div>
+      <div class="cids-modal-subtitle" data-i18n="cids.subtitle">Las credenciales solo se usan durante esta sesión y no se almacenan.</div>
 
       <div class="cids-field-group">
-        <label class="cids-label">URL del servicio SOAP</label>
+        <label class="cids-label" data-i18n="cids.lbl.soapUrl">URL del servicio SOAP</label>
         <input class="cids-input" id="cids-hciUrl" type="url" placeholder="https://host/webservices" autocomplete="off"
           onkeydown="if(event.key==='Enter')Explorer.submitCidsConnect()">
-        <div class="cids-hint">Kyma: https://&lt;host&gt;/webservices &nbsp;·&nbsp; Neo: https://&lt;host&gt;/DSoD/webservices</div>
+        <div class="cids-hint" data-i18n-html="cids.hint.soapUrl">Kyma: https://&lt;host&gt;/webservices &nbsp;·&nbsp; Neo: https://&lt;host&gt;/DSoD/webservices</div>
       </div>
       <div class="cids-field-row">
         <div class="cids-field-group">
-          <label class="cids-label">Organizacion (orgName)</label>
-          <input class="cids-input mono" id="cids-orgName" type="text" placeholder="miOrganizacion" autocomplete="off"
+          <label class="cids-label" data-i18n="cids.lbl.org">Organización (orgName)</label>
+          <input class="cids-input mono" id="cids-orgName" type="text" placeholder="miOrganización" data-i18n-placeholder="cids.ph.org" autocomplete="off"
             onkeydown="if(event.key==='Enter')Explorer.submitCidsConnect()">
         </div>
         <div class="cids-field-group">
-          <label class="cids-label">Repositorio</label>
+          <label class="cids-label" data-i18n="cids.lbl.repo">Repositorio</label>
           <div class="cids-radio-row">
-            <label class="cids-radio-lbl"><input type="radio" name="cids-repo" id="cids-isProd" checked> Productivo</label>
-            <label class="cids-radio-lbl"><input type="radio" name="cids-repo"> Sandbox</label>
+            <label class="cids-radio-lbl"><input type="radio" name="cids-repo" id="cids-isProd" checked> <span data-i18n="cids.opt.prod">Productivo</span></label>
+            <label class="cids-radio-lbl"><input type="radio" name="cids-repo"> <span data-i18n="cids.opt.sandbox">Sandbox</span></label>
           </div>
         </div>
       </div>
       <div class="cids-field-row">
         <div class="cids-field-group">
-          <label class="cids-label">Usuario</label>
-          <input class="cids-input mono" id="cids-user" type="text" placeholder="WebServicesUser" autocomplete="username"
+          <label class="cids-label" data-i18n="cids.lbl.user">Usuario</label>
+          <input class="cids-input mono" id="cids-user" type="text" placeholder="WebServicesUser" data-i18n-placeholder="cids.ph.user" autocomplete="username"
             onkeydown="if(event.key==='Enter')Explorer.submitCidsConnect()">
         </div>
         <div class="cids-field-group">
-          <label class="cids-label">Contrasena</label>
+          <label class="cids-label" data-i18n="cids.lbl.password">Contraseña</label>
           <input class="cids-input" id="cids-password" type="password" placeholder="••••••••" autocomplete="current-password"
             onkeydown="if(event.key==='Enter')Explorer.submitCidsConnect()">
         </div>
@@ -2019,8 +2026,8 @@
       <div id="cids-modal-error" class="cids-modal-error"></div>
 
       <div class="cids-modal-actions">
-        <button class="btn" onclick="Explorer.closeCidsModal()">Cancelar</button>
-        <button class="btn btn-primary" id="cids-modal-submit" onclick="Explorer.submitCidsConnect()">Conectar</button>
+        <button class="btn" onclick="Explorer.closeCidsModal()" data-i18n="common.cancel">Cancelar</button>
+        <button class="btn btn-primary" id="cids-modal-submit" onclick="Explorer.submitCidsConnect()" data-i18n="cids.btnConnect">Conectar</button>
       </div>
     </div>
   </div>
@@ -2029,13 +2036,13 @@
   <div id="ex-df-fs-modal" class="ex-df-fs-modal" style="display:none;">
     <div class="ex-df-fs-header">
       <div class="ex-df-fs-title" id="ex-df-fs-title"></div>
-      <button class="ex-df-fs-close" onclick="Explorer.closeDataflowFullscreen()" title="Cerrar (Esc)">✕</button>
+      <button class="ex-df-fs-close" onclick="Explorer.closeDataflowFullscreen()" title="Cerrar (Esc)" data-i18n-title="ex.df.close.title">✕</button>
     </div>
     <div class="ex-df-fs-body">
       <div id="ex-df-fs-graph" class="ex-df-fs-graph"></div>
-      <div id="ex-df-fs-resizer" class="ex-df-fs-resizer" title="Arrastra para ajustar el ancho del panel"></div>
+      <div id="ex-df-fs-resizer" class="ex-df-fs-resizer" title="Arrastra para ajustar el ancho del panel" data-i18n-title="ex.df.resizer.title"></div>
       <div id="ex-df-fs-node-detail" class="ex-df-fs-node-detail">
-        <div class="ex-df-fs-detail-hint">Click en un nodo del diagrama para ver sus detalles</div>
+        <div class="ex-df-fs-detail-hint" data-i18n="ex.df.detailHint">Click en un nodo del diagrama para ver sus detalles</div>
       </div>
     </div>
   </div>
