@@ -226,7 +226,61 @@
         'Master-only, no network activity',
       'Sin anomalias topologicas': 'No topological anomalies',
       'cliente(s) servido(s)': 'customer(s) served',
-      'Activo como origen para {n} producto(s)': 'Active as origin for {n} product(s)'
+      'Activo como origen para {n} producto(s)': 'Active as origin for {n} product(s)',
+      // ── Location role values ──
+      'Planta con Entrega': 'Plant with Delivery',
+      'Planta': 'Plant',
+      'DC con Entrega Directa': 'DC with Direct Delivery',
+      'DC': 'DC',
+      'Punto de Entrega': 'Delivery Point',
+      'Sin rol activo': 'No active role',
+      // ── Customer observations ──
+      'Solo en maestro, sin uso en red': 'Master-only, no network activity',
+      'Sin Customer Product': 'No Customer Product',
+      ' producto(s) con unica ruta': ' product(s) with single route',
+      ' producto(s) con nodo critico unico': ' product(s) with single critical node',
+      'Sin productos alcanzables desde produccion': 'No products reachable from production',
+      'Abastecido con rutas resilientes': 'Supplied with resilient routes',
+      'Habilitado en Customer Product': 'Enabled in Customer Product',
+      ' producto(s) alcanzables': ' product(s) reachable',
+      ' ruta(s) configuradas': ' route(s) configured',
+      // ── Location Source observations ──
+      'Sin Location Product en origen (': 'No Location Product at origin (',
+      'Sin Location Product en destino (': 'No Location Product at destination (',
+      'Arco duplicado en el dataset': 'Duplicate arc in dataset',
+      'Existe arco inverso (': 'Inverse arc exists (',
+      'Arco valido | Location Product en origen y destino | TLEADTIME definido':
+        'Valid arc | Location Product at origin and destination | TLEADTIME defined',
+      ' | En ruta completa': ' | In full route',
+      // ── Customer Source observations ──
+      'Sin Location Product en ubicacion (': 'No Location Product at location (',
+      'Sin Customer Product para cliente (': 'No Customer Product for customer (',
+      'Entrega no alcanzable desde produccion': 'Delivery not reachable from production',
+      'Entrega alcanzable | Location Product y Customer Product configurados | CLEADTIME definido':
+        'Delivery reachable | Location Product and Customer Product configured | CLEADTIME defined',
+      // ── Health score steps (static) ──
+      '+30 produccion configurada': '+30 production configured',
+      '+0 sin produccion': '+0 no production',
+      '+40 consumo PSI configurado': '+40 PSI consumption configured',
+      '+0 sin consumo PSI': '+0 no PSI consumption',
+      '+10 transferencia configurada': '+10 transfer configured',
+      '+60 arcos de suministro configurados': '+60 supply arcs configured',
+      '+0 sin arcos de suministro': '+0 no supply arcs',
+      '+20 entrega directa a cliente configurada': '+20 direct customer delivery configured',
+      '+40 distribucion configurada': '+40 distribution configured',
+      '+0 sin distribucion': '+0 no distribution',
+      '+40 entrega a cliente configurada': '+40 customer delivery configured',
+      '+0 sin entrega a cliente': '+0 no customer delivery',
+      '+50 ruta completa planta-cliente': '+50 full plant-to-customer route',
+      '+0 sin rutas completas': '+0 no full routes',
+      '-20 cliente(s) con unica ruta': '-20 customer(s) with single route',
+      '-15 fuente unica de produccion': '-15 single production source',
+      // ── Health score steps (dynamic prefixes) ──
+      '+20 multiples plantas (': '+20 multiple plants (',
+      '+20 ubicaciones de consumo alcanzadas (': '+20 consumption locations reached (',
+      '+20 multiples clientes (': '+20 multiple customers (',
+      '+15 multiples clientes (': '+15 multiple customers (',
+      '+15 multiples rutas (': '+15 multiple routes ('
     };
     function _xn(s) {
       return (window.I18n && I18n.getLang() === 'en' && _XLS_NOTES_EN[s]) ? _XLS_NOTES_EN[s] : s;
@@ -1891,12 +1945,12 @@
           lObsStr = lOkParts.join(' | ');
         } else { lObsStr = lobs.join(' | '); }
 
-        var _locRole = (inPSHL && inCSL) ? 'Planta con Entrega'
+        var _locRole = _xn((inPSHL && inCSL) ? 'Planta con Entrega'
           : inPSHL ? 'Planta'
           : (inLSL && inCSL) ? 'DC con Entrega Directa'
           : inLSL ? 'DC'
           : inCSL ? 'Punto de Entrega'
-          : 'Sin rol activo';
+          : 'Sin rol activo');
 
         var _locRow = [
           stLabel(lFill), lObsStr,
@@ -1932,21 +1986,21 @@
           : cSt.prdCount > 0 ? 'Resilient' : '-';
 
         var cobs = [];
-        if (onlyM2)               cobs.push('Solo en maestro, sin uso en red');
-        if (!inCP2 && inCS2)      cobs.push('Sin Customer Product');
-        if (cSt.single > 0)       cobs.push(cSt.single + ' producto(s) con unica ruta');
-        if (cSt.dep > 0)          cobs.push(cSt.dep + ' producto(s) con nodo critico unico');
-        if (!onlyM2 && numPrd2 === 0) cobs.push('Sin productos alcanzables desde produccion');
+        if (onlyM2)               cobs.push(_xn('Solo en maestro, sin uso en red'));
+        if (!inCP2 && inCS2)      cobs.push(_xn('Sin Customer Product'));
+        if (cSt.single > 0)       cobs.push(cSt.single + _xn(' producto(s) con unica ruta'));
+        if (cSt.dep > 0)          cobs.push(cSt.dep + _xn(' producto(s) con nodo critico unico'));
+        if (!onlyM2 && numPrd2 === 0) cobs.push(_xn('Sin productos alcanzables desde produccion'));
 
         var cFill = (onlyM2 || (!onlyM2 && numPrd2 === 0)) ? C_RED
           : (!inCP2 && inCS2 || cSt.single > 0) ? C_YEL : null;
 
         var cObsStr;
         if (!cobs.length) {
-          var cOkParts = ['Abastecido con rutas resilientes'];
-          if (inCP2)           cOkParts.push('Habilitado en Customer Product');
-          if (numPrd2 > 0)     cOkParts.push(numPrd2 + ' producto(s) alcanzables');
-          if (cSt.pathCount > 0) cOkParts.push(cSt.pathCount + ' ruta(s) configuradas');
+          var cOkParts = [_xn('Abastecido con rutas resilientes')];
+          if (inCP2)           cOkParts.push(_xn('Habilitado en Customer Product'));
+          if (numPrd2 > 0)     cOkParts.push(numPrd2 + _xn(' producto(s) alcanzables'));
+          if (cSt.pathCount > 0) cOkParts.push(cSt.pathCount + _xn(' ruta(s) configuradas'));
           cObsStr = cOkParts.join(' | ');
         } else { cObsStr = cobs.join(' | '); }
 
@@ -1993,10 +2047,10 @@
         var ltSt     = !tlt ? 'Missing' : (ltNum === 0 ? 'Zero' : 'OK');
 
         var lsObs = [];
-        if (!inLPFr) lsObs.push('Sin Location Product en origen (' + fr + ')');
-        if (!inLPTo) lsObs.push('Sin Location Product en destino (' + to + ')');
-        if (isDup)   lsObs.push('Arco duplicado en el dataset');
-        if (isInv)   lsObs.push('Existe arco inverso (' + to + '→' + fr + ')');
+        if (!inLPFr) lsObs.push(_xn('Sin Location Product en origen (') + fr + ')');
+        if (!inLPTo) lsObs.push(_xn('Sin Location Product en destino (') + to + ')');
+        if (isDup)   lsObs.push(_xn('Arco duplicado en el dataset'));
+        if (isInv)   lsObs.push(_xn('Existe arco inverso (') + to + '→' + fr + ')');
         if (ltSt !== 'OK') lsObs.push('TLEADTIME ' + ltSt.toLowerCase());
 
         var lsFill = (!inLPFr || !inLPTo || isDup) ? C_RED
@@ -2004,7 +2058,7 @@
 
         var lsObsStr = lsObs.length
           ? lsObs.join(' | ')
-          : 'Arco valido | Location Product en origen y destino | TLEADTIME definido' + (inPath ? ' | En ruta completa' : '');
+          : _xn('Arco valido | Location Product en origen y destino | TLEADTIME definido') + (inPath ? _xn(' | En ruta completa') : '');
 
         var isSpof = (originsPerDest[p + '|' + to] || 0) === 1;
         var _lsRow = [
@@ -2038,9 +2092,9 @@
         var ltSt2    = !clt ? 'Missing' : (ltNum2 === 0 ? 'Zero' : 'OK');
 
         var csObs = [];
-        if (!inLPLoc)               csObs.push('Sin Location Product en ubicacion (' + loc + ')');
-        if (!inCPCust)              csObs.push('Sin Customer Product para cliente (' + c + ')');
-        if (!inPath2 && pInPSH2)    csObs.push('Entrega no alcanzable desde produccion');
+        if (!inLPLoc)               csObs.push(_xn('Sin Location Product en ubicacion (') + loc + ')');
+        if (!inCPCust)              csObs.push(_xn('Sin Customer Product para cliente (') + c + ')');
+        if (!inPath2 && pInPSH2)    csObs.push(_xn('Entrega no alcanzable desde produccion'));
         if (ltSt2 !== 'OK')         csObs.push('CLEADTIME ' + ltSt2.toLowerCase());
 
         var csFill = (!inLPLoc || !inCPCust) ? C_RED
@@ -2048,7 +2102,7 @@
 
         var csObsStr = csObs.length
           ? csObs.join(' | ')
-          : 'Entrega alcanzable | Location Product y Customer Product configurados | CLEADTIME definido';
+          : _xn('Entrega alcanzable | Location Product y Customer Product configurados | CLEADTIME definido');
 
         var _csRow = [
           stLabel(csFill), csObsStr,
@@ -2099,13 +2153,16 @@
           paFilter: execMeta.paFilter,
           entities: execMeta.entities,
           mattypeCfg: MATTYPE_CFG,
-          kpis: [
-            { label: _xn('Total productos analizados'),       value: n.toLocaleString('es-CL') },
-            { label: _xn('Productos con red completa'),       value: completeCount.toLocaleString('es-CL') },
-            { label: I18n.t('analyzer.summary.totalPlantCustRoutes'),     value: totalPaths.toLocaleString('es-CL') },
-            { label: _xn('Ghost nodes detectados'),           value: ghostCount.toLocaleString('es-CL') },
-            { label: _xn('Health Score promedio'),            value: (n > 0 ? Math.round(healthSum / n) : 0) + ' / 100' }
-          ]
+          kpis: (function() {
+            var _loc = (window.I18n && I18n.getLang() === 'en') ? 'en-US' : 'es-CL';
+            return [
+              { label: _xn('Total productos analizados'),                    value: n.toLocaleString(_loc) },
+              { label: _xn('Productos con red completa'),                    value: completeCount.toLocaleString(_loc) },
+              { label: I18n.t('analyzer.summary.totalPlantCustRoutes'),      value: totalPaths.toLocaleString(_loc) },
+              { label: _xn('Ghost nodes detectados'),                        value: ghostCount.toLocaleString(_loc) },
+              { label: _xn('Health Score promedio'),                         value: (n > 0 ? Math.round(healthSum / n) : 0) + ' / 100' }
+            ];
+          })()
         });
       }
 
@@ -2408,42 +2465,42 @@
 
       if (ctx.useSemiRules) {
         // Semi: PSH existencia + consumo PSI + resiliencia multi-planta
-        if (ctx.inPSH) { score += 30; steps.push('+30 produccion configurada'); }
-        else            { steps.push('+0 sin produccion'); cmts.push('Sin PSH'); }
-        if (ctx.inPSI) { score += 40; steps.push('+40 consumo PSI configurado'); }
-        else            { steps.push('+0 sin consumo PSI'); cmts.push('Sin consumo PSI'); }
-        if (metrics.plants > 1) { score += 20; steps.push('+20 multiples plantas (' + metrics.plants + ')'); }
-        if (ctx.inLS)  { score += 10; steps.push('+10 transferencia configurada'); }
+        if (ctx.inPSH) { score += 30; steps.push(_xn('+30 produccion configurada')); }
+        else            { steps.push(_xn('+0 sin produccion')); cmts.push('Sin PSH'); }
+        if (ctx.inPSI) { score += 40; steps.push(_xn('+40 consumo PSI configurado')); }
+        else            { steps.push(_xn('+0 sin consumo PSI')); cmts.push('Sin consumo PSI'); }
+        if (metrics.plants > 1) { score += 20; steps.push(_xn('+20 multiples plantas (') + metrics.plants + ')'); }
+        if (ctx.inLS)  { score += 10; steps.push(_xn('+10 transferencia configurada')); }
 
       } else if (ctx.useRawmatRules) {
         // Rawmat: arcos de suministro hacia plantas + cobertura de ubicaciones
-        if (ctx.inLS)        { score += 60; steps.push('+60 arcos de suministro configurados'); }
-        else                  { steps.push('+0 sin arcos de suministro'); cmts.push('Sin Location Source'); }
-        if (metrics.dcs > 0) { score += 20; steps.push('+20 ubicaciones de consumo alcanzadas (' + metrics.dcs + ')'); }
-        if (ctx.inCS)        { score += 20; steps.push('+20 entrega directa a cliente configurada'); }
+        if (ctx.inLS)        { score += 60; steps.push(_xn('+60 arcos de suministro configurados')); }
+        else                  { steps.push(_xn('+0 sin arcos de suministro')); cmts.push('Sin Location Source'); }
+        if (metrics.dcs > 0) { score += 20; steps.push(_xn('+20 ubicaciones de consumo alcanzadas (') + metrics.dcs + ')'); }
+        if (ctx.inCS)        { score += 20; steps.push(_xn('+20 entrega directa a cliente configurada')); }
 
       } else if (ctx.useTradingRules) {
         // Trading: distribución + entrega a cliente + amplitud de clientes
-        if (ctx.inLS) { score += 40; steps.push('+40 distribucion configurada'); }
-        else           { steps.push('+0 sin distribucion'); cmts.push('Sin Location Source'); }
-        if (ctx.inCS) { score += 40; steps.push('+40 entrega a cliente configurada'); }
-        else           { steps.push('+0 sin entrega a cliente'); cmts.push('Sin Customer Source'); }
-        if (metrics.customers > 1) { score += 20; steps.push('+20 multiples clientes (' + metrics.customers + ')'); }
+        if (ctx.inLS) { score += 40; steps.push(_xn('+40 distribucion configurada')); }
+        else           { steps.push(_xn('+0 sin distribucion')); cmts.push('Sin Location Source'); }
+        if (ctx.inCS) { score += 40; steps.push(_xn('+40 entrega a cliente configurada')); }
+        else           { steps.push(_xn('+0 sin entrega a cliente')); cmts.push('Sin Customer Source'); }
+        if (metrics.customers > 1) { score += 20; steps.push(_xn('+20 multiples clientes (') + metrics.customers + ')'); }
 
       } else {
         // Finished (y uncategorized): max teórico = 50+15+15+20 = 100 → 'Healthy' alcanzable
-        if (paths.length > 0) { score += 50; steps.push('+50 ruta completa planta-cliente'); }
-        else { steps.push('+0 sin rutas completas'); }
-        if (metrics.customers > 1) { score += 15; steps.push('+15 multiples clientes (' + metrics.customers + ')'); }
-        if (metrics.paths > 1) { score += 15; steps.push('+15 multiples rutas (' + metrics.paths + ')'); }
-        if (metrics.plants > 1) { score += 20; steps.push('+20 multiples plantas (' + metrics.plants + ')'); }
+        if (paths.length > 0) { score += 50; steps.push(_xn('+50 ruta completa planta-cliente')); }
+        else { steps.push(_xn('+0 sin rutas completas')); }
+        if (metrics.customers > 1) { score += 15; steps.push(_xn('+15 multiples clientes (') + metrics.customers + ')'); }
+        if (metrics.paths > 1) { score += 15; steps.push(_xn('+15 multiples rutas (') + metrics.paths + ')'); }
+        if (metrics.plants > 1) { score += 20; steps.push(_xn('+20 multiples plantas (') + metrics.plants + ')'); }
         if (ghosts.length > 0) { score -= 20; steps.push('-20 ghost nodes (' + ghosts.length + ')'); }
         if (deadEnds.length > 0) { score -= 15; steps.push('-15 dead ends (' + deadEnds.length + ')'); }
         var custPC = {};
         paths.forEach(function (p) { custPC[p.customer] = (custPC[p.customer] || 0) + 1; });
         var hasSinglePath = Object.keys(custPC).some(function (c) { return custPC[c] === 1; });
-        if (hasSinglePath) { score -= 20; steps.push('-20 cliente(s) con unica ruta'); cmts.push('Single-path customers detected'); }
-        if (metrics.plants === 1) { score -= 15; steps.push('-15 fuente unica de produccion'); cmts.push('Single production source'); }
+        if (hasSinglePath) { score -= 20; steps.push(_xn('-20 cliente(s) con unica ruta')); cmts.push('Single-path customers detected'); }
+        if (metrics.plants === 1) { score -= 15; steps.push(_xn('-15 fuente unica de produccion')); cmts.push('Single production source'); }
         if (paths.length === 0) cmts.push('No valid plant-to-customer paths');
         if (ghosts.length > 0) cmts.push(ghosts.length + ' ghost DC(s)');
         if (deadEnds.length > 0) cmts.push(deadEnds.length + ' dead-end location(s)');
