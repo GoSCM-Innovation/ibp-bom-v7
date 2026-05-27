@@ -25,6 +25,8 @@ var _XLS_PA_NOTES_EN = {
     'How many distinct production recipes (SOURCEIDs) have this product as primary output. E.g.: 2 = can be manufactured in two different ways.',
   'Cuántos otros productos distintos requieren este material como componente en sus BOMs. Ej: 3 = MAT-A es ingrediente en PROD-001, PROD-002 y PROD-003.':
     'How many other distinct products require this material as a component in their BOMs. E.g.: 3 = MAT-A is an ingredient in PROD-001, PROD-002 and PROD-003.',
+  'Códigos de los productos de salida (PRDID) que usan este material como componente PSI. Ej: PROD-001, PROD-002, PROD-003.':
+    'Output product codes (PRDID) that use this material as a PSI component. E.g.: PROD-001, PROD-002, PROD-003.',
   'Código de la planta donde está configurado este recurso (LOCID). Ej: P001.':
     'Code of the plant where this resource is configured (LOCID). E.g.: P001.',
   'Código de la planta donde se ejecuta esta producción (LOCID). Ej: P001.':
@@ -1335,7 +1337,7 @@ async function paAnalyzeAndExport(
       I18n.t('xls.col.numSuppliers'), I18n.t('xls.col.suppliers'),
       I18n.t('xls.col.numPlantsCovered'), I18n.t('xls.col.plantsCovered'),
       I18n.t('xls.col.numPlantsUncovered'), I18n.t('xls.col.plantsUncovered'),
-      I18n.t('xls.col.numProdUsing'),
+      I18n.t('xls.col.numProdUsing'), I18n.t('xls.col.prodUsing'),
       I18n.t('xls.col.numNetOrigins'), I18n.t('xls.col.netOrigins'),
       I18n.t('xls.col.numConsumerPlants'), I18n.t('xls.col.consumerPlants')
     ];
@@ -1363,6 +1365,7 @@ async function paAnalyzeAndExport(
       _xnPA('Número de plantas consumidoras SIN arco de abastecimiento configurado para este producto. Si > 0: falta configurar Location Source. Ej: P003 consume MAT-A pero no tiene arco desde ningún proveedor → 🔴.'),
       _xnPA('Códigos de las plantas sin cobertura de abastecimiento. Ej: P003.'),
       _xnPA('Cuántos otros productos distintos requieren este material como componente en sus BOMs. Ej: 3 = MAT-A es ingrediente en PROD-001, PROD-002 y PROD-003.'),
+      _xnPA('Códigos de los productos de salida (PRDID) que usan este material como componente PSI. Ej: PROD-001, PROD-002, PROD-003.'),
       _xnPA('Número de nodos origen distintos desde los que este producto puede ser recibido en la red. Ej: 2 = puede llegar desde PROV-01 o desde P002.'),
       _xnPA('Códigos de los nodos origen del producto en la red. Ej: PROV-01, P002.'),
       _xnPA('Número de plantas donde este producto es consumido como ingrediente en algún BOM. Ej: 2 = se usa como componente en P001 y P002.'),
@@ -1379,7 +1382,7 @@ async function paAnalyzeAndExport(
       'metric','detail',
       'metric','detail',
       'metric','detail',
-      'metric',
+      'metric','detail',
       'metric','detail',
       'metric','detail'
     ];
@@ -1623,7 +1626,7 @@ async function paAnalyzeAndExport(
         vendorSet.size,        codes(vendorSet),
         covData.covered.size,  codes(covData.covered),
         covData.uncovered.size, codes(covData.uncovered),
-        usedBySet.size,
+        usedBySet.size,        codes(usedBySet),
         origins.size,         codes(origins),
         consLocs.size,        codes(consLocs)
       ];
