@@ -174,6 +174,7 @@
             ['# Plantas sin cobertura', 'Plantas que consumen este producto como insumo pero no tienen arco de abastecimiento configurado. Si > 0: falta Location Source. ⛔ crítico.'],
             ['Plantas sin cobertura (códigos)', 'Códigos de las plantas consumidoras sin cobertura de abastecimiento.'],
             ['# Productos que lo usan', 'Cuántos otros productos distintos requieren este material como componente PSI.'],
+            ['Productos que lo usan', 'Códigos de los productos de salida (PRDID) que usan este material como componente PSI.'],
             ['# Orígenes en red', 'Número de nodos origen distintos detectados en la red de este producto (LOCFR en Location Source).'],
             ['Orígenes en red (códigos)', 'Códigos de los nodos origen.'],
             ['# Plantas consumidoras', 'Número de plantas que consumen este producto como componente PSI en alguna receta.'],

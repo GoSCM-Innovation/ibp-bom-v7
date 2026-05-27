@@ -537,6 +537,7 @@
   "xls.col.numPlantsUncovered": "# Plants uncovered",
   "xls.col.plantsUncovered": "Plants uncovered (codes)",
   "xls.col.numProdUsing": "# Products using it",
+  "xls.col.prodUsing": "Products using it",
   "xls.col.numNetOrigins": "# Network origins",
   "xls.col.netOrigins": "Network origins (codes)",
   "xls.col.numConsumerPlants": "# Consumer plants",

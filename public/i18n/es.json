@@ -537,6 +537,7 @@
   "xls.col.numPlantsUncovered": "# Plantas sin cobertura",
   "xls.col.plantsUncovered": "Plantas sin cobertura (códigos)",
   "xls.col.numProdUsing": "# Productos que lo usan",
+  "xls.col.prodUsing": "Productos que lo usan",
   "xls.col.numNetOrigins": "# Orígenes en red",
   "xls.col.netOrigins": "Orígenes en red (códigos)",
   "xls.col.numConsumerPlants": "# Plantas consumidoras",
