@@ -71,6 +71,12 @@ function setP(p) {
 // ════════════════════════════════════════════════════════════
 //  FILE HANDLING
 // ════════════════════════════════════════════════════════════
+// audit M-06: caps on uploaded file size and total ZIP decompressed size.
+// Real CI-DS ZIPs are < 10 MB; zip-bombs can decompress 1 KB to GBs.
+const MAX_ZIP_FILE_BYTES   = 50 * 1024 * 1024;   // 50 MB per file
+const MAX_ZIP_DECOMPRESSED = 200 * 1024 * 1024;  // 200 MB total decompressed
+const MAX_ATL_FILE_BYTES   = 20 * 1024 * 1024;   // 20 MB per ATL/txt file
+
 const dz = document.getElementById('dz');
 dz.addEventListener('dragover', e => { e.preventDefault(); dz.classList.add('drag-over'); });
 dz.addEventListener('dragleave', () => dz.classList.remove('drag-over'));
@@ -80,6 +86,10 @@ document.getElementById('fi').addEventListener('change', e => addFiles([...e.tar
 function addFiles(list) {
   list.filter(f => f.name.endsWith('.zip')).forEach(f => {
     if (files.find(x => x.name === f.name)) return;
+    if (f.size > MAX_ZIP_FILE_BYTES) {
+      docsLog(`ZIP "${f.name}" rechazado: supera ${(MAX_ZIP_FILE_BYTES/1024/1024).toFixed(0)} MB`, 'l-line err');
+      return;
+    }
     const r = new FileReader();
     r.onload = ev => { files.push({ name: f.name, data: ev.target.result }); renderFiles(); };
     r.readAsArrayBuffer(f);
@@ -110,6 +120,10 @@ function initZipAtlDropZone() {
 function addZipAtlFiles(list) {
   list.filter(f => f.name.endsWith('.atl') || f.name.endsWith('.txt')).forEach(f => {
     if (zipAtlFiles.find(x => x.name === f.name)) return;
+    if (f.size > MAX_ATL_FILE_BYTES) {
+      docsLog(`ATL "${f.name}" rechazado: supera ${(MAX_ATL_FILE_BYTES/1024/1024).toFixed(0)} MB`, 'l-line err');
+      return;
+    }
     const r = new FileReader();
     r.onload = ev => { zipAtlFiles.push({ name: f.name, text: ev.target.result }); renderZipAtlFiles(); };
     r.readAsText(f);
@@ -231,11 +245,17 @@ function refFromMatch(m) {
   return { schema: m[6], field: m[7] };                                    // unquoted.unquoted
 }
 
-function expandExpr(expr, ts, depth) {
+// audit H-04: budget global per top-level call. Without this, K-ary nested
+// projections can blow up to K^depth output (~5 GB at depth 20 with K=2) even
+// though the depth cap is 30. The budget kills exponential expansion early.
+const EXPAND_EXPR_BUDGET = 10000;
+function expandExpr(expr, ts, depth, budget) {
   if (depth === undefined) depth = 0;
-  if (depth > 30 || !expr) return expr || '';
+  if (!budget) budget = { ops: 0 };
+  if (depth > 30 || !expr || budget.ops > EXPAND_EXPR_BUDGET) return expr || '';
   return expr.replace(_REF, function() {
     const args = Array.from(arguments);
+    if (++budget.ops > EXPAND_EXPR_BUDGET) return args[0];
     const r = refFromMatch(args);
     if (!(r.schema in ts)) return args[0];        // real table ref → keep as is
 
@@ -251,7 +271,7 @@ function expandExpr(expr, ts, depth) {
       return tp[2] + '.' + tp[3];
     }
 
-    return expandExpr(f.proj, ts, depth + 1);
+    return expandExpr(f.proj, ts, depth + 1, budget);
   });
 }
 
@@ -1503,6 +1523,10 @@ function initZipjobsDropZone() {
 function addZipjobsFiles(list) {
   list.filter(f => f.name.endsWith('.zip')).forEach(f => {
     if (zipjobsFiles.find(x => x.name === f.name)) return;
+    if (f.size > MAX_ZIP_FILE_BYTES) {
+      docsLog(`ZIP "${f.name}" rechazado: supera ${(MAX_ZIP_FILE_BYTES/1024/1024).toFixed(0)} MB`, 'l-line err');
+      return;
+    }
     const r = new FileReader();
     r.onload = ev => { zipjobsFiles.push({ name: f.name, data: ev.target.result }); renderZipjobsFiles(); };
     r.readAsArrayBuffer(f);
@@ -1720,6 +1744,10 @@ function initAtlDropZone() {
 function addAtlFiles(list) {
   list.filter(f => f.name.endsWith('.atl') || f.name.endsWith('.txt')).forEach(f => {
     if (atlFiles.find(x => x.name === f.name)) return;
+    if (f.size > MAX_ATL_FILE_BYTES) {
+      docsLog(`ATL "${f.name}" rechazado: supera ${(MAX_ATL_FILE_BYTES/1024/1024).toFixed(0)} MB`, 'l-line err');
+      return;
+    }
     const r = new FileReader();
     r.onload = ev => { atlFiles.push({ name: f.name, text: ev.target.result }); renderAtlFiles(); };
     r.readAsText(f);
@@ -1752,6 +1780,10 @@ function initJobsZipDropZone() {
 function addJobsZipFiles(list) {
   list.filter(f => f.name.endsWith('.zip')).forEach(f => {
     if (jobsFiles.find(x => x.name === f.name)) return;
+    if (f.size > MAX_ZIP_FILE_BYTES) {
+      docsLog(`ZIP "${f.name}" rechazado: supera ${(MAX_ZIP_FILE_BYTES/1024/1024).toFixed(0)} MB`, 'l-line err');
+      return;
+    }
     const r = new FileReader();
     r.onload = ev => { jobsFiles.push({ name: f.name, data: ev.target.result }); renderJobsZipFiles(); };
     r.readAsArrayBuffer(f);
