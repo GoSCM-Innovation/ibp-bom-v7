@@ -753,6 +753,8 @@
   "xls.resumen.entities": "ENTIDADES ODATA UTILIZADAS ({n})",
   "xls.resumen.noEntities": "(sin entidades registradas)",
   "xls.resumen.recordsDownloaded": "{n} registros descargados",
+  "xls.resumen.recordsRetained": "{n} retenidos tras filtros automaticos",
+  "xls.resumen.recordsAnalyzed": "{n} analizados",
   "xls.resumen.notAvailable": "n/a",
   "xls.resumen.mattypeHeader": "TIPOS DE MATERIAL — {total} detectados | {incl} incluidos | {excl} excluidos | {catted} categorizados",
   "xls.resumen.includedTypes": "Tipos incluidos en el analisis",
