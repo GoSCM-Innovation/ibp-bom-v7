@@ -2144,7 +2144,7 @@ async function paAnalyzeAndExport(
       'SOURCEID',
       'PRDID output','PRDDESCR output','MATTYPEID output',
       'LOCID planta','LOCDESCR planta',
-      'SOURCETYPE(s)','PLEADTIME','OUTPUTCOEFFICIENT','PRATIO',
+      'SOURCETYPE','PLEADTIME','OUTPUTCOEFFICIENT','PRATIO',
       _xnPA('PRDID+LOCID en Location Product'),
       _xnPA('# Componentes PSI'),_xnPA('# Recursos PSR'),_xnPA('Recursos PSR (códigos)'),
       _xnPA('# Componentes con alternativa'),
@@ -2185,48 +2185,49 @@ async function paAnalyzeAndExport(
     var S6 = makeSheet(I18n.t('xls.sheet.prodSrcHeader'), 'FFF7A800', _s6Hdrs, _s6Notes, _s6Groups);
     Object.keys(pshBySid).sort().forEach(function(sid) {
       var recs    = pshBySid[sid];
-      var primary = recs.find(function(r){ return r.SOURCETYPE === 'P'; }) || recs[0];
-      var outPrd  = primary.PRDID, outLoc = primary.LOCID;
-      if (!pm(outPrd) || mattypeIsExcluded(pm(outPrd))) return;
-      var plt     = primary.PLEADTIME || '', coeff = primary.OUTPUTCOEFFICIENT || '', pratio = primary.PRATIO || '';
-      var stypes  = recs.map(function(r){ return r.SOURCETYPE; })
-                        .filter(function(v,i,a){ return a.indexOf(v) === i; }).join('/');
-      var inLP    = locPrdSet.has(outLoc + '|' + outPrd);
+      // Métricas a nivel SOURCEID — compartidas por todas las filas de salida del source
       var psiRows = psiBySourceid[sid] || [];
       var psrRows = psrBySourceid[sid] || [];
       var hasPSI  = psiRows.length > 0;
       var hasPSR  = psrRows.length > 0;
-      var noLt    = !plt || plt === '0';
       var hasP    = pshSidHasP[sid];
-      var multi   = (pshByPrdLoc[outPrd + '|' + outLoc] || []).length > 1;
-
-      // Métricas
       var residsSet = new Set(psrRows.map(function(r){ return str(r.RESID || ''); }).filter(Boolean));
       var altCount  = psiRows.filter(function(r){ return str(r.ISALTITEM || '') === 'X'; }).length;
 
-      var obs = [];
-      if (!hasPSI) obs.push(_xnPA('BOM vacío: sin componentes PSI'));
-      if (noLt)    obs.push(_xnPA('PLEADTIME = 0 o no definido'));
-      if (!inLP)   obs.push(_xnPA('PRDID+LOCID sin cobertura en Location Product'));
-      if (!hasP)   obs.push(_xnPA('Sin registro SOURCETYPE=P'));
-      if (!hasPSR) obs.push(_xnPA('Sin recursos PSR asignados'));
-      if (multi)   obs.push(_xnPA('Múltiples SOURCEIDs para mismo PRDID+LOCID — verificar cuotas'));
-      if (!obs.length) obs.push(_xnPA('BOM con componentes PSI | Lead time definido | Habilitado en LP | SOURCETYPE=P presente | Recursos PSR asignados'));
-      var fill = (!hasPSI || noLt || !inLP || !hasPSR) ? C_RED : (!hasP || multi) ? C_YEL : null;
-      var _s6Row = [
-        statusLabel(fill), obs.join(' | '),
-        sid,
-        outPrd, pd(outPrd), pm(outPrd),
-        outLoc, ld(outLoc),
-        stypes, plt, coeff, pratio,
-        yn(inLP),
-        psiRows.length, residsSet.size, codes(residsSet),
-        altCount,
-        yn(hasPSR)
-      ];
-      efInjectRow(_s6Row, 'pa', 'psh', 11, primary);
-      S6.addRow(_s6Row, fill);
-      track('Prod Source Header', fill);
+      // Una fila por cada registro de salida (producto principal + co-productos)
+      recs.forEach(function(rec) {
+        var outPrd = rec.PRDID, outLoc = rec.LOCID;
+        if (!pm(outPrd) || mattypeIsExcluded(pm(outPrd))) return;
+        var plt    = rec.PLEADTIME || '', coeff = rec.OUTPUTCOEFFICIENT || '', pratio = rec.PRATIO || '';
+        var stype  = rec.SOURCETYPE || '';
+        var inLP   = locPrdSet.has(outLoc + '|' + outPrd);
+        var noLt   = !plt || plt === '0';
+        var multi  = (pshByPrdLoc[outPrd + '|' + outLoc] || []).length > 1;
+
+        var obs = [];
+        if (!hasPSI) obs.push(_xnPA('BOM vacío: sin componentes PSI'));
+        if (noLt)    obs.push(_xnPA('PLEADTIME = 0 o no definido'));
+        if (!inLP)   obs.push(_xnPA('PRDID+LOCID sin cobertura en Location Product'));
+        if (!hasP)   obs.push(_xnPA('Sin registro SOURCETYPE=P'));
+        if (!hasPSR) obs.push(_xnPA('Sin recursos PSR asignados'));
+        if (multi)   obs.push(_xnPA('Múltiples SOURCEIDs para mismo PRDID+LOCID — verificar cuotas'));
+        if (!obs.length) obs.push(_xnPA('BOM con componentes PSI | Lead time definido | Habilitado en LP | SOURCETYPE=P presente | Recursos PSR asignados'));
+        var fill = (!hasPSI || noLt || !inLP || !hasPSR) ? C_RED : (!hasP || multi) ? C_YEL : null;
+        var _s6Row = [
+          statusLabel(fill), obs.join(' | '),
+          sid,
+          outPrd, pd(outPrd), pm(outPrd),
+          outLoc, ld(outLoc),
+          stype, plt, coeff, pratio,
+          yn(inLP),
+          psiRows.length, residsSet.size, codes(residsSet),
+          altCount,
+          yn(hasPSR)
+        ];
+        efInjectRow(_s6Row, 'pa', 'psh', 11, rec);
+        S6.addRow(_s6Row, fill);
+        track('Prod Source Header', fill);
+      });
     });
     S6.finalize();
     setStatusPA(_xnPA('Hoja Prod Source Header lista...'), 88);
