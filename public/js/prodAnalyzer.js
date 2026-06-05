@@ -620,10 +620,12 @@ async function doProductionAnalysis() {
 
     setStatusPA(I18n.t('xls.log.downloading', { entity: 'Production Source Header' }), 2);
     log(logEl, 'info', timer.fmt() + ' [GET] ' + baseOData + ent.psh);
+    var nPshKept = 0;
     var nPsh = await fetchAndIndex(baseOData + ent.psh, logEl, fPsh,
       efGetSelect('pa', 'psh'),
       function(rows) {
         rows = rows.filter(function(r) { return r.PINVALID !== 'X'; });
+        nPshKept += rows.length;
         var _pshExtra = (typeof EF_SEL !== 'undefined') ? (EF_SEL['pa']['psh'] || []) : [];
         rows.forEach(function(r) {
           var sid = str(r.SOURCEID); if (!sid) return;
@@ -642,45 +644,51 @@ async function doProductionAnalysis() {
         return idbBulkPut('pa_psh', rows);
       });
     log(logEl, 'ok', timer.fmt() + ' PSH: ' + nPsh + ' reg (' + Object.keys(pshBySid).length + ' SOURCEIDs)');
-    PA_EXEC_META.entities.push({ name: 'Production Source Header', entityName: ent.psh, downloaded: nPsh, note: _xnPA('Excluye PINVALID=X') });
+    PA_EXEC_META.entities.push({ name: 'Production Source Header', entityName: ent.psh, downloaded: nPsh, retained: nPshKept, statKey: 'Prod Source Header', note: _xnPA('Excluye PINVALID=X') });
     progEl.style.width = '12%';
 
     if (ent.psi) {
       setStatusPA(I18n.t('xls.log.downloading', { entity: 'Production Source Item' }), 12);
+      var nPsiKept = 0;
       var nPsi = await fetchAndIndex(baseOData + ent.psi, logEl, paFilter,
         efGetSelect('pa', 'psi'),
         function(rows) {
           var validRows = rows.filter(function(r) { return !!pshBySid[str(r.SOURCEID)]; });
+          nPsiKept += validRows.length;
           return idbBulkPut('pa_psi', validRows);
         });
       log(logEl, 'ok', timer.fmt() + ' PSI: ' + nPsi + ' reg');
-      PA_EXEC_META.entities.push({ name: 'Production Source Item', entityName: ent.psi, downloaded: nPsi, note: _xnPA('Solo SOURCEIDs activos en PSH') });
+      PA_EXEC_META.entities.push({ name: 'Production Source Item', entityName: ent.psi, downloaded: nPsi, retained: nPsiKept, statKey: 'Prod Source Item', note: _xnPA('Solo SOURCEIDs activos en PSH') });
     }
     progEl.style.width = '18%';
 
     if (ent.psiSub) {
       setStatusPA(I18n.t('xls.log.downloading', { entity: 'Production Source Item Sub' }), 18);
+      var nPsiSubKept = 0;
       var nPsiSub = await fetchAndIndex(baseOData + ent.psiSub, logEl, paFilter,
         'SOURCEID,PRDFR,SPRDFR',
         function(rows) {
           var validRows = rows.filter(function(r) { return !!pshBySid[str(r.SOURCEID)]; });
+          nPsiSubKept += validRows.length;
           return idbBulkPut('pa_psisub', validRows);
         });
       log(logEl, 'ok', timer.fmt() + ' PSI Sub: ' + nPsiSub + ' reg');
-      PA_EXEC_META.entities.push({ name: 'Production Source Item Sub', entityName: ent.psiSub, downloaded: nPsiSub, note: _xnPA('Solo SOURCEIDs activos en PSH') });
+      PA_EXEC_META.entities.push({ name: 'Production Source Item Sub', entityName: ent.psiSub, downloaded: nPsiSub, retained: nPsiSubKept, note: _xnPA('Solo SOURCEIDs activos en PSH') });
     }
     progEl.style.width = '22%';
 
     if (ent.psr) {
       setStatusPA(I18n.t('xls.log.downloading', { entity: 'Production Source Resource' }), 22);
+      var nPsrKept = 0;
       var nPsr = await fetchAndIndex(baseOData + ent.psr, logEl, paFilter,
         efGetSelect('pa', 'psr'),
         function(rows) {
           var validRows = rows.filter(function(r) { return !!pshBySid[str(r.SOURCEID)]; });
+          nPsrKept += validRows.length;
           return idbBulkPut('pa_psr', validRows);
         });
       log(logEl, 'ok', timer.fmt() + ' PSR: ' + nPsr + ' reg');
-      PA_EXEC_META.entities.push({ name: 'Production Source Resource', entityName: ent.psr, downloaded: nPsr, note: _xnPA('Solo SOURCEIDs activos en PSH') });
+      PA_EXEC_META.entities.push({ name: 'Production Source Resource', entityName: ent.psr, downloaded: nPsr, retained: nPsrKept, statKey: 'Prod Source Resource', note: _xnPA('Solo SOURCEIDs activos en PSH') });
     }
     progEl.style.width = '32%';
 
@@ -693,21 +701,23 @@ async function doProductionAnalysis() {
           return Promise.resolve();
         });
       log(logEl, 'ok', timer.fmt() + ' Product: ' + nPrd + ' reg');
-      PA_EXEC_META.entities.push({ name: 'Product', entityName: ent.prd, downloaded: nPrd });
+      PA_EXEC_META.entities.push({ name: 'Product', entityName: ent.prd, downloaded: nPrd, statKey: 'Product' });
     }
     progEl.style.width = '44%';
 
     if (ent.loc) {
       setStatusPA(I18n.t('xls.log.indexing', { entity: 'Location' }), 44);
+      var nLocKept = 0;
       var nLoc = await fetchAndIndex(baseOData + ent.loc, logEl, fLoc,
         efGetSelect('pa', 'location'),
         function(rows) {
           rows = rows.filter(function(r) { return r.LOCVALID !== 'X'; });
+          nLocKept += rows.length;
           rows.forEach(function(r) { var k = str(r.LOCID); if (k) PA_LOC[k] = r; });
           return Promise.resolve();
         });
       log(logEl, 'ok', timer.fmt() + ' Location: ' + nLoc + ' reg');
-      PA_EXEC_META.entities.push({ name: 'Location', entityName: ent.loc, downloaded: nLoc, note: _xnPA('Excluye LOCVALID=X') });
+      PA_EXEC_META.entities.push({ name: 'Location', entityName: ent.loc, downloaded: nLoc, retained: nLocKept, statKey: 'Location', note: _xnPA('Excluye LOCVALID=X') });
     }
     progEl.style.width = '54%';
 
@@ -720,7 +730,7 @@ async function doProductionAnalysis() {
           return Promise.resolve();
         });
       log(logEl, 'ok', timer.fmt() + ' Resource: ' + nRes + ' reg');
-      PA_EXEC_META.entities.push({ name: 'Resource', entityName: ent.res, downloaded: nRes });
+      PA_EXEC_META.entities.push({ name: 'Resource', entityName: ent.res, downloaded: nRes, statKey: 'Resource' });
     }
     progEl.style.width = '60%';
 
@@ -740,7 +750,7 @@ async function doProductionAnalysis() {
           return Promise.resolve();
         });
       log(logEl, 'ok', timer.fmt() + ' Resource Location: ' + nResLoc + ' reg');
-      PA_EXEC_META.entities.push({ name: 'Resource Location', entityName: ent.resLoc, downloaded: nResLoc });
+      PA_EXEC_META.entities.push({ name: 'Resource Location', entityName: ent.resLoc, downloaded: nResLoc, statKey: 'Resource Location' });
     }
     progEl.style.width = '64%';
 
@@ -756,14 +766,16 @@ async function doProductionAnalysis() {
 
     if (ent.locSrc) {
       setStatusPA(I18n.t('xls.log.downloading', { entity: 'Location Source' }), 68);
+      var nLsKept = 0;
       var nLs = await fetchAndIndex(baseOData + ent.locSrc, logEl, fLocSrc,
         'PRDID,LOCFR,LOCID,TLEADTIME,TINVALID',
         function(rows) {
           rows = rows.filter(function(r) { return r.TINVALID !== 'X'; });
+          nLsKept += rows.length;
           return idbBulkPut('pa_loc_src', rows);
         });
       log(logEl, 'ok', timer.fmt() + ' Location Source: ' + nLs + ' reg');
-      PA_EXEC_META.entities.push({ name: 'Location Source', entityName: ent.locSrc, downloaded: nLs, note: _xnPA('Excluye TINVALID=X') });
+      PA_EXEC_META.entities.push({ name: 'Location Source', entityName: ent.locSrc, downloaded: nLs, retained: nLsKept, note: _xnPA('Excluye TINVALID=X') });
     }
     progEl.style.width = '75%';
 
@@ -2590,6 +2602,10 @@ async function paAnalyzeAndExport(
 
   if (execMeta) {
     var prdStat = STATS['Product'] || {};
+    // Inyectar conteo "analizado" (filas emitidas tras exclusiones de tipo de material) por entidad
+    (execMeta.entities || []).forEach(function(e) {
+      if (e.statKey && STATS[e.statKey]) e.analyzed = STATS[e.statKey].total;
+    });
     buildResumenMeta(S0.ws, {
       analyzer: 'Production Hierarchy Analyzer',
       generatedAt: execMeta.generatedAt,

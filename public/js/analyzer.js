@@ -585,30 +585,34 @@
         if (locationEntity) {
           setStatusSN('info', 'Descargando Location Source → IDB...');
           log(logEl, 'info', timer.fmt() + ' [GET] ' + baseOData + locationEntity);
+          var nLocKept = 0;
           var nLoc = await fetchAndIndex(baseOData + locationEntity, logEl, fLocSrc,
             efGetSelect('sn', 'locationSource'),
             function (rows) {
               rows = rows.filter(function(r) { return r.TINVALID !== 'X'; });
+              nLocKept += rows.length;
               rows.forEach(function (r) { var p = str(r.PRDID); if (p) SN_IDX.allPrds[p] = true; });
               return idbBulkPut('sn_loc', rows);
             });
           log(logEl, 'ok', timer.fmt() + ' Location Source: ' + nLoc + ' reg → IDB (' + Object.keys(SN_IDX.allPrds).length + ' productos)');
-          SN_EXEC_META.entities.push({ name: 'Location Source', entityName: locationEntity, downloaded: nLoc, note: _xn('Excluye TINVALID=X') });
+          SN_EXEC_META.entities.push({ name: 'Location Source', entityName: locationEntity, downloaded: nLoc, retained: nLocKept, statKey: 'Location Source', note: _xn('Excluye TINVALID=X') });
         }
         progEl.style.width = '8%';
 
         if (customerEntity) {
           setStatusSN('info', 'Descargando Customer Source → IDB...');
           log(logEl, 'info', timer.fmt() + ' [GET] ' + baseOData + customerEntity);
+          var nCustKept = 0;
           var nCust = await fetchAndIndex(baseOData + customerEntity, logEl, fCustSrc,
             efGetSelect('sn', 'customerSource'),
             function (rows) {
               rows = rows.filter(function(r) { return r.CINVALID !== 'X'; });
+              nCustKept += rows.length;
               rows.forEach(function (r) { var p = str(r.PRDID); if (p) SN_IDX.allPrds[p] = true; });
               return idbBulkPut('sn_cust', rows);
             });
           log(logEl, 'ok', timer.fmt() + ' Customer Source: ' + nCust + ' reg → IDB');
-          SN_EXEC_META.entities.push({ name: 'Customer Source', entityName: customerEntity, downloaded: nCust, note: _xn('Excluye CINVALID=X') });
+          SN_EXEC_META.entities.push({ name: 'Customer Source', entityName: customerEntity, downloaded: nCust, retained: nCustKept, statKey: 'Customer Source', note: _xn('Excluye CINVALID=X') });
         }
         progEl.style.width = '17%';
 
@@ -622,17 +626,19 @@
               return Promise.resolve();
             });
           log(logEl, 'ok', timer.fmt() + ' Product: ' + nPrd + ' reg');
-          SN_EXEC_META.entities.push({ name: 'Product', entityName: productEntity, downloaded: nPrd });
+          SN_EXEC_META.entities.push({ name: 'Product', entityName: productEntity, downloaded: nPrd, statKey: 'Product' });
         }
         progEl.style.width = '25%';
 
         if (sourceProdEntity) {
           setStatusSN('info', 'Descargando Production Source Header → IDB...');
           log(logEl, 'info', timer.fmt() + ' [GET] ' + baseOData + sourceProdEntity);
+          var nSrcKept = 0;
           var nSrc = await fetchAndIndex(baseOData + sourceProdEntity, logEl, fPsh,
             buildSelect(sourceProdEntity, ['SOURCEID','PRDID','LOCID','PLEADTIME','PRATIO','PINVALID']),
             function (rows) {
               rows = rows.filter(function(r) { return r.PINVALID !== 'X'; });
+              nSrcKept += rows.length;
               rows.forEach(function (r) {
                 var p = str(r.PRDID); if (p) { SN_IDX.allPrds[p] = true; SN_IDX.pshPrds[p] = true; }
                 var s = str(r.SOURCEID);
@@ -641,17 +647,19 @@
               return idbBulkPut('sn_plant', rows);
             });
           log(logEl, 'ok', timer.fmt() + ' Production Source Header: ' + nSrc + ' reg → IDB');
-          SN_EXEC_META.entities.push({ name: 'Production Source Header', entityName: sourceProdEntity, downloaded: nSrc, note: _xn('Excluye PINVALID=X') });
+          SN_EXEC_META.entities.push({ name: 'Production Source Header', entityName: sourceProdEntity, downloaded: nSrc, retained: nSrcKept, note: _xn('Excluye PINVALID=X') });
         }
         progEl.style.width = '28%';
 
         if (sourceItemEntity) {
           setStatusSN('info', 'Descargando Production Source Item → IDB...');
           log(logEl, 'info', timer.fmt() + ' [GET] ' + baseOData + sourceItemEntity);
+          var nPsiKept = 0;
           var nPsi = await fetchAndIndex(baseOData + sourceItemEntity, logEl, paFilter,
             'SOURCEID,PRDID,COMPONENTCOEFFICIENT',
             function (rows) {
               var validRows = rows.filter(function(r) { return !!snValidSids[str(r.SOURCEID)]; });
+              nPsiKept += validRows.length;
               validRows.forEach(function (r) {
                 var p = str(r.PRDID); if (!p) return;
                 SN_IDX.psiCompPrds[p] = true;
@@ -664,22 +672,24 @@
               return idbBulkPut('sn_psi', validRows);
             });
           log(logEl, 'ok', timer.fmt() + ' Production Source Item: ' + nPsi + ' reg → IDB (' + Object.keys(SN_IDX.psiCompPrds).length + ' componentes únicos)');
-          SN_EXEC_META.entities.push({ name: 'Production Source Item', entityName: sourceItemEntity, downloaded: nPsi, note: _xn('Solo SOURCEIDs activos en PSH') });
+          SN_EXEC_META.entities.push({ name: 'Production Source Item', entityName: sourceItemEntity, downloaded: nPsi, retained: nPsiKept, note: _xn('Solo SOURCEIDs activos en PSH') });
         }
         progEl.style.width = '33%';
 
         if (locMasterEntity) {
           setStatusSN('info', 'Indexando Location (lookup en memoria)...');
           log(logEl, 'info', timer.fmt() + ' [GET] ' + baseOData + locMasterEntity);
+          var nLocMKept = 0;
           var nLocM = await fetchAndIndex(baseOData + locMasterEntity, logEl, fLoc,
             efGetSelect('sn', 'location'),
             function (rows) {
               rows = rows.filter(function(r) { return r.LOCVALID !== 'X'; });
+              nLocMKept += rows.length;
               rows.forEach(function (r) { var k = str(r.LOCID); if (k) SN_IDX.locLookup[k] = r; });
               return Promise.resolve();
             });
           log(logEl, 'ok', timer.fmt() + ' Location: ' + nLocM + ' reg');
-          SN_EXEC_META.entities.push({ name: 'Location', entityName: locMasterEntity, downloaded: nLocM, note: _xn('Excluye LOCVALID=X') });
+          SN_EXEC_META.entities.push({ name: 'Location', entityName: locMasterEntity, downloaded: nLocM, retained: nLocMKept, statKey: 'Location', note: _xn('Excluye LOCVALID=X') });
         }
         progEl.style.width = '38%';
 
@@ -697,15 +707,17 @@
         if (custMasterEntity) {
           setStatusSN('info', 'Indexando Customer (lookup en memoria)...');
           log(logEl, 'info', timer.fmt() + ' [GET] ' + baseOData + custMasterEntity);
+          var nCustMKept = 0;
           var nCustM = await fetchAndIndex(baseOData + custMasterEntity, logEl, fCust,
             efGetSelect('sn', 'customer'),
             function (rows) {
               rows = rows.filter(function(r) { return r.CUSTVALID !== 'X'; });
+              nCustMKept += rows.length;
               rows.forEach(function (r) { var k = str(r.CUSTID); if (k) SN_IDX.custLookup[k] = r; });
               return Promise.resolve();
             });
           log(logEl, 'ok', timer.fmt() + ' Customer: ' + nCustM + ' reg');
-          SN_EXEC_META.entities.push({ name: 'Customer', entityName: custMasterEntity, downloaded: nCustM, note: _xn('Excluye CUSTVALID=X') });
+          SN_EXEC_META.entities.push({ name: 'Customer', entityName: custMasterEntity, downloaded: nCustM, retained: nCustMKept, statKey: 'Customer', note: _xn('Excluye CUSTVALID=X') });
         }
         progEl.style.width = '46%';
 
@@ -2152,6 +2164,10 @@
       s0ws.columns.forEach(function (col, ci) { col.width = Math.min(Math.max((s0colW[ci] || 10) + 2, 10), 60); });
 
       if (execMeta) {
+        // Inyectar conteo "analizado" (filas emitidas tras exclusiones de tipo de material) por entidad
+        (execMeta.entities || []).forEach(function (e) {
+          if (e.statKey && STATS[e.statKey]) e.analyzed = STATS[e.statKey].total;
+        });
         buildResumenMeta(s0ws, {
           analyzer: 'Supply Network Analyzer',
           generatedAt: execMeta.generatedAt,

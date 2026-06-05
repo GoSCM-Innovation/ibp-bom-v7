@@ -10,7 +10,7 @@ function buildResumenMeta(ws, opts) {
      fileName     — string nombre del archivo descargado
      cfg          — CFG global { url, pa, pver }
      paFilter     — string filtro OData aplicado
-     entities     — [{ name, entityName, downloaded, note }]
+     entities     — [{ name, entityName, downloaded, retained, analyzed, note }]
      mattypeCfg   — referencia a MATTYPE_CFG global
      kpis         — [{ label, value }]
   */
@@ -56,10 +56,22 @@ function buildResumenMeta(ws, opts) {
     kvRow(I18n.t('xls.resumen.noEntities'), '');
   } else {
     ents.forEach(function(e) {
-      var detail = (e.downloaded != null
-        ? I18n.t('xls.resumen.recordsDownloaded', { n: e.downloaded.toLocaleString(_lang) })
-        : I18n.t('xls.resumen.notAvailable'));
-      if (e.note) detail += ' — ' + e.note;
+      if (e.downloaded == null) { kvRow(e.name, I18n.t('xls.resumen.notAvailable')); return; }
+      // Cadena: descargados -> retenidos (filtros automaticos) -> analizados (exclusion tipo de material)
+      var steps = [ I18n.t('xls.resumen.recordsDownloaded', { n: e.downloaded.toLocaleString(_lang) }) ];
+      var prev  = e.downloaded;
+      if (e.retained != null && e.retained !== prev) {
+        var ret = I18n.t('xls.resumen.recordsRetained', { n: e.retained.toLocaleString(_lang) });
+        if (e.note) ret += ' (' + e.note + ')';
+        steps.push(ret);
+        prev = e.retained;
+      }
+      if (e.analyzed != null && e.analyzed !== prev) {
+        steps.push(I18n.t('xls.resumen.recordsAnalyzed', { n: e.analyzed.toLocaleString(_lang) }));
+      }
+      var detail = steps.join(' → ');
+      // Si la nota no se adjunto en el paso "retenidos", agregarla al final
+      if (e.note && !(e.retained != null && e.retained !== e.downloaded)) detail += ' — ' + e.note;
       kvRow(e.name, detail);
     });
   }
