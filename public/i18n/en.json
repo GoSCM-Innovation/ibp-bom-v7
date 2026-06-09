@@ -40,6 +40,7 @@
   "nav.explorer": "Integration Explorer",
   "nav.suite": "GOSCM SUITE",
   "nav.controlTower": "SAP IBP Control Tower",
+  "nav.cidsStudio": "CI-DS Studio",
   "nav.techReq": "Technical Requirements",
 
   "connDlg.title": "Connect to SAP IBP",
