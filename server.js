@@ -83,10 +83,11 @@ function isPrivateHost(host) {
   return false;
 }
 
-// SAP IBP tenants follow the pattern <tenant>-api.scmibp.ondemand.com.
+// SAP IBP tenants follow the pattern <tenant>-api.scmibp<dc>.ondemand.com,
+// where <dc> is an optional datacenter number (scmibp, scmibp1, scmibp2, ...).
 // Override via ALLOWED_IBP_HOST_REGEX env var if a non-standard tenant exists.
 // Default pattern is anchored to prevent partial matches (audit H-03).
-const DEFAULT_IBP_HOST_REGEX = /^[a-z0-9-]+-api\.scmibp\.ondemand\.com$/i;
+const DEFAULT_IBP_HOST_REGEX = /^[a-z0-9-]+-api\.scmibp\d*\.ondemand\.com$/i;
 function getIbpHostRegex() {
   const raw = process.env.ALLOWED_IBP_HOST_REGEX;
   if (!raw) return DEFAULT_IBP_HOST_REGEX;
