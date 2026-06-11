@@ -2,6 +2,7 @@ node_modules/
 .env
 .env.local
 .vercel
+.netlify
 .claude/
 test_apps/
 # Created by https://www.toptal.com/developers/gitignore/api/node,vercel
