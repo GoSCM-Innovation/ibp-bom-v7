@@ -445,6 +445,7 @@
             '</div>' +
           '</div>' +
           '<button class="btn btn-secondary btn-small" onclick="bomCollapseAll(\'' + tab.id + '\')">' + I18n.t('bom.btn.collapseAll') + '</button>' +
+          '<button class="btn btn-secondary btn-small" title="' + escH(I18n.t('bom.xls.btnTitle')) + '" onclick="bomExportExcel(\'' + tab.id + '\')">' + I18n.t('bom.btn.exportXlsx') + '</button>' +
           '<button class="btn btn-danger btn-small" onclick="bomClearSearch(\'' + tab.id + '\')">' + I18n.t('bom.btn.clear') + '</button>' +
           '<div class="stats-row">' +
             '<span>' + I18n.t('bom.stats.roots') + '<strong class="bom-stat-roots">-</strong></span>' +
@@ -728,6 +729,161 @@
       tab.inverted = false;
       bomRenderTable(tabId);
       bomRenderTabBar();
+    }
+
+    /* ── Exportar la jerarquía COMPLETA del producto a Excel (.xlsx) ──
+       Construye todo el árbol (todos los niveles, sin importar el estado de
+       expansión en pantalla) y lo mapea a una hoja con:
+         • agrupación nativa de filas (outline +/- de Excel) por nivel,
+         • sangría visual de la columna Material según el nivel,
+         • co-productos (SOURCETYPE=C) como filas hijas bajo su fuente.
+       Usa ExcelJS (cargado por CDN), que soporta outlineLevel nativamente. */
+    function bomColLetter(n) {
+      var s = '';
+      while (n > 0) { var r = (n - 1) % 26; s = String.fromCharCode(65 + r) + s; n = Math.floor((n - 1) / 26); }
+      return s;
+    }
+
+    async function bomExportExcel(tabId) {
+      var tab = bomGetTab(tabId);
+      if (!tab || !tab.prdid || !tab.tree) {
+        setStatus('warn', I18n.t('bom.xls.noData'));
+        return;
+      }
+      if (typeof ExcelJS === 'undefined') {
+        setStatus('err', 'ExcelJS no disponible');
+        return;
+      }
+
+      setStatus('info', I18n.t('bom.xls.exporting', { prdid: tab.prdid }));
+      // Ceder al browser para repintar el status antes del trabajo pesado
+      await new Promise(function (r) { setTimeout(r, 0); });
+
+      // Construir el árbol COMPLETO (top-down canónico) usando el snapshot de la pestaña
+      var roots = bomGetRoots(tab);
+      bomBuildAllChildren(roots, tab._indexes);
+
+      // ── Aplanar en DFS, mismo orden que la tabla ──
+      // Cada fila: { node, level, isCoprod, parentLoc }
+      var flat = [];
+      function walk(node) {
+        flat.push({ node: node, level: node.level, isCoprod: false });
+        if (node.coprods && node.coprods.length) {
+          node.coprods.forEach(function (cp) {
+            flat.push({ node: cp, level: node.level + 1, isCoprod: true, parentLoc: node.locid });
+          });
+        }
+        if (node.children && node.children.length) {
+          sortedNodes(node.children).forEach(walk);
+        }
+      }
+      roots.forEach(walk);
+
+      // ── Helpers locales ──
+      function toNum(v) {
+        if (v === '' || v === null || v === undefined) return null;
+        var n = Number(v);
+        return isNaN(n) ? null : n;
+      }
+      function resList(resids) {
+        if (!resids || !resids.length) return '';
+        return resids.map(function (rid) {
+          var d = RES_DESCR[rid];
+          return d ? rid + ' — ' + d : rid;
+        }).join(', ');
+      }
+
+      // ── Construir workbook ──
+      var GOLD = 'FFF7A800', ORANGE = 'FFE8622A', NAVY = 'FF0B1120';
+      var FILL_ROOT = 'FFFDE8C8';    // dorado muy claro — raíces (MAIN)
+      var FILL_COPROD = 'FFEDE9FE';  // morado muy claro — co-productos
+
+      var wb = new ExcelJS.Workbook();
+      var sheetName = (I18n.t('bom.xls.sheetTitle') + ' ' + tab.prdid)
+        .replace(/[*?:\\/\[\]]/g, ' ').slice(0, 31);
+      var ws = wb.addWorksheet(sheetName, { views: [{ state: 'frozen', ySplit: 1 }] });
+      // El padre (nivel menor) encabeza su grupo, por encima de los hijos
+      try { ws.properties.outlineProperties = { summaryBelow: false, summaryRight: false }; } catch (e) {}
+
+      var headers = [
+        I18n.t('bom.tbl.level'),        // Nivel
+        I18n.t('bom.tbl.plant'),        // Planta
+        I18n.t('bom.tbl.sourceId'),     // ID de producción
+        I18n.t('bom.tbl.material'),     // Material
+        I18n.t('bom.xls.description'),  // Descripción
+        I18n.t('bom.tbl.substitute'),   // Reemplazante
+        I18n.t('bom.xls.coefIn'),       // Coef. entrada (PSI)
+        I18n.t('bom.xls.coefOut'),      // Coef. salida (PSH)
+        I18n.t('bom.xls.uom'),          // UOM
+        I18n.t('bom.tbl.materialType'), // Tipo de Material
+        I18n.t('bom.tbl.type'),         // Tipo
+        I18n.t('bom.tbl.workstations')  // Puestos de trabajo
+      ];
+      var hRow = ws.addRow(headers);
+      hRow.height = 22;
+      hRow.eachCell(function (cell) {
+        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: GOLD } };
+        cell.font = { bold: true, name: 'DM Sans', size: 10, color: { argb: NAVY } };
+        cell.alignment = { vertical: 'middle', horizontal: 'center', wrapText: true };
+        cell.border = { bottom: { style: 'medium', color: { argb: ORANGE } } };
+      });
+
+      flat.forEach(function (item) {
+        var n = item.node;
+        var lvl = item.level;
+        var isCo = item.isCoprod;
+
+        var locid   = isCo ? str(item.parentLoc) : str(n.locid);
+        var sourceid = isCo ? '' : str(n.sourceid);
+        var sub     = (!isCo && n.isAltItem === 'X') ? 'X' : '';
+        var coefIn  = isCo ? null : toNum(n.inputCoeff);
+        var coefOut = toNum(n.coefficient);
+        var stype   = str(n.sourcetype || (isCo ? 'C' : ''));
+        var res     = isCo ? '' : resList(n.resids);
+
+        var row = ws.addRow([
+          lvl, locid, sourceid, str(n.prdid), str(n.prddescr), sub,
+          coefIn, coefOut, str(n.uomid), str(n.mattypeid), stype, res
+        ]);
+
+        // Agrupación nativa de Excel (limitada a 7 niveles de outline)
+        row.outlineLevel = Math.min(Math.max(lvl - 1, 0), 7);
+
+        // Sangría visual de la columna Material (col 4) según el nivel real
+        row.getCell(4).alignment = { indent: Math.min(Math.max(lvl - 1, 0), 15) };
+
+        // Coeficientes con formato numérico
+        row.getCell(7).numFmt = '#,##0.####';
+        row.getCell(8).numFmt = '#,##0.####';
+
+        // Fondo según el tipo de fila
+        var fill = isCo ? FILL_COPROD : (n.type === 'MAIN' ? FILL_ROOT : null);
+        if (fill) {
+          row.eachCell({ includeEmpty: true }, function (cell) {
+            cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: fill } };
+          });
+        }
+      });
+
+      // Anchos de columna
+      var widths = [7, 18, 16, 30, 32, 12, 14, 14, 8, 16, 7, 32];
+      ws.columns.forEach(function (col, i) { col.width = widths[i] || 12; });
+
+      // AutoFiltro sobre la cabecera
+      ws.autoFilter = 'A1:' + bomColLetter(headers.length) + '1';
+
+      // ── Descargar ──
+      var today = new Date().toISOString().slice(0, 10);
+      var fname = 'Jerarquia_' + tab.prdid.replace(/[^\w.-]+/g, '_') + '_' + today + '.xlsx';
+      var buf = await wb.xlsx.writeBuffer();
+      var blob = new Blob([buf], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+      var url = URL.createObjectURL(blob);
+      var a = document.createElement('a');
+      a.href = url; a.download = fname;
+      document.body.appendChild(a); a.click();
+      document.body.removeChild(a); URL.revokeObjectURL(url);
+
+      setStatus('ok', I18n.t('bom.xls.done', { count: flat.length }));
     }
 
     function bomRestoreGlobals(tab) {
