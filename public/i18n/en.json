@@ -274,22 +274,6 @@
   "glosario.pdfBtn": "↓ Export PDF",
   "glosario.pdfBtn.title": "Export glossary to PDF",
 
-  "feedback.fab.title": "Report / Ask / Suggest",
-  "feedback.tip.dismiss": "Close",
-  "feedback.tip.body": "<strong style=\"color:#6C63FF;\">Write to us</strong> if you find a bug, have a question or want to suggest an improvement. We reply by email.",
-  "feedback.title": "Contact us",
-  "feedback.subtitle": "Bugs · Questions · Improvements · Kudos",
-  "feedback.lbl.name": "Name",
-  "feedback.ph.name": "Your name",
-  "feedback.lbl.app": "App",
-  "feedback.lbl.type": "Type",
-  "feedback.opt.error": "🐛 Bug",
-  "feedback.opt.query": "❓ Question",
-  "feedback.opt.improvement": "💡 Improvement",
-  "feedback.opt.kudos": "⭐ Kudos",
-  "feedback.lbl.desc": "Description",
-  "feedback.ph.desc": "Describe your feedback in as much detail as possible…",
-
   "ef.searchPh": "Search by ID or description...",
 
   "cids.title": "Connect SAP CI-DS",
@@ -338,6 +322,8 @@
   "bom.stats.maxDepth": "Max depth: ",
   "bom.empty.prompt": "Search a product in the field above to view its BOM hierarchy.",
   "bom.empty.notFound": "Product not found as root in the BOM hierarchy.",
+  "bom.tbl.rootMaterial": "Parent Material (L1)",
+  "bom.tbl.parentMaterial": "Parent Material (Level)",
   "bom.tbl.level": "Level",
   "bom.tbl.plant": "Plant",
   "bom.tbl.sourceId": "Production ID",
@@ -718,11 +704,6 @@
   "ex.ds.src": "Source",
   "ex.ds.dst": "Target",
   "ex.ds.empty": "(no DS)",
-
-  "feedback.validation.required": "Name and description are required.",
-  "feedback.sent.ok": "✓ Sent successfully. Thanks!",
-  "feedback.sent.error": "Send error. Try again.",
-  "feedback.btn.sending": "Sending…",
 
   "connDlg.baseline": "Baseline",
 

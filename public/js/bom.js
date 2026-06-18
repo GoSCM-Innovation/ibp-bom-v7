@@ -466,6 +466,8 @@
         '<div class="table-wrap hidden bom-table-wrap">' +
           '<table><thead><tr>' +
             '<th class="col-exp"></th>' +
+            '<th class="col-rootmat">' + I18n.t('bom.tbl.rootMaterial') + '</th>' +
+            '<th class="col-parentmat">' + I18n.t('bom.tbl.parentMaterial') + '</th>' +
             '<th class="col-lvl">' + I18n.t('bom.tbl.level') + '</th>' +
             '<th class="col-loc">' + I18n.t('bom.tbl.plant') + '</th>' +
             '<th class="col-src">' + I18n.t('bom.tbl.sourceId') + '</th>' +
@@ -766,18 +768,19 @@
       // ── Aplanar en DFS, mismo orden que la tabla ──
       // Cada fila: { node, level, isCoprod, parentLoc }
       var flat = [];
-      function walk(node) {
-        flat.push({ node: node, level: node.level, isCoprod: false });
+      function walk(node, rootPrdid, parentPrdid) {
+        flat.push({ node: node, level: node.level, isCoprod: false, rootPrdid: rootPrdid, parentPrdid: parentPrdid });
         if (node.coprods && node.coprods.length) {
           node.coprods.forEach(function (cp) {
-            flat.push({ node: cp, level: node.level + 1, isCoprod: true, parentLoc: node.locid });
+            flat.push({ node: cp, level: node.level + 1, isCoprod: true, parentLoc: node.locid, rootPrdid: rootPrdid, parentPrdid: node.prdid });
           });
         }
         if (node.children && node.children.length) {
-          sortedNodes(node.children).forEach(walk);
+          sortedNodes(node.children).forEach(function (c) { walk(c, rootPrdid, node.prdid); });
         }
       }
-      roots.forEach(walk);
+      // Raíz: material padre N1 = su propio prdid; padre del nivel = vacío
+      roots.forEach(function (root) { walk(root, root.prdid, ''); });
 
       // ── Helpers locales ──
       function toNum(v) {
@@ -806,6 +809,8 @@
       try { ws.properties.outlineProperties = { summaryBelow: false, summaryRight: false }; } catch (e) {}
 
       var headers = [
+        I18n.t('bom.tbl.rootMaterial'),   // Material Padre Nivel 1
+        I18n.t('bom.tbl.parentMaterial'), // Material Padre del Nivel
         I18n.t('bom.tbl.level'),        // Nivel
         I18n.t('bom.tbl.plant'),        // Planta
         I18n.t('bom.tbl.sourceId'),     // ID de producción
@@ -842,6 +847,7 @@
         var res     = isCo ? '' : resList(n.resids);
 
         var row = ws.addRow([
+          str(item.rootPrdid || ''), str(item.parentPrdid || ''),
           lvl, locid, sourceid, str(n.prdid), str(n.prddescr), sub,
           coefIn, coefOut, str(n.uomid), str(n.mattypeid), stype, res
         ]);
@@ -849,12 +855,12 @@
         // Agrupación nativa de Excel (limitada a 7 niveles de outline)
         row.outlineLevel = Math.min(Math.max(lvl - 1, 0), 7);
 
-        // Sangría visual de la columna Material (col 4) según el nivel real
-        row.getCell(4).alignment = { indent: Math.min(Math.max(lvl - 1, 0), 15) };
+        // Sangría visual de la columna Material (col 6) según el nivel real
+        row.getCell(6).alignment = { indent: Math.min(Math.max(lvl - 1, 0), 15) };
 
-        // Coeficientes con formato numérico
-        row.getCell(7).numFmt = '#,##0.####';
-        row.getCell(8).numFmt = '#,##0.####';
+        // Coeficientes con formato numérico (col 9 = entrada, col 10 = salida)
+        row.getCell(9).numFmt = '#,##0.####';
+        row.getCell(10).numFmt = '#,##0.####';
 
         // Fondo según el tipo de fila
         var fill = isCo ? FILL_COPROD : (n.type === 'MAIN' ? FILL_ROOT : null);
@@ -866,7 +872,7 @@
       });
 
       // Anchos de columna
-      var widths = [7, 18, 16, 30, 32, 12, 14, 14, 8, 16, 7, 32];
+      var widths = [18, 18, 7, 18, 16, 30, 32, 12, 14, 14, 8, 16, 7, 32];
       ws.columns.forEach(function (col, i) { col.width = widths[i] || 12; });
 
       // AutoFiltro sobre la cabecera
@@ -1086,6 +1092,8 @@
 
         html += '<tr class="' + rowClass + '">';
         html += '<td style="padding-left:' + (indent + 6) + 'px">' + expHtml + '</td>';
+        html += '<td style="font-family:var(--mono);font-size:11px">' + escH(r.rootPrdid || '') + '</td>';
+        html += '<td style="font-family:var(--mono);font-size:11px">' + escH(r.parentPrdid || '') + '</td>';
         html += '<td>' + n.level + '</td>';
         html += '<td style="font-family:var(--mono);font-size:11px">' + locLabel + '</td>';
         html += '<td style="font-family:var(--mono);font-size:11px">' + escH(n.sourceid) + '</td>';
@@ -1114,7 +1122,10 @@
           n.coprods.forEach(function (cp) {
             var cpMatLabel = escH(cp.prdid) + (cp.prddescr ? ' <span style="color:var(--text3);font-size:10px">— ' + escH(cp.prddescr) + '</span>' : '');
             html += '<tr class="rt-coprod">';
-            html += '<td style="padding-left:' + (indent + 28) + 'px"></td><td></td><td></td><td></td>';
+            html += '<td style="padding-left:' + (indent + 28) + 'px"></td>';
+            html += '<td style="font-family:var(--mono);font-size:11px">' + escH(r.rootPrdid || '') + '</td>';
+            html += '<td style="font-family:var(--mono);font-size:11px">' + escH(n.prdid) + '</td>';
+            html += '<td></td><td></td><td></td>';
             html += '<td style="font-family:var(--mono);font-size:11px">' + cpMatLabel + '</td>';
             html += '<td></td>';
             html += '<td style="text-align:right;font-family:var(--mono)">' + fmtDualCoef(cp) + '</td>';
@@ -1126,7 +1137,7 @@
         if (hasKids && isExp) {
           var childCount = (n.children && n.children.length) || '…';
           html += '<tr class="tr-comp-divider"><td style="padding-left:' + (indent + 28) + 'px"></td>';
-          html += '<td colspan="9"><span class="divider-lbl">' + escH(I18n.t('bom.tbl.psiComponents', { count: childCount })) + '</span></td></tr>';
+          html += '<td colspan="11"><span class="divider-lbl">' + escH(I18n.t('bom.tbl.psiComponents', { count: childCount })) + '</span></td></tr>';
         }
       });
 
@@ -1144,20 +1155,21 @@
        construir hijos lazily la primera vez que se expande un nodo. */
     function bomFlatten(roots, rows, expIds, indexes) {
       roots.forEach(function (node) {
-        rows.push({ node: node });
+        // Raíz: material padre N1 = su propio prdid; padre del nivel = vacío
+        rows.push({ node: node, rootPrdid: node.prdid, parentPrdid: '' });
         if (expIds[node.id]) {
           if (node._canExpand && node.children === null) buildNodeChildren(node, indexes);
-          if (node.children) bomFlattenChildren(node.children, rows, expIds, indexes);
+          if (node.children) bomFlattenChildren(node.children, rows, expIds, indexes, node.prdid, node.prdid);
         }
       });
     }
 
-    function bomFlattenChildren(children, rows, expIds, indexes) {
+    function bomFlattenChildren(children, rows, expIds, indexes, rootPrdid, parentPrdid) {
       sortedNodes(children).forEach(function (node) {
-        rows.push({ node: node });
+        rows.push({ node: node, rootPrdid: rootPrdid, parentPrdid: parentPrdid });
         if (expIds[node.id]) {
           if (node._canExpand && node.children === null) buildNodeChildren(node, indexes);
-          if (node.children) bomFlattenChildren(node.children, rows, expIds, indexes);
+          if (node.children) bomFlattenChildren(node.children, rows, expIds, indexes, rootPrdid, node.prdid);
         }
       });
     }

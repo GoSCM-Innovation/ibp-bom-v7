@@ -274,22 +274,6 @@
   "glosario.pdfBtn": "↓ Exportar PDF",
   "glosario.pdfBtn.title": "Exportar glosario a PDF",
 
-  "feedback.fab.title": "Reportar / Consultar / Sugerir",
-  "feedback.tip.dismiss": "Cerrar",
-  "feedback.tip.body": "<strong style=\"color:#6C63FF;\">Escríbenos</strong> si encuentras un error, tienes una consulta o quieres sugerir una mejora. Te respondemos por email.",
-  "feedback.title": "Contáctanos",
-  "feedback.subtitle": "Errores · Consultas · Mejoras · Felicitaciones",
-  "feedback.lbl.name": "Nombre",
-  "feedback.ph.name": "Tu nombre",
-  "feedback.lbl.app": "App",
-  "feedback.lbl.type": "Tipo",
-  "feedback.opt.error": "🐛 Error",
-  "feedback.opt.query": "❓ Consulta",
-  "feedback.opt.improvement": "💡 Mejora",
-  "feedback.opt.kudos": "⭐ Felicitación",
-  "feedback.lbl.desc": "Descripción",
-  "feedback.ph.desc": "Describe tu comentario con el mayor detalle posible…",
-
   "ef.searchPh": "Buscar por ID o descripción...",
 
   "cids.title": "Conectar SAP CI-DS",
@@ -338,6 +322,8 @@
   "bom.stats.maxDepth": "Prof.máx: ",
   "bom.empty.prompt": "Busca un producto en el campo superior para visualizar su jerarquía BOM.",
   "bom.empty.notFound": "Producto no encontrado como raíz en la jerarquía BOM.",
+  "bom.tbl.rootMaterial": "Material Padre Nivel 1",
+  "bom.tbl.parentMaterial": "Material Padre del Nivel",
   "bom.tbl.level": "Nivel",
   "bom.tbl.plant": "Planta",
   "bom.tbl.sourceId": "ID de producción",
@@ -718,11 +704,6 @@
   "ex.ds.src": "Origen",
   "ex.ds.dst": "Destino",
   "ex.ds.empty": "(sin DS)",
-
-  "feedback.validation.required": "Nombre y descripción son obligatorios.",
-  "feedback.sent.ok": "✓ Enviado correctamente. ¡Gracias!",
-  "feedback.sent.error": "Error al enviar. Intenta de nuevo.",
-  "feedback.btn.sending": "Enviando…",
 
   "connDlg.baseline": "Baseline",
 

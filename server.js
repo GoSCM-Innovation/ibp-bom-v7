@@ -321,69 +321,6 @@ app.post('/api/proxy-next', async (req, res) => {
   }
 });
 
-// ─── /api/send-feedback ───────────────────────────────────────────
-// Body: { name, app, type, description }
-// Sends feedback email via EmailJS REST API using server-side credentials.
-// Hardened against spam abuse (audit M-03):
-//  - Dedicated rate limiter: 5 req/min/IP (vs global 60/min)
-//  - Length caps on every field
-//  - Origin check: must come from production or a Vercel preview deploy of this app
-const feedbackLimiter = rateLimit({
-  windowMs: 60 * 1000,
-  max: 5,
-  standardHeaders: true,
-  legacyHeaders: false,
-  message: { error: 'Demasiados mensajes, intenta de nuevo en un minuto' }
-});
-
-const ALLOWED_FEEDBACK_ORIGIN_RE = /^https:\/\/ibp-bom-v7(-[a-z0-9-]+)?\.vercel\.app$/i;
-
-app.post('/api/send-feedback', feedbackLimiter, async (req, res) => {
-  const { name, app: appName, type, description } = req.body || {};
-
-  if (!name || !description) {
-    return res.status(400).json({ error: 'Faltan campos requeridos' });
-  }
-  if (typeof name !== 'string' || name.length > 200)
-    return res.status(400).json({ error: 'Nombre demasiado largo' });
-  if (typeof description !== 'string' || description.length > 5000)
-    return res.status(400).json({ error: 'Descripción demasiado larga (máx 5000 caracteres)' });
-  if (appName && (typeof appName !== 'string' || appName.length > 100))
-    return res.status(400).json({ error: 'Campo "app" inválido' });
-  if (type && (typeof type !== 'string' || type.length > 100))
-    return res.status(400).json({ error: 'Campo "type" inválido' });
-
-  // Origin check: block cross-site abuse from arbitrary pages.
-  // Production: https://ibp-bom-v7.vercel.app · Previews: https://ibp-bom-v7-<hash>.vercel.app
-  const origin = req.get('origin') || '';
-  if (origin && !ALLOWED_FEEDBACK_ORIGIN_RE.test(origin)) {
-    return res.status(403).json({ error: 'Origen no permitido' });
-  }
-
-  try {
-    const resp = await fetch('https://api.emailjs.com/api/v1.0/email/send', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        service_id:      process.env.EMAILJS_SERVICE_ID,
-        template_id:     process.env.EMAILJS_TEMPLATE_ID,
-        user_id:         process.env.EMAILJS_PUBLIC_KEY,
-        accessToken:     process.env.EMAILJS_PRIVATE_KEY,
-        template_params: { from_name: name, app: appName, type, description }
-      }),
-      timeout: SOAP_TIMEOUT_MS
-    });
-
-    if (resp.ok) return res.json({ ok: true });
-
-    console.error('[feedback] EmailJS error:', resp.status);
-    res.status(500).json({ error: 'Error al enviar feedback' });
-  } catch (err) {
-    console.error('[feedback error]', err.message);
-    res.status(500).json({ error: 'Error interno' });
-  }
-});
-
 // ─── CI-DS SOAP helpers ───────────────────────────────────────────
 function xmlVal(xml, tag) {
   const m = xml.match(new RegExp(`<(?:[\\w]+:)?${tag}(?:\\s[^>]*)?>([\\s\\S]*?)<\\/(?:[\\w]+:)?${tag}>`, 'i'));

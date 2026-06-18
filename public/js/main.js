@@ -1146,67 +1146,6 @@
     }
 
 
-    /* ── Feedback tooltip ── */
-    function dismissFeedbackTip() {
-      var tip = document.getElementById('feedbackTooltip');
-      if (tip) tip.style.display = 'none';
-      try { localStorage.setItem('fbTipDismissed', '1'); } catch(e) {}
-    }
-    (function showFeedbackTip() {
-      try { if (localStorage.getItem('fbTipDismissed')) return; } catch(e) {}
-      setTimeout(function() {
-        var tip = document.getElementById('feedbackTooltip');
-        if (tip) tip.style.display = 'block';
-      }, 1500);
-    })();
-
-    /* ── Feedback ── */
-    function openFeedback() {
-      dismissFeedbackTip();
-      document.getElementById('feedbackOverlay').style.display = 'block';
-      document.getElementById('feedbackPanel').style.transform = 'translateX(0)';
-      document.getElementById('fbName').focus();
-    }
-    function closeFeedback() {
-      document.getElementById('feedbackOverlay').style.display = 'none';
-      document.getElementById('feedbackPanel').style.transform = 'translateX(100%)';
-    }
-    function sendFeedback() {
-      var name = document.getElementById('fbName').value.trim();
-      var app = document.getElementById('fbApp').value;
-      var type = document.getElementById('fbType').value;
-      var desc = document.getElementById('fbDesc').value.trim();
-      var btn = document.getElementById('fbSendBtn');
-      var msg = document.getElementById('fbMsg');
-      if (!name || !desc) { msg.style.color = '#EF4444'; msg.textContent = I18n.t('feedback.validation.required'); return; }
-      btn.disabled = true; btn.textContent = I18n.t('feedback.btn.sending'); msg.textContent = '';
-      fetch('/api/send-feedback', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: name, app: app, type: type, description: desc })
-      })
-        .then(function (r) { return r.json(); })
-        .then(function (data) {
-          if (data.ok) {
-            msg.style.color = '#10B981';
-            msg.textContent = I18n.t('feedback.sent.ok');
-            btn.textContent = I18n.t('common.send');
-            btn.disabled = false;
-            document.getElementById('fbName').value = '';
-            document.getElementById('fbDesc').value = '';
-            setTimeout(closeFeedback, 1800);
-          } else {
-            throw new Error(data.error || 'Error desconocido');
-          }
-        })
-        .catch(function () {
-          msg.style.color = '#EF4444';
-          msg.textContent = '✕ ' + I18n.t('feedback.sent.error');
-          btn.textContent = I18n.t('common.send');
-          btn.disabled = false;
-        });
-    }
-
     /* ── Connection & TechReq Dialogs ── */
     function openConnectDialog() {
       var d = document.getElementById('connectDialog');
