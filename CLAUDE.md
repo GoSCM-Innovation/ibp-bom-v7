@@ -273,14 +273,6 @@ Además de la vista por integración, hay cuatro vistas pivotadas construidas so
 
 ---
 
-### 6. Feedback (botón flotante)
-- Botón fijo esquina inferior derecha
-- Panel lateral con formulario: Nombre, App, Tipo, Descripción
-- Envío via `POST /api/send-feedback` → server llama a EmailJS REST API con credenciales de env vars
-- Destinatario: gerardo.ahumada@go-scm.com
-
----
-
 ## Variables globales clave
 
 ```javascript
@@ -361,11 +353,3 @@ Al agregar un endpoint nuevo:
 --red: #ff6b6b
 --purple: #a78bfa
 ```
-
----
-
-## EmailJS
-
-- Las credenciales se configuran como variables de entorno en Vercel Dashboard → Settings → Environment Variables
-- Variables requeridas: `EMAILJS_SERVICE_ID`, `EMAILJS_TEMPLATE_ID`, `EMAILJS_PUBLIC_KEY`, `EMAILJS_PRIVATE_KEY`
-- Ver `.env.example` para la lista completa de variables con placeholders
