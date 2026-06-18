@@ -338,6 +338,8 @@
   "bom.stats.maxDepth": "Max depth: ",
   "bom.empty.prompt": "Search a product in the field above to view its BOM hierarchy.",
   "bom.empty.notFound": "Product not found as root in the BOM hierarchy.",
+  "bom.tbl.rootMaterial": "Parent Material (L1)",
+  "bom.tbl.parentMaterial": "Parent Material (Level)",
   "bom.tbl.level": "Level",
   "bom.tbl.plant": "Plant",
   "bom.tbl.sourceId": "Production ID",

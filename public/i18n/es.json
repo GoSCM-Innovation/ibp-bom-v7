@@ -338,6 +338,8 @@
   "bom.stats.maxDepth": "Prof.máx: ",
   "bom.empty.prompt": "Busca un producto en el campo superior para visualizar su jerarquía BOM.",
   "bom.empty.notFound": "Producto no encontrado como raíz en la jerarquía BOM.",
+  "bom.tbl.rootMaterial": "Material Padre Nivel 1",
+  "bom.tbl.parentMaterial": "Material Padre del Nivel",
   "bom.tbl.level": "Nivel",
   "bom.tbl.plant": "Planta",
   "bom.tbl.sourceId": "ID de producción",
