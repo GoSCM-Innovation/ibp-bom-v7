@@ -5,7 +5,7 @@
        ═══════════════════════════════════════════════════════════════ */
     function openDB() {
       return new Promise(function (resolve, reject) {
-        var req = indexedDB.open('ibp_data', 4);
+        var req = indexedDB.open('ibp_data', 5);
         req.onupgradeneeded = function (e) {
           var db = e.target.result;
           // BOM stores
@@ -32,6 +32,11 @@
           // BOM Location master (lookup for LOCID→LOCDESCR in BOM tab)
           if (!db.objectStoreNames.contains('bom_loc')) {
             db.createObjectStore('bom_loc', { keyPath: 'LOCID' });
+          }
+          // BOM Production Source Item Validity — vigencias por SOURCEID+componente
+          if (!db.objectStoreNames.contains('bom_psi_validity')) {
+            db.createObjectStore('bom_psi_validity', { autoIncrement: true })
+              .createIndex('by_sourceid', 'SOURCEID', { unique: false });
           }
           // SN edge stores (SN lookup tables stay in SN_IDX JS object — they are small)
           if (!db.objectStoreNames.contains('sn_loc')) {

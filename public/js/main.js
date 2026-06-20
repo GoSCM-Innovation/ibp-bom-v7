@@ -661,6 +661,7 @@
       return {
         header: best(['LOCID', 'PRDID', 'SOURCEID'], ['SOURCETYPE', 'OUTPUTCOEFFICIENT'], ['sourceprod', 'sourceproduction', 'prodhead']),
         item: best(['PRDID', 'SOURCEID', 'COMPONENTCOEFFICIENT'], [], ['sourceitem', 'proditem', 'sourceproditem', 'productionsourceitm']),
+        itemValidity: best(['SOURCEID', 'PRDID', 'COMPVALIDFR', 'COMPVALIDTO'], [], ['productionsourceitmvalidity', 'sourceitemvalidity', 'itemvalidity', 'proditemvalidity']),
         itemSub: best(['SOURCEID', 'PRDFR', 'SPRDFR'], [], ['sourceitemsub', 'proditemsub', 'itemsub', 'productionsourceitmsubstitution', 'itmsubstitution']),
         resource: best(['RESID', 'SOURCEID'], [], ['sourceres', 'prodres', 'sourceresource', 'productionresource']),
         product: best(['PRDID'], ['PRDDESCR', 'MATTYPEID'], ['product', 'material']),
@@ -674,6 +675,7 @@
       var pairs = [
         { id: 'selHeader', fields: 'fieldsHeader', val: detected.header },
         { id: 'selItem', fields: 'fieldsItem', val: detected.item },
+        { id: 'selItemValidity', fields: 'fieldsItemValidity', val: detected.itemValidity },
         { id: 'selItemSub', fields: 'fieldsItemSub', val: detected.itemSub },
         { id: 'selResource', fields: 'fieldsResource', val: detected.resource },
         { id: 'selProduct', fields: 'fieldsProduct', val: detected.product },
@@ -948,6 +950,7 @@
 
       var headerEntity = document.getElementById('selHeader').value;
       var itemEntity = document.getElementById('selItem').value;
+      var itemValidityEntity = document.getElementById('selItemValidity').value;
       var itemSubEntity = document.getElementById('selItemSub').value;
       var resourceEntity = document.getElementById('selResource').value;
       var productEntity = document.getElementById('selProduct').value;
@@ -977,6 +980,7 @@
         var _bomChecks = [
           { role: 'Production Source Header',   entityName: headerEntity,  required: true,  selectorId: 'selHeader',       fields: ['PRDID','SOURCEID','LOCID','SOURCETYPE','OUTPUTCOEFFICIENT','PINVALID'] },
           { role: 'Production Source Item',     entityName: itemEntity,    required: true,  selectorId: 'selItem',         fields: ['SOURCEID','PRDID','COMPONENTCOEFFICIENT','ISALTITEM'] },
+          { role: 'Production Source Item Validity', entityName: itemValidityEntity, required: false, selectorId: 'selItemValidity', fields: ['SOURCEID','PRDID','COMPVALIDFR','COMPVALIDTO'] },
           { role: 'Production Source Item Sub', entityName: itemSubEntity, required: true,  selectorId: 'selItemSub',      fields: ['SOURCEID','PRDFR','SPRDFR'] },
           { role: 'Production Source Resource', entityName: resourceEntity, required: true, selectorId: 'selResource',     fields: ['SOURCEID','RESID'] },
           { role: 'Product',                    entityName: productEntity, required: true,  selectorId: 'selProduct',      fields: ['PRDID','PRDDESCR','MATTYPEID','UOMID','UOMDESCR'] },
@@ -990,6 +994,7 @@
           document.getElementById('btnFetch').disabled = true;
           headerEntity   = document.getElementById('selHeader').value;
           itemEntity     = document.getElementById('selItem').value;
+          itemValidityEntity = document.getElementById('selItemValidity').value;
           itemSubEntity  = document.getElementById('selItemSub').value;
           resourceEntity = document.getElementById('selResource').value;
           productEntity  = document.getElementById('selProduct').value;
@@ -1004,8 +1009,9 @@
         // Open IDB and wipe previous BOM data
         if (!IDB) IDB = await openDB();
         setStatus('info', I18n.t('main.fetch.preparingDb'));
-        await Promise.all(['bom_psh', 'bom_psi', 'bom_psisub', 'bom_psr', 'bom_prd', 'bom_loc'].map(idbClear));
+        await Promise.all(['bom_psh', 'bom_psi', 'bom_psi_validity', 'bom_psisub', 'bom_psr', 'bom_prd', 'bom_loc'].map(idbClear));
         RES_DESCR = {};
+        BOM_VALIDITY_ON = false;
 
         // ── Header → IDB ───────────────────────────────────────────────────────
         setStatus('info', I18n.t('main.fetch.downloading', { entity: 'Production Source Header' }));
@@ -1031,6 +1037,22 @@
           });
         log(logEl, 'ok', 'Item: ' + nItm + ' registros → IDB');
         setProgress(45);
+
+        // ── Item Validity → IDB (opcional) ─────────────────────────────────────
+        if (itemValidityEntity) {
+          setStatus('info', I18n.t('main.fetch.downloading', { entity: 'Production Source Item Validity' }));
+          log(logEl, 'info', 'GET → ' + baseOData + itemValidityEntity + (paFilter ? ' [filtro PA/Ver]' : ''));
+          var nVal = await fetchAndIndex(baseOData + itemValidityEntity, logEl, paFilter,
+            buildSelect(itemValidityEntity, ['SOURCEID','PRDID','COMPVALIDFR','COMPVALIDTO']),
+            function (rows) {
+              var validRows = rows.filter(function(r) { return !!bomValidSids[str(r.SOURCEID)]; });
+              return idbBulkPut('bom_psi_validity', validRows);
+            });
+          BOM_VALIDITY_ON = nVal > 0;
+          log(logEl, 'ok', 'Item Validity: ' + nVal + ' registros → IDB' + (BOM_VALIDITY_ON ? '' : ' (sin datos — columnas ocultas)'));
+        } else {
+          log(logEl, 'warn', 'Item Validity: sin entidad configurada');
+        }
 
         // ── Item Sub → IDB ────────────────────────────────────────────────────
         if (itemSubEntity) {

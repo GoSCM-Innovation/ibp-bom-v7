@@ -33,5 +33,7 @@
     var LOC_BY_ID = {};   // locid → { LOCID, LOCDESCR }
     var RES_DESCR = {};   // resid → RESDESCR
     var PSISUB_BY_SID = {}; // SOURCEID -> [{PRDFR, SPRDFR}] (Production Source Item Sub)
+    var VAL_BY_KEY = {};  // "SOURCEID|PRDID" -> [{fr, to}] (Production Source Item Validity)
+    var BOM_VALIDITY_ON = false; // true si se mapeó la entidad de validez y trajo datos
 
 
