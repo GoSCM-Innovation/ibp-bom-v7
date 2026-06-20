@@ -784,6 +784,14 @@
       };
     }
 
+    /* Nivel de explosión BOM mostrado (Opción B, base 1):
+       raíz = 1, sus componentes directos = 1, y cada receta que se explota suma 1.
+       Deriva del nivel estructural (profundidad de fila) sin alterarlo:
+       la sangría, los IDs y el outline del Excel siguen usando el nivel estructural. */
+    function bomDisplayLevel(structuralLevel) {
+      return Math.max(1, (structuralLevel || 1) - 1);
+    }
+
     function bomColLetter(n) {
       var s = '';
       while (n > 0) { var r = (n - 1) % 26; s = String.fromCharCode(65 + r) + s; n = Math.floor((n - 1) / 26); }
@@ -893,9 +901,13 @@
         var stype   = str(n.sourcetype || (isCo ? 'C' : ''));
         var res     = isCo ? '' : resList(n.resids);
 
+        // Nivel mostrado = explosión BOM (Opción B). El co-producto comparte el
+        // nivel de su producto de salida (su padre, en lvl-1). outlineLevel/indent
+        // siguen usando lvl estructural más abajo.
+        var dispLvl = isCo ? bomDisplayLevel(lvl - 1) : bomDisplayLevel(lvl);
         var rowVals = [
           str(item.rootPrdid || ''), str(item.parentPrdid || ''),
-          lvl, locid, sourceid, str(n.prdid), str(n.prddescr), sub,
+          dispLvl, locid, sourceid, str(n.prdid), str(n.prddescr), sub,
           coefIn, coefOut, str(n.uomid), str(n.mattypeid), stype, res
         ];
         if (BOM_VALIDITY_ON) {
@@ -1149,7 +1161,7 @@
         html += '<td style="padding-left:' + (indent + 6) + 'px">' + expHtml + '</td>';
         html += '<td style="font-family:var(--mono);font-size:11px">' + escH(r.rootPrdid || '') + '</td>';
         html += '<td style="font-family:var(--mono);font-size:11px">' + escH(r.parentPrdid || '') + '</td>';
-        html += '<td>' + n.level + '</td>';
+        html += '<td>' + bomDisplayLevel(n.level) + '</td>';
         html += '<td style="font-family:var(--mono);font-size:11px">' + locLabel + '</td>';
         html += '<td style="font-family:var(--mono);font-size:11px">' + escH(n.sourceid) + '</td>';
         html += '<td style="font-family:var(--mono);font-size:11px">' + matLabel + '</td>';
