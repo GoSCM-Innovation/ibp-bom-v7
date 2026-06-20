@@ -333,6 +333,8 @@
   "bom.tbl.materialType": "Material Type",
   "bom.tbl.type": "Type",
   "bom.tbl.workstations": "Work centers",
+  "bom.tbl.validFrom": "Valid from",
+  "bom.tbl.validTo": "Valid to",
   "bom.tbl.altItemTitle": "Replacement material",
   "bom.tbl.altItemReplaces": "Replaces: ",
   "bom.tbl.psiComponents": "↓ PSI components ({count})",

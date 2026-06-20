@@ -9,7 +9,7 @@
       // Reset BOM indexes — will hold only this product's subtree
       HDR_BY_PRD = {}; HDR_BY_SID = {}; ITM_BY_SID = {};
       RES_BY_SID = {}; CPR_BY_SID = {}; PSISUB_BY_SID = {};
-      isCompAtLoc = {}; prdIndex = {}; LOC_BY_ID = {};
+      isCompAtLoc = {}; prdIndex = {}; LOC_BY_ID = {}; VAL_BY_KEY = {};
 
       var visitedPrds = {}; visitedPrds[prdid] = true;
       var visitedSids = {};
@@ -43,7 +43,8 @@
               idbGetByIndex('bom_psh',    'by_sourceid', sid),  // [0] allHdrs
               idbGetByIndex('bom_psi',    'by_sourceid', sid),  // [1] items
               idbGetByIndex('bom_psr',    'by_sourceid', sid),  // [2] resources
-              idbGetByIndex('bom_psisub', 'by_sourceid', sid)   // [3] subs
+              idbGetByIndex('bom_psisub', 'by_sourceid', sid),  // [3] subs
+              BOM_VALIDITY_ON ? idbGetByIndex('bom_psi_validity', 'by_sourceid', sid) : Promise.resolve([])  // [4] validity
             ]);
           })
         );
@@ -55,6 +56,7 @@
           var items     = sidData[si][1];
           var resources = sidData[si][2];
           var subs      = sidData[si][3];
+          var validities = sidData[si][4] || [];
 
           // PSH: cabeceras de producción
           allHdrs.forEach(function (h) {
@@ -98,6 +100,15 @@
             var ssid = str(sub.SOURCEID);
             if (!PSISUB_BY_SID[ssid]) PSISUB_BY_SID[ssid] = [];
             PSISUB_BY_SID[ssid].push(sub);
+          });
+
+          // VALIDITY: vigencias por SOURCEID+componente → "sid|prdid" -> [{fr,to}]
+          validities.forEach(function (v) {
+            var vsid = str(v.SOURCEID), vprd = str(v.PRDID);
+            if (!vsid || !vprd) return;
+            var k = vsid + '|' + vprd;
+            if (!VAL_BY_KEY[k]) VAL_BY_KEY[k] = [];
+            VAL_BY_KEY[k].push({ fr: bomFmtSapDate(v.COMPVALIDFR), to: bomFmtSapDate(v.COMPVALIDTO) });
           });
         });
 
@@ -477,6 +488,10 @@
             '<th class="col-mat">' + I18n.t('bom.tbl.materialType') + '</th>' +
             '<th class="col-type">' + I18n.t('bom.tbl.type') + '</th>' +
             '<th class="col-res">' + I18n.t('bom.tbl.workstations') + '</th>' +
+            (BOM_VALIDITY_ON
+              ? '<th class="col-validfr">' + I18n.t('bom.tbl.validFrom') + '</th>' +
+                '<th class="col-validto">' + I18n.t('bom.tbl.validTo') + '</th>'
+              : '') +
           '</tr></thead><tbody class="bom-tbody"></tbody></table>' +
           '<div class="empty-state hidden bom-empty"><div class="icon">🔍</div>' + escH(I18n.t('bom.empty.notFound')) + '</div>' +
         '</div>';
@@ -693,7 +708,7 @@
         HDR_BY_SID: HDR_BY_SID, HDR_BY_PRD: HDR_BY_PRD,
         ITM_BY_SID: ITM_BY_SID, RES_BY_SID: RES_BY_SID,
         CPR_BY_SID: CPR_BY_SID, PSISUB_BY_SID: PSISUB_BY_SID,
-        prdIndex: prdIndex, LOC_BY_ID: LOC_BY_ID
+        prdIndex: prdIndex, LOC_BY_ID: LOC_BY_ID, VAL_BY_KEY: VAL_BY_KEY
       };
       // Referencia directa — sin deep-clone. TREE es un objeto nuevo en cada
       // finalizeHierarchy(), así que refs de pestañas anteriores no se ven afectadas.
@@ -740,6 +755,35 @@
          • sangría visual de la columna Material según el nivel,
          • co-productos (SOURCETYPE=C) como filas hijas bajo su fuente.
        Usa ExcelJS (cargado por CDN), que soporta outlineLevel nativamente. */
+    /* Convierte una fecha OData v2 (/Date(ms)/ o /Date(ms+0000)/) a YYYY-MM-DD.
+       Devuelve '' si el valor está vacío o no es parseable. */
+    function bomFmtSapDate(v) {
+      var s = str(v);
+      if (!s) return '';
+      var m = /\/Date\((-?\d+)/.exec(s);
+      if (m) {
+        var d = new Date(Number(m[1]));
+        return isNaN(d.getTime()) ? '' : d.toISOString().slice(0, 10);
+      }
+      // Fallback: ya viene como fecha ISO o similar
+      var d2 = new Date(s);
+      return isNaN(d2.getTime()) ? s : d2.toISOString().slice(0, 10);
+    }
+
+    /* Devuelve {fr, to} para un componente (SOURCEID padre + PRDID), concatenando
+       todos los periodos de vigencia ordenados por fecha de inicio. Strings vacíos
+       si no hay datos. */
+    function bomGetValidity(valMap, parentSid, prdid) {
+      if (!valMap || !parentSid || !prdid) return { fr: '', to: '' };
+      var periods = valMap[parentSid + '|' + prdid];
+      if (!periods || !periods.length) return { fr: '', to: '' };
+      var sorted = periods.slice().sort(function (a, b) { return (a.fr || '').localeCompare(b.fr || ''); });
+      return {
+        fr: sorted.map(function (p) { return p.fr; }).join('; '),
+        to: sorted.map(function (p) { return p.to; }).join('; ')
+      };
+    }
+
     function bomColLetter(n) {
       var s = '';
       while (n > 0) { var r = (n - 1) % 26; s = String.fromCharCode(65 + r) + s; n = Math.floor((n - 1) / 26); }
@@ -824,6 +868,9 @@
         I18n.t('bom.tbl.type'),         // Tipo
         I18n.t('bom.tbl.workstations')  // Puestos de trabajo
       ];
+      if (BOM_VALIDITY_ON) {
+        headers.push(I18n.t('bom.tbl.validFrom'), I18n.t('bom.tbl.validTo'));
+      }
       var hRow = ws.addRow(headers);
       hRow.height = 22;
       hRow.eachCell(function (cell) {
@@ -846,11 +893,17 @@
         var stype   = str(n.sourcetype || (isCo ? 'C' : ''));
         var res     = isCo ? '' : resList(n.resids);
 
-        var row = ws.addRow([
+        var rowVals = [
           str(item.rootPrdid || ''), str(item.parentPrdid || ''),
           lvl, locid, sourceid, str(n.prdid), str(n.prddescr), sub,
           coefIn, coefOut, str(n.uomid), str(n.mattypeid), stype, res
-        ]);
+        ];
+        if (BOM_VALIDITY_ON) {
+          var vv = isCo ? { fr: '', to: '' }
+            : bomGetValidity(tab._indexes && tab._indexes.VAL_BY_KEY, n._parentSid, n.prdid);
+          rowVals.push(vv.fr, vv.to);
+        }
+        var row = ws.addRow(rowVals);
 
         // Agrupación nativa de Excel (limitada a 7 niveles de outline)
         row.outlineLevel = Math.min(Math.max(lvl - 1, 0), 7);
@@ -873,6 +926,7 @@
 
       // Anchos de columna
       var widths = [18, 18, 7, 18, 16, 30, 32, 12, 14, 14, 8, 16, 7, 32];
+      if (BOM_VALIDITY_ON) widths.push(16, 16);
       ws.columns.forEach(function (col, i) { col.width = widths[i] || 12; });
 
       // AutoFiltro sobre la cabecera
@@ -1052,6 +1106,7 @@
       // Usar LOC_BY_ID del snapshot de esta pestaña (no el global que puede ser otro producto)
       var tabLocById = (tab._indexes && tab._indexes.LOC_BY_ID) || LOC_BY_ID;
       var tabPsiSub  = (tab._indexes && tab._indexes.PSISUB_BY_SID) || PSISUB_BY_SID;
+      var tabValByKey = (tab._indexes && tab._indexes.VAL_BY_KEY) || VAL_BY_KEY;
 
       var html = '';
       rows.forEach(function (r) {
@@ -1116,6 +1171,11 @@
         html += '<td style="font-family:var(--mono);font-size:11px">' + escH(n.mattypeid) + '</td>';
         html += '<td>' + typeBadge + '</td>';
         html += '<td>' + resHtml + '</td>';
+        if (BOM_VALIDITY_ON) {
+          var nv = bomGetValidity(tabValByKey, n._parentSid, n.prdid);
+          html += '<td style="font-family:var(--mono);font-size:11px">' + escH(nv.fr) + '</td>';
+          html += '<td style="font-family:var(--mono);font-size:11px">' + escH(nv.to) + '</td>';
+        }
         html += '</tr>';
 
         if (n.coprods && n.coprods.length > 0 && isExp) {
@@ -1131,13 +1191,13 @@
             html += '<td style="text-align:right;font-family:var(--mono)">' + fmtDualCoef(cp) + '</td>';
             html += '<td style="font-family:var(--mono);font-size:11px">' + escH(cp.mattypeid) + '</td>';
             html += '<td>' + (cp.sourcetype ? '<span class="badge ' + (cp.sourcetype === 'C' ? 'badge-coprod' : 'badge-psh') + '">' + escH(cp.sourcetype) + '</span>' : '') + '</td>';
-            html += '<td></td></tr>';
+            html += '<td></td>' + (BOM_VALIDITY_ON ? '<td></td><td></td>' : '') + '</tr>';
           });
         }
         if (hasKids && isExp) {
           var childCount = (n.children && n.children.length) || '…';
           html += '<tr class="tr-comp-divider"><td style="padding-left:' + (indent + 28) + 'px"></td>';
-          html += '<td colspan="11"><span class="divider-lbl">' + escH(I18n.t('bom.tbl.psiComponents', { count: childCount })) + '</span></td></tr>';
+          html += '<td colspan="' + (BOM_VALIDITY_ON ? 13 : 11) + '"><span class="divider-lbl">' + escH(I18n.t('bom.tbl.psiComponents', { count: childCount })) + '</span></td></tr>';
         }
       });
 
