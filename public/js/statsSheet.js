@@ -133,7 +133,13 @@
     'Productos entregados a cliente': 'Products delivered to customer',
     'CLEADTIME promedio (días)': 'Average CLEADTIME (days)',
     'CLIENTES — Distribución de CLEADTIME': 'CUSTOMERS — CLEADTIME distribution',
-    'CLEADTIME (días)': 'CLEADTIME (days)'
+    'CLEADTIME (días)': 'CLEADTIME (days)',
+    'UBICACIONES — Distribución de productos por origen': 'LOCATIONS — Product distribution per origin',
+    'Productos por origen': 'Products per origin',
+    'Ubicaciones origen': 'Origin locations',
+    'CLIENTES — Distribución por nº de productos': 'CUSTOMERS — Distribution by number of products',
+    'Productos por cliente': 'Products per customer',
+    'Clientes': 'Customers'
   };
   function T(s) {
     return (global.I18n && I18n.getLang() === 'en' && _EN[s]) ? _EN[s] : s;
@@ -502,7 +508,7 @@
     var prdInLocSrc = {}, prdInCustSrc = {}, prdInLocProd = {}, prdInCustProd = {};
     var locInPSH = {}, locInLocSrc = {}, locInCustSrc = {}, locInLocProd = {};
     var origins = {}, dests = {}, originsPerDest = {}, locOriginPrds = {};
-    var locSrcArcs = 0, custArcs = 0, custInCustSrc = {};
+    var locSrcArcs = 0, custArcs = 0, custInCustSrc = {}, custPrds = {};
     var tlt = { z: 0, a: 0, b: 0, c: 0 }, tltSum = 0, tltN = 0;
     var clt = { z: 0, a: 0, b: 0, c: 0 }, cltSum = 0, cltN = 0;
 
@@ -520,6 +526,7 @@
       custArcs++;
       if (p) prdInCustSrc[p] = true;
       if (c) custInCustSrc[c] = true;
+      if (c && p) { (custPrds[c] || (custPrds[c] = {}))[p] = true; }
       var n = parseFloat(S(r.CLEADTIME || '')); bucketLT(n, clt); if (n > 0) { cltSum += n; cltN++; }
     });
     await cur('sn_plant', function (r) { var l = S(r.LOCID); if (l) locInPSH[l] = true; });
@@ -592,6 +599,21 @@
         [T('Máximo de productos en una ubicación origen'), maxFan]
       ]
     });
+    var fo15 = 0, fo620 = 0, fo2150 = 0, fo51 = 0;
+    oKeys.forEach(function (o) {
+      var n = nkeys(locOriginPrds[o]);
+      if (n <= 5) fo15++; else if (n <= 20) fo620++; else if (n <= 50) fo2150++; else fo51++;
+    });
+    table(ws, {
+      banner: T('UBICACIONES — Distribución de productos por origen'),
+      headers: [T('Productos por origen'), T('Ubicaciones origen'), T('% del total')],
+      rows: [
+        ['1-5', fo15, pctStr(fo15, oKeys.length)],
+        ['6-20', fo620, pctStr(fo620, oKeys.length)],
+        ['21-50', fo2150, pctStr(fo2150, oKeys.length)],
+        ['51+', fo51, pctStr(fo51, oKeys.length)]
+      ]
+    });
 
     /* ARCOS — Location Source */
     var multiSrc = Object.keys(originsPerDest).filter(function (k) { return originsPerDest[k] >= 2; }).length;
@@ -628,6 +650,21 @@
         [T('Arcos de entrega'), custArcs],
         [T('Productos entregados a cliente'), nkeys(prdInCustSrc)],
         [T('CLEADTIME promedio (días)'), avg1(cltSum, cltN)]
+      ]
+    });
+    var cKeys = Object.keys(custPrds), cn15 = 0, cn620 = 0, cn2150 = 0, cn51 = 0;
+    cKeys.forEach(function (c) {
+      var n = nkeys(custPrds[c]);
+      if (n <= 5) cn15++; else if (n <= 20) cn620++; else if (n <= 50) cn2150++; else cn51++;
+    });
+    table(ws, {
+      banner: T('CLIENTES — Distribución por nº de productos'),
+      headers: [T('Productos por cliente'), T('Clientes'), T('% del total')],
+      rows: [
+        ['1-5', cn15, pctStr(cn15, cKeys.length)],
+        ['6-20', cn620, pctStr(cn620, cKeys.length)],
+        ['21-50', cn2150, pctStr(cn2150, cKeys.length)],
+        ['51+', cn51, pctStr(cn51, cKeys.length)]
       ]
     });
     table(ws, {

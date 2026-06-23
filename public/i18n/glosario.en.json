@@ -26,6 +26,8 @@
   "Presencia de ubicaciones en la red": "Location presence in the network",
   "Cuántas ubicaciones participan en producción, transferencias o entrega a cliente, y cuántas no tienen actividad.": "How many locations take part in production, transfers or customer delivery, and how many have no activity.",
   "Conectividad": "Connectivity",
+  "Ubicaciones origen y destino en Location Source, promedio de productos por origen y su distribución.": "Origin and destination locations in Location Source, average products per origin and its distribution.",
+  "Clientes en el maestro, con arco de entrega, número de arcos, CLEADTIME promedio y distribución de clientes por nº de productos.": "Customers in the master, with delivery arc, number of arcs, average CLEADTIME and distribution of customers by number of products.",
   "Ubicaciones origen y destino en Location Source y promedio de productos por ubicación origen.": "Origin and destination locations in Location Source and average products per origin location.",
   "Arcos de transferencia (Location Source)": "Transfer arcs (Location Source)",
   "Número de arcos, orígenes y destinos distintos, TLEADTIME promedio y destinos con múltiples orígenes (multi-sourcing).": "Number of arcs, distinct origins and destinations, average TLEADTIME and destinations with multiple origins (multi-sourcing).",

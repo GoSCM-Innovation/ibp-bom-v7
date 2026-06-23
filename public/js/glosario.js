@@ -881,10 +881,10 @@
             ['Cobertura en la red', 'Qué porcentaje del maestro de productos aparece en PSH, PSI, Location Source, Customer Source, Location Product y Customer Product, y cuántos no tienen actividad de red.'],
             ['Composición por LOCTYPE', 'Distribución de ubicaciones por tipo según el campo LOCTYPE.'],
             ['Presencia de ubicaciones en la red', 'Cuántas ubicaciones participan en producción, transferencias o entrega a cliente, y cuántas no tienen actividad.'],
-            ['Conectividad', 'Ubicaciones origen y destino en Location Source y promedio de productos por ubicación origen.'],
+            ['Conectividad', 'Ubicaciones origen y destino en Location Source, promedio de productos por origen y su distribución.'],
             ['Arcos de transferencia (Location Source)', 'Número de arcos, orígenes y destinos distintos, TLEADTIME promedio y destinos con múltiples orígenes (multi-sourcing).'],
             ['Distribución de TLEADTIME y CLEADTIME', 'Histograma de arcos por rango de lead time de transferencia y de entrega.'],
-            ['Clientes (Customer Source)', 'Clientes en el maestro, clientes con arco de entrega, número de arcos y CLEADTIME promedio.'],
+            ['Clientes (Customer Source)', 'Clientes en el maestro, con arco de entrega, número de arcos, CLEADTIME promedio y distribución de clientes por nº de productos.'],
             ['Cruces por campos adicionales', 'Por cada campo extra que agregues a Product, Location o Customer, una tabla cruzada contra el tipo (MATTYPEID o LOCTYPE) o de frecuencia.']
           ])) +
           callout('info', 'Las tablas de Cruces por campos adicionales se generan automáticamente para cada campo que selecciones en el paso Campos adicionales. Por ejemplo, agregar PLMSTATUS al Product produce el cruce Tipo de material por PLMSTATUS sin configuración extra.');
