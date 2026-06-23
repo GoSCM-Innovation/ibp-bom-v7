@@ -1333,6 +1333,22 @@ async function paAnalyzeAndExport(
     ],
     ['control','control','metric','metric','metric','metric','metric']);
 
+  /* ── HOJA: ESTADÍSTICAS (estadística descriptiva del dato; no repite Resumen) ── */
+  try {
+    if (typeof StatsSheet !== 'undefined') {
+      var statsWsPA = wb.addWorksheet(StatsSheet.sheetName(), {
+        views: [{ state: 'frozen', ySplit: 1 }],
+        properties: { tabColor: { argb: 'FF29ABE2' } }
+      });
+      StatsSheet.buildPA(statsWsPA, {
+        prd: PA_PRD, loc: PA_LOC, res: PA_RES,
+        pshBySid: pshBySid, pshSidHasP: pshSidHasP, pshByPrdLoc: pshByPrdLoc, pshPrdSetP: pshPrdSetP,
+        psiPrdSet: psiPrdSet, psiBySourceid: psiBySourceid,
+        psrBySourceid: psrBySourceid, psrResidSet: psrResidSet, allPsi: allPsi
+      });
+    }
+  } catch (e) { log(logEl, 'warn', timer.fmt() + ' Hoja Estadísticas omitida: ' + (e && e.message)); }
+
   /* ════════════════════════════════════════════════════════════════
      HOJA 1 — PRODUCT
      ════════════════════════════════════════════════════════════════ */

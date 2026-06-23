@@ -479,6 +479,25 @@
       }
     },
 
+    /* ── ESTADÍSTICAS ── */
+    {
+      id: 'pa-stats', icon: '📈', title: 'Hoja: Estadísticas',
+      content: function () {
+        return p('Hoja de estadística descriptiva del dato maestro y de las recetas. No repite la hoja Resumen: aquí no hay veredictos de consistencia sino composición, distribución y cobertura. Se organiza en secciones apiladas, cada una con su propia mini-tabla.') +
+          sub('Bloques que incluye', colTable([
+            ['Composición por tipo de material', 'Por cada MATTYPEID, cuántos productos son solo output (PSH), solo componente (PSI), ambos o sin uso en la estructura, con porcentaje del maestro.'],
+            ['Tipo de fuente (SOURCETYPE)', 'Cuántos SOURCEIDs son primarios (P) frente a solo co-producto (C).'],
+            ['Tamaño de BOM', 'Distribución de recetas por número de componentes (0, 1-5, 6-10, 11-20, 21+), más promedio y máximo.'],
+            ['Lead time de producción (PLEADTIME)', 'Distribución de SOURCEIDs por rango de PLEADTIME y promedio de los valores definidos.'],
+            ['Multi-fuente y sustitutos', 'Combinaciones producto-planta con más de una receta y componentes marcados como sustituto (ISALTITEM=X).'],
+            ['Composición por LOCTYPE', 'Distribución de ubicaciones por tipo según el campo LOCTYPE.'],
+            ['Recursos', 'Recursos en el maestro, usados en PSR, ociosos y promedio de recursos por receta.'],
+            ['Cruces por campos adicionales', 'Por cada campo extra que agregues a Product, Location o Resource, una tabla cruzada contra el tipo (MATTYPEID o LOCTYPE) o de frecuencia.']
+          ])) +
+          callout('info', 'Las tablas de Cruces por campos adicionales se generan automáticamente para cada campo que selecciones en el paso Campos adicionales. Por ejemplo, agregar PLMSTATUS al Product produce el cruce Tipo de material por PLMSTATUS sin configuración extra.');
+      }
+    },
+
     /* ── TIPOS DE MATERIAL ── */
     {
       id: 'pa-mattypes', icon: '🏷️', title: 'Tipos de Material',
@@ -850,6 +869,25 @@
             ['CLEADTIME zero', 'yellow', ['all'], 'El CLEADTIME está explícitamente definido como 0. IBP planifica entrega al cliente sin tiempo de tránsito.', 'Verificar si 0 días es intencional (entrega inmediata) o si falta ingresar el lead time real de entrega.'],
             ['Entrega alcanzable | Location Product y Customer Product configurados | CLEADTIME definido', 'ok', ['all'], 'El arco de entrega es alcanzable desde la producción, tiene lead time definido y ambos extremos están habilitados correctamente.', 'Sin acción requerida.']
           ]));
+      }
+    },
+
+    /* ── ESTADÍSTICAS SN ── */
+    {
+      id: 'sn-stats', icon: '📈', title: 'Hoja: Estadísticas',
+      content: function () {
+        return p('Hoja de estadística descriptiva del dato maestro y de la red logística. No repite la hoja Resumen: aquí no hay veredictos de consistencia ni health score sino composición, distribución y cobertura. Se organiza en secciones apiladas, cada una con su propia mini-tabla.') +
+          sub('Bloques que incluye', colTable([
+            ['Cobertura en la red', 'Qué porcentaje del maestro de productos aparece en PSH, PSI, Location Source, Customer Source, Location Product y Customer Product, y cuántos no tienen actividad de red.'],
+            ['Composición por LOCTYPE', 'Distribución de ubicaciones por tipo según el campo LOCTYPE.'],
+            ['Presencia de ubicaciones en la red', 'Cuántas ubicaciones participan en producción, transferencias o entrega a cliente, y cuántas no tienen actividad.'],
+            ['Conectividad', 'Ubicaciones origen y destino en Location Source y promedio de productos por ubicación origen.'],
+            ['Arcos de transferencia (Location Source)', 'Número de arcos, orígenes y destinos distintos, TLEADTIME promedio y destinos con múltiples orígenes (multi-sourcing).'],
+            ['Distribución de TLEADTIME y CLEADTIME', 'Histograma de arcos por rango de lead time de transferencia y de entrega.'],
+            ['Clientes (Customer Source)', 'Clientes en el maestro, clientes con arco de entrega, número de arcos y CLEADTIME promedio.'],
+            ['Cruces por campos adicionales', 'Por cada campo extra que agregues a Product, Location o Customer, una tabla cruzada contra el tipo (MATTYPEID o LOCTYPE) o de frecuencia.']
+          ])) +
+          callout('info', 'Las tablas de Cruces por campos adicionales se generan automáticamente para cada campo que selecciones en el paso Campos adicionales. Por ejemplo, agregar PLMSTATUS al Product produce el cruce Tipo de material por PLMSTATUS sin configuración extra.');
       }
     },
 
