@@ -486,7 +486,7 @@
         return p('Hoja de estadística descriptiva del dato maestro y de las recetas. No repite la hoja Resumen: aquí no hay veredictos de consistencia sino composición, distribución y cobertura. Se organiza en secciones apiladas, cada una con su propia mini-tabla.') +
           sub('Bloques que incluye', colTable([
             ['Composición por tipo de material', 'Por cada MATTYPEID, cuántos productos son solo output (PSH), solo componente (PSI), ambos o sin uso en la estructura, con porcentaje del maestro.'],
-            ['Tipo de fuente (SOURCETYPE)', 'Cuántos SOURCEIDs son primarios (P) frente a solo co-producto (C).'],
+            ['Producción por planta', 'Plantas que fabrican, productos y recetas totales, promedios por planta y distribución de recetas por planta.'],
             ['Tamaño de BOM', 'Distribución de recetas por número de componentes (0, 1-5, 6-10, 11-20, 21+), más promedio y máximo.'],
             ['Lead time de producción (PLEADTIME)', 'Distribución de SOURCEIDs por rango de PLEADTIME y promedio de los valores definidos.'],
             ['Multi-fuente y sustitutos', 'Combinaciones producto-planta con más de una receta y componentes marcados como sustituto (ISALTITEM=X).'],

@@ -78,6 +78,17 @@
     'Componentes marcados como sustituto': 'Components flagged as substitute',
     'UBICACIONES — Composición por tipo (LOCTYPE)':
       'LOCATIONS — Composition by type (LOCTYPE)',
+    'UBICACIONES — Producción por planta': 'LOCATIONS — Production by plant',
+    'Plantas que fabrican (con PSH)': 'Plants that manufacture (with PSH)',
+    '% sobre total de ubicaciones': '% of total locations',
+    'Productos distintos fabricados': 'Distinct products manufactured',
+    'Recetas (SOURCEIDs) totales': 'Total recipes (SOURCEIDs)',
+    'Promedio de recetas por planta': 'Average recipes per plant',
+    'Promedio de productos distintos por planta': 'Average distinct products per plant',
+    'Máximo de recetas en una planta': 'Max recipes in one plant',
+    'UBICACIONES — Distribución de recetas por planta': 'LOCATIONS — Recipe distribution per plant',
+    'Recetas por planta': 'Recipes per plant',
+    'Plantas': 'Plants',
     'RECURSOS — Uso en producción': 'RESOURCES — Use in production',
     'Recursos en el maestro': 'Resources in master',
     'Recursos usados en PSR': 'Resources used in PSR',
@@ -194,39 +205,63 @@
     blank(ws);
   }
 
-  /* cruce maestro × campo extra. Si el campo supera maxCols valores
-     distintos → degrada a tabla de frecuencia. */
-  function renderCrosstab(ws, recs, dimFn, dimLabel, field, maxCols) {
-    var counts = _valueCounts(recs, field);
-    var valKeys = Object.keys(counts);
-    if (valKeys.length > maxCols) { renderFrequency(ws, recs, field, maxCols); return; }
-    valKeys.sort();
+  /* cruce campo extra × dimensión del maestro. El campo (puede ser de alta
+     cardinalidad, p. ej. brand) va en FILAS; la dimensión chica (MATTYPEID /
+     LOCTYPE) va en COLUMNAS. Ambas se acotan por frecuencia: filas top maxRows
+     + "Otros", columnas top maxCols + "Otros". Así nunca se pierde el cruce ni
+     se desborda el ancho. */
+  function renderCrosstab(ws, recs, dimFn, dimLabel, field, maxRows, maxCols) {
+    maxRows = maxRows || 30;
+    maxCols = maxCols || 15;
 
-    var mat = {}, dimOrder = [];
+    var fieldTot = {}, dimTot = {}, cell = {};
     recs.forEach(function (r) {
-      var d = dimFn(r);
-      if (mat[d] === undefined) { mat[d] = {}; dimOrder.push(d); }
-      var v = S(r && r[field] != null ? r[field] : '');
-      if (v === '') v = T('(vacío)');
-      mat[d][v] = (mat[d][v] || 0) + 1;
+      var fv = S(r && r[field] != null ? r[field] : ''); if (fv === '') fv = T('(vacío)');
+      var dv = dimFn(r);
+      fieldTot[fv] = (fieldTot[fv] || 0) + 1;
+      dimTot[dv] = (dimTot[dv] || 0) + 1;
+      var k = fv + '\u0001' + dv;
+      cell[k] = (cell[k] || 0) + 1;
     });
-    dimOrder.sort();
 
-    banner(ws, dimLabel + ' × ' + field);
-    header(ws, [dimLabel].concat(valKeys).concat([T('Total')]));
-    var colTot = {}, grand = 0;
-    dimOrder.forEach(function (d) {
-      var arr = [d], rt = 0;
-      valKeys.forEach(function (v) {
-        var c = mat[d][v] || 0; arr.push(c); rt += c; colTot[v] = (colTot[v] || 0) + c;
+    var dimKeys = Object.keys(dimTot).sort(function (a, b) { return dimTot[b] - dimTot[a]; });
+    var dimShown = dimKeys.slice(0, maxCols), dimRest = dimKeys.slice(maxCols), hasDimRest = dimRest.length > 0;
+    var fieldKeys = Object.keys(fieldTot).sort(function (a, b) { return fieldTot[b] - fieldTot[a]; });
+    var fieldShown = fieldKeys.slice(0, maxRows), fieldRest = fieldKeys.slice(maxRows), hasFieldRest = fieldRest.length > 0;
+
+    function cnt(fv, dv) { return cell[fv + '\u0001' + dv] || 0; }
+
+    banner(ws, field + ' × ' + dimLabel);
+    var hdr = [field].concat(dimShown);
+    if (hasDimRest) hdr.push(T('Otros'));
+    hdr.push(T('Total'));
+    header(ws, hdr);
+
+    var colTot = {}, otrosCol = 0, grand = 0;
+    dimShown.forEach(function (dv) { colTot[dv] = 0; });
+
+    function emitRow(label, fvs) {
+      var arr = [label], rt = 0;
+      dimShown.forEach(function (dv) {
+        var c = 0; fvs.forEach(function (fv) { c += cnt(fv, dv); });
+        arr.push(c); colTot[dv] += c; rt += c;
       });
+      if (hasDimRest) {
+        var co = 0; fvs.forEach(function (fv) { dimRest.forEach(function (dv) { co += cnt(fv, dv); }); });
+        arr.push(co); otrosCol += co; rt += co;
+      }
       arr.push(rt); grand += rt;
       row(ws, arr);
-    });
-    var totRow = [T('Total')];
-    valKeys.forEach(function (v) { totRow.push(colTot[v] || 0); });
-    totRow.push(grand);
-    row(ws, totRow, FILL_GRAY);
+    }
+
+    fieldShown.forEach(function (fv) { emitRow(fv, [fv]); });
+    if (hasFieldRest) emitRow(T('Otros') + ' (' + fieldRest.length + ')', fieldRest);
+
+    var totArr = [T('Total')];
+    dimShown.forEach(function (dv) { totArr.push(colTot[dv]); });
+    if (hasDimRest) totArr.push(otrosCol);
+    totArr.push(grand);
+    row(ws, totArr, FILL_GRAY);
     blank(ws);
   }
 
@@ -237,7 +272,7 @@
       ? efGetExtraHeaders(opts.ns, opts.entity) : [];
     if (!extra.length) return 0;
     extra.forEach(function (f) {
-      if (opts.dimFn) renderCrosstab(ws, opts.recs, opts.dimFn, opts.dimLabel, f, 25);
+      if (opts.dimFn) renderCrosstab(ws, opts.recs, opts.dimFn, opts.dimLabel, f);
       else renderFrequency(ws, opts.recs, f, 25);
     });
     return extra.length;
@@ -249,7 +284,6 @@
   function buildPA(ws, ctx) {
     var PRD = ctx.prd || {}, LOC = ctx.loc || {}, RES = ctx.res || {};
     var pshBySid    = ctx.pshBySid || {};
-    var pshSidHasP  = ctx.pshSidHasP || {};
     var pshByPrdLoc = ctx.pshByPrdLoc || {};
     var pshPrdSetP  = ctx.pshPrdSetP || {};
     var psiPrdSet   = ctx.psiPrdSet || new Set();
@@ -291,19 +325,6 @@
       headers: [T('Tipo de material'), T('Productos'), T('Solo output (PSH)'),
         T('Solo componente (PSI)'), T('Output + componente'), T('Sin uso en estructura'), T('% maestro')],
       rows: mtRows
-    });
-
-    /* RECETAS — SOURCETYPE */
-    var nP = 0, nC = 0;
-    sidIds.forEach(function (sid) { if (pshSidHasP[sid]) nP++; else nC++; });
-    table(ws, {
-      banner: T('RECETAS — Tipo de fuente (SOURCETYPE)'),
-      headers: [T('Tipo de fuente'), T('SOURCEIDs'), T('% del total')],
-      rows: [
-        [T('Primario (P)'), nP, pctStr(nP, totalSid)],
-        [T('Solo co-producto (C)'), nC, pctStr(nC, totalSid)],
-        grayTotal([T('TOTAL'), totalSid, '100%'])
-      ]
     });
 
     /* RECETAS — tamaño de BOM */
@@ -384,6 +405,54 @@
       banner: T('UBICACIONES — Composición por tipo (LOCTYPE)'),
       headers: ['LOCTYPE', T('Ubicaciones'), T('% del total')],
       rows: ltRows
+    });
+
+    /* UBICACIONES — producción por planta (deriva planta/producto de cada receta) */
+    var recipesByPlant = {}, productsByPlant = {}, mfgProducts = {};
+    sidIds.forEach(function (sid) {
+      var recs = pshBySid[sid] || [], prim = null;
+      for (var i = 0; i < recs.length; i++) { if (recs[i].SOURCETYPE === 'P') { prim = recs[i]; break; } }
+      if (!prim) prim = recs[0] || {};
+      var loc = S(prim.LOCID || ''), prd = S(prim.PRDID || '');
+      if (loc) {
+        recipesByPlant[loc] = (recipesByPlant[loc] || 0) + 1;
+        if (prd) { (productsByPlant[loc] || (productsByPlant[loc] = {}))[prd] = true; }
+      }
+      if (prd) mfgProducts[prd] = true;
+    });
+    var plantKeys = Object.keys(recipesByPlant), nPlants = plantKeys.length;
+    var maxRecipes = 0, sumProdPerPlant = 0;
+    plantKeys.forEach(function (l) {
+      if (recipesByPlant[l] > maxRecipes) maxRecipes = recipesByPlant[l];
+      sumProdPerPlant += nkeys(productsByPlant[l]);
+    });
+    table(ws, {
+      banner: T('UBICACIONES — Producción por planta'),
+      headers: [T('Métrica'), T('Valor')],
+      rows: [
+        [T('Plantas que fabrican (con PSH)'), nPlants],
+        [T('% sobre total de ubicaciones'), pctStr(nPlants, totalLoc)],
+        [T('Productos distintos fabricados'), nkeys(mfgProducts)],
+        [T('Recetas (SOURCEIDs) totales'), totalSid],
+        [T('Promedio de recetas por planta'), avg1(totalSid, nPlants)],
+        [T('Promedio de productos distintos por planta'), avg1(sumProdPerPlant, nPlants)],
+        [T('Máximo de recetas en una planta'), maxRecipes]
+      ]
+    });
+    var rp15 = 0, rp620 = 0, rp2150 = 0, rp51 = 0;
+    plantKeys.forEach(function (l) {
+      var n = recipesByPlant[l];
+      if (n <= 5) rp15++; else if (n <= 20) rp620++; else if (n <= 50) rp2150++; else rp51++;
+    });
+    table(ws, {
+      banner: T('UBICACIONES — Distribución de recetas por planta'),
+      headers: [T('Recetas por planta'), T('Plantas'), T('% del total')],
+      rows: [
+        ['1-5', rp15, pctStr(rp15, nPlants)],
+        ['6-20', rp620, pctStr(rp620, nPlants)],
+        ['21-50', rp2150, pctStr(rp2150, nPlants)],
+        ['51+', rp51, pctStr(rp51, nPlants)]
+      ]
     });
 
     /* RECURSOS */
