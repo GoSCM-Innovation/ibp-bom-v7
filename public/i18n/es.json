@@ -6,6 +6,11 @@
   "lang.es": "ES",
   "lang.en": "EN",
 
+  "theme.label": "Tema",
+  "theme.switch": "Cambiar tema",
+  "theme.toLight": "Cambiar a tema claro",
+  "theme.toDark": "Cambiar a tema oscuro",
+
   "common.close": "Cerrar",
   "common.cancel": "Cancelar",
   "common.continue": "Continuar →",

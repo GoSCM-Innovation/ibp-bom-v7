@@ -1542,7 +1542,7 @@ const Explorer = (function () {
   // hay que pasar un elemento DOM para HTML en tooltips.
   function makeTooltip(lines) {
     const d = document.createElement('div');
-    d.style.cssText = 'padding:6px 10px;font-size:12px;line-height:1.7;background:#0f1829;color:#dce6f5;border:1px solid #243350;border-radius:6px;max-width:280px;';
+    d.style.cssText = 'padding:6px 10px;font-size:12px;line-height:1.7;background:var(--bg2);color:var(--text);border:1px solid var(--border);border-radius:6px;max-width:280px;';
     d.innerHTML = lines.map(l => `<div>${l}</div>`).join('');
     return d;
   }
