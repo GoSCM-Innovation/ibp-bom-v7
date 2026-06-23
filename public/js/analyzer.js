@@ -1285,6 +1285,12 @@
       s0ws.getRow(1).height = 20;
       var s0colW = s0hdr.map(function (h) { return h.length; });
 
+      /* ── Hoja Estadísticas (descriptiva; se crea aquí para quedar en posición 2,
+            se llena al final cuando los stores IDB ya están poblados) ── */
+      var statsWsSN = (typeof StatsSheet !== 'undefined')
+        ? wb.addWorksheet(StatsSheet.sheetName(), { views: [{ state: 'frozen', ySplit: 1 }], properties: { tabColor: { argb: 'FF29ABE2' } } })
+        : null;
+
       /* ── Crear grupos de hojas ── */
       var _prdHdrs = [
         I18n.t('xls.col.status'), I18n.t('xls.col.obs'),
@@ -2187,6 +2193,12 @@
             ];
           })()
         });
+      }
+
+      /* ── Llenar hoja Estadísticas (lee los stores IDB vía cursor) ── */
+      if (statsWsSN) {
+        try { await StatsSheet.buildSN(statsWsSN, { idx: SN_IDX }); }
+        catch (e) { if (logEl) log(logEl, 'warn', timer.fmt() + ' Hoja Estadísticas omitida: ' + (e && e.message)); }
       }
 
       if (onProgress) onProgress(97);
