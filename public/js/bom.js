@@ -1133,6 +1133,9 @@
         else if (n.type === 'CYCLE') rowClass = 'rt-cycle';
         else if (hasKids) rowClass = 'rt-subprod';
 
+        // Color por nivel (cicla cada 8 niveles) — basado en el nivel mostrado
+        var lvlClass = 'lvl-c' + (((bomDisplayLevel(n.level) - 1) % 8) + 1);
+
         var expHtml = hasKids
           ? '<button class="exp-btn" data-nodeid="' + escH(n.id) + '">' + (isExp ? '▼' : '▶') + '</button>'
           : '<button class="exp-btn no-ch">·</button>';
@@ -1157,11 +1160,11 @@
           : '';
         var matLabel = escH(n.prdid) + (n.prddescr ? ' <span style="color:var(--text3);font-size:10px">— ' + escH(n.prddescr) + '</span>' : '');
 
-        html += '<tr class="' + rowClass + '">';
+        html += '<tr class="' + rowClass + ' ' + lvlClass + '">';
         html += '<td style="padding-left:' + (indent + 6) + 'px">' + expHtml + '</td>';
         html += '<td style="font-family:var(--mono);font-size:11px">' + escH(r.rootPrdid || '') + '</td>';
         html += '<td style="font-family:var(--mono);font-size:11px">' + escH(r.parentPrdid || '') + '</td>';
-        html += '<td>' + bomDisplayLevel(n.level) + '</td>';
+        html += '<td><span class="lvl-badge">' + bomDisplayLevel(n.level) + '</span></td>';
         html += '<td style="font-family:var(--mono);font-size:11px">' + locLabel + '</td>';
         html += '<td style="font-family:var(--mono);font-size:11px">' + escH(n.sourceid) + '</td>';
         html += '<td style="font-family:var(--mono);font-size:11px">' + matLabel + '</td>';
@@ -1193,7 +1196,7 @@
         if (n.coprods && n.coprods.length > 0 && isExp) {
           n.coprods.forEach(function (cp) {
             var cpMatLabel = escH(cp.prdid) + (cp.prddescr ? ' <span style="color:var(--text3);font-size:10px">— ' + escH(cp.prddescr) + '</span>' : '');
-            html += '<tr class="rt-coprod">';
+            html += '<tr class="rt-coprod ' + lvlClass + '">';
             html += '<td style="padding-left:' + (indent + 28) + 'px"></td>';
             html += '<td style="font-family:var(--mono);font-size:11px">' + escH(r.rootPrdid || '') + '</td>';
             html += '<td style="font-family:var(--mono);font-size:11px">' + escH(n.prdid) + '</td>';

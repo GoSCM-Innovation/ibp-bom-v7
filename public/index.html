@@ -4,6 +4,18 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <!-- Tema: fija data-theme antes del primer paint para evitar parpadeo -->
+  <script>
+    (function () {
+      try {
+        var t = localStorage.getItem('goscm.theme');
+        if (t !== 'light' && t !== 'dark') t = 'dark';
+        document.documentElement.setAttribute('data-theme', t);
+      } catch (e) {
+        document.documentElement.setAttribute('data-theme', 'dark');
+      }
+    })();
+  </script>
   <title>GoSCM Applications Hub</title>
   <link
     href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=DM+Sans:wght@300;400;500;600;700&display=swap"
@@ -275,7 +287,7 @@
             <div style="display:flex;flex-direction:column;gap:6px;">
               <div>
                 <div style="color:var(--text3);font-style:italic;font-size:10px;margin-bottom:3px;" data-i18n="techReq.comm.modeZip">Modo ZIP</div>
-                <div style="background:#1a1a2a;border:1px solid #2a2a3a;border-radius:4px;padding:6px 8px;color:var(--text3);font-size:10px;" data-i18n="techReq.comm.noConn">Sin conexión a SAP IBP</div>
+                <div style="background:var(--surface);border:1px solid var(--border);border-radius:4px;padding:6px 8px;color:var(--text3);font-size:10px;" data-i18n="techReq.comm.noConn">Sin conexión a SAP IBP</div>
               </div>
               <div>
                 <div style="color:var(--text3);font-style:italic;font-size:10px;margin-bottom:3px;" data-i18n="techReq.comm.modeJobs">Modo Application Jobs / ZIP+Jobs</div>
@@ -294,7 +306,7 @@
           <div style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:12px;">
             <div style="color:var(--cyan);font-weight:600;margin-bottom:8px;">🔎 Integration Explorer</div>
             <div style="display:flex;flex-direction:column;gap:4px;">
-              <div style="background:#1a1a2a;border:1px solid #2a2a3a;border-radius:4px;padding:6px 8px;color:var(--text3);font-size:10px;" data-i18n="techReq.comm.noConn">Sin conexión a SAP IBP</div>
+              <div style="background:var(--surface);border:1px solid var(--border);border-radius:4px;padding:6px 8px;color:var(--text3);font-size:10px;" data-i18n="techReq.comm.noConn">Sin conexión a SAP IBP</div>
               <div style="color:var(--text3);font-size:10px;margin-top:4px;line-height:1.5;" data-i18n="techReq.comm.explorerHelp">Funciona completamente offline. Solo necesitas subir los archivos ZIP exportados desde SAP CI-DS.</div>
             </div>
           </div>
@@ -390,7 +402,7 @@
           <div>
             <div style="color:var(--cyan);font-weight:600;margin-bottom:6px;">🔎 Integration Explorer</div>
             <div style="display:flex;flex-direction:column;gap:4px;color:var(--text2);">
-              <div style="background:#1a1a2a;border:1px solid #2a2a3a;border-radius:4px;padding:6px 8px;color:var(--text3);font-size:10px;margin-bottom:4px;" data-i18n="techReq.ent.exNoOData">No consume entidades OData</div>
+              <div style="background:var(--surface);border:1px solid var(--border);border-radius:4px;padding:6px 8px;color:var(--text3);font-size:10px;margin-bottom:4px;" data-i18n="techReq.ent.exNoOData">No consume entidades OData</div>
               <div data-i18n="techReq.ent.exDesc1">• Procesa archivos ZIP CI-DS</div>
               <div data-i18n="techReq.ent.exDesc2">• Extrae XMLs de dataflows</div>
               <div data-i18n="techReq.ent.exDesc3">• Construye índice de dependencias</div>
@@ -431,6 +443,15 @@
       <div class="sidebar-lang" role="group" data-i18n-aria-label="lang.switch.aria" aria-label="Cambiar idioma">
         <button type="button" class="lang-btn" id="langBtnEs" data-lang="es" data-i18n="lang.es" aria-pressed="false">ES</button>
         <button type="button" class="lang-btn" id="langBtnEn" data-lang="en" data-i18n="lang.en" aria-pressed="false">EN</button>
+      </div>
+
+      <!-- Theme toggle -->
+      <div class="sidebar-theme">
+        <span class="theme-label" data-i18n="theme.label">Tema</span>
+        <button type="button" class="theme-toggle" id="themeToggle" role="switch" aria-checked="false"
+          data-i18n-aria-label="theme.switch" aria-label="Cambiar tema" title="Cambiar a tema claro">
+          <span class="theme-toggle-knob"><span class="theme-toggle-icon">🌙</span></span>
+        </button>
       </div>
 
       <!-- Connection status -->
@@ -1878,6 +1899,7 @@
   </div><!-- /app-shell -->
 
   <script src="js/i18n.js"></script>
+  <script src="js/theme.js"></script>
   <script src="js/extraFields.js"></script>
   <script src="js/state.js"></script>
   <script src="js/utils.js"></script>
