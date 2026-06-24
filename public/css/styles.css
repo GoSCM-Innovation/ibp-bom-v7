@@ -24,6 +24,15 @@
       --purple: #a78bfa;
       --green: #34d399;
       --pink: #f472b6;
+      /* Niveles de producción (BOM) — paleta cíclica para distinguir niveles */
+      --lvl-1: #29ABE2;
+      --lvl-2: #34d399;
+      --lvl-3: #F7A800;
+      --lvl-4: #f472b6;
+      --lvl-5: #a78bfa;
+      --lvl-6: #fb923c;
+      --lvl-7: #2dd4bf;
+      --lvl-8: #f87171;
       --font: 'DM Sans', sans-serif;
       --mono: 'JetBrains Mono', monospace;
 
@@ -657,6 +666,36 @@
     tr.rt-cycle td {
       background: rgba(255, 107, 107, .08);
     }
+
+    /* ── Color por nivel: badge en columna Nivel + franja lateral ── */
+    .lvl-badge {
+      display: inline-block;
+      min-width: 16px;
+      padding: 1px 7px;
+      border-radius: 10px;
+      font-family: var(--mono);
+      font-size: 11px;
+      font-weight: 700;
+      text-align: center;
+      color: #0b1120;
+      background: var(--text3);
+    }
+    tr.lvl-c1 .lvl-badge { background: var(--lvl-1); }
+    tr.lvl-c2 .lvl-badge { background: var(--lvl-2); }
+    tr.lvl-c3 .lvl-badge { background: var(--lvl-3); }
+    tr.lvl-c4 .lvl-badge { background: var(--lvl-4); }
+    tr.lvl-c5 .lvl-badge { background: var(--lvl-5); }
+    tr.lvl-c6 .lvl-badge { background: var(--lvl-6); }
+    tr.lvl-c7 .lvl-badge { background: var(--lvl-7); }
+    tr.lvl-c8 .lvl-badge { background: var(--lvl-8); }
+    tr.lvl-c1 td:first-child { box-shadow: inset 3px 0 0 var(--lvl-1); }
+    tr.lvl-c2 td:first-child { box-shadow: inset 3px 0 0 var(--lvl-2); }
+    tr.lvl-c3 td:first-child { box-shadow: inset 3px 0 0 var(--lvl-3); }
+    tr.lvl-c4 td:first-child { box-shadow: inset 3px 0 0 var(--lvl-4); }
+    tr.lvl-c5 td:first-child { box-shadow: inset 3px 0 0 var(--lvl-5); }
+    tr.lvl-c6 td:first-child { box-shadow: inset 3px 0 0 var(--lvl-6); }
+    tr.lvl-c7 td:first-child { box-shadow: inset 3px 0 0 var(--lvl-7); }
+    tr.lvl-c8 td:first-child { box-shadow: inset 3px 0 0 var(--lvl-8); }
 
     /* Badges */
     .badge {
