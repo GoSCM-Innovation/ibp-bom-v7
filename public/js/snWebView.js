@@ -86,6 +86,9 @@
     '.snwv-count{font-size:12px;color:var(--text2)}' +
     '.snwv-cap{font-size:11px;color:var(--accent2);margin-top:4px}' +
     '.snwv-empty{padding:30px;text-align:center;color:var(--text2);font-size:13px}' +
+    '.snwv-statsbox{padding:16px 18px}' +
+    '.snwv-st-h{font-size:13px;font-weight:700;color:var(--accent);margin:18px 0 8px;padding-bottom:4px;border-bottom:1px solid var(--border)}' +
+    '.snwv-statsbox .snwv-st-h:first-child{margin-top:0}' +
     '.snwv-ov{position:fixed;inset:0;background:rgba(0,0,0,.55);display:flex;align-items:center;justify-content:center;z-index:9999}' +
     '.snwv-modal{background:var(--bg2);border:1px solid var(--border);border-radius:12px;max-width:460px;width:90%;padding:22px;box-shadow:0 20px 60px rgba(0,0,0,.4)}' +
     '.snwv-modal h3{margin:0 0 6px;font-size:16px;color:var(--text)}' +
@@ -198,12 +201,17 @@
   }
 
   function buildTabs(data) {
-    return (data.order || []).map(function (nm) {
+    var h = (data.order || []).map(function (nm) {
       var s = data.sheets[nm];
       var act = (nm === _activeSheet) ? ' active' : '';
       return '<div class="snwv-tab' + act + '" data-sheet="' + esc(nm) + '">' + esc(nm) +
         ' <span style="opacity:.6">(' + fmtN(s.total) + ')</span></div>';
     }).join('');
+    if (data.stats && data.stats.length) {
+      var sact = (_activeSheet === '__stats__') ? ' active' : '';
+      h += '<div class="snwv-tab' + sact + '" data-sheet="__stats__">📈 ' + esc(data.statsName || 'Estadísticas') + '</div>';
+    }
+    return h;
   }
 
   function wireShell() {
@@ -232,7 +240,7 @@
   }
 
   function setSheet(name) {
-    if (!_data.sheets[name]) return;
+    if (name !== '__stats__' && !_data.sheets[name]) return;
     _activeSheet = name; _sev = 'all'; _q = ''; _page = 1;
     var nodes = document.querySelectorAll('#snwv-cards .snwv-card, #snwv-tabs .snwv-tab');
     Array.prototype.forEach.call(nodes, function (nd) {
@@ -245,6 +253,7 @@
   function renderActive() {
     var body = el('snwv-body');
     if (!body) return;
+    if (_activeSheet === '__stats__') { body.innerHTML = renderStats(); return; }
     var sh = _data.sheets[_activeSheet];
     var h = '';
     h += '<div class="snwv-toolbar">';
@@ -274,6 +283,37 @@
       _searchTimer = setTimeout(function () { _q = q.value; _page = 1; renderTable(); }, 200);
     });
     renderTable();
+  }
+
+  /* ── Estadísticas (descriptiva): secuencia de títulos + tablas ──
+     Filas capturadas de StatsSheet: [] = separador, [x] = título de sección,
+     [a,b,...] = fila de tabla (la primera de cada bloque se toma como cabecera). */
+  function renderStats() {
+    var rows = _data.stats || [];
+    if (!rows.length) return '<div class="snwv-empty">Estadísticas no disponibles.</div>';
+    var h = '<div class="snwv-statsbox">';
+    var i = 0, n = rows.length;
+    while (i < n) {
+      var r = rows[i];
+      if (!r || !r.length) { i++; continue; }                 // separador
+      if (r.length === 1) {                                    // título / banner de sección
+        if (String(r[0]).trim() !== '') h += '<div class="snwv-st-h">' + esc(r[0]) + '</div>';
+        i++; continue;
+      }
+      var block = [];                                          // bloque de tabla contiguo
+      while (i < n && rows[i] && rows[i].length > 1) { block.push(rows[i]); i++; }
+      h += '<div class="snwv-tablewrap" style="max-height:none;margin-bottom:14px"><table class="snwv-table"><thead><tr>';
+      for (var c = 0; c < block[0].length; c++) h += '<th>' + esc(block[0][c]) + '</th>';
+      h += '</tr></thead><tbody>';
+      for (var b = 1; b < block.length; b++) {
+        h += '<tr>';
+        for (var cc = 0; cc < block[b].length; cc++) h += '<td>' + esc(block[b][cc]) + '</td>';
+        h += '</tr>';
+      }
+      h += '</tbody></table></div>';
+    }
+    h += '</div>';
+    return h;
   }
 
   function chip(key, label, count) {

@@ -1251,7 +1251,7 @@
       if (webMode) {
         _BIG[I18n.t('xls.sheet.locationSource')] = 1;
         _BIG[I18n.t('xls.sheet.customerSource')]  = 1;
-        SN_WEB = { generatedAt: today, sheets: {}, order: [], summary: [], meta: execMeta || null, downloadExcel: null };
+        SN_WEB = { generatedAt: today, sheets: {}, order: [], summary: [], stats: [], statsName: ((typeof StatsSheet !== 'undefined' && StatsSheet.sheetName) ? StatsSheet.sheetName() : 'Estadísticas'), meta: execMeta || null, downloadExcel: null };
       }
 
       /* ── Factory: grupo de hojas con auto-split, notas y grupos de color ── */
@@ -2256,6 +2256,14 @@
 
       /* ── Llenar hoja Estadísticas (lee los stores IDB vía cursor) ── */
       if (statsWsSN) {
+        if (SN_WEB) {
+          // Capturar filas de Estadísticas para la vista web (sin afectar el Excel)
+          var _statsOrigAdd = statsWsSN.addRow.bind(statsWsSN);
+          statsWsSN.addRow = function (cells) {
+            try { SN_WEB.stats.push(Array.isArray(cells) ? cells.map(function (v) { return v == null ? '' : String(v); }) : []); } catch (e) {}
+            return _statsOrigAdd(cells);
+          };
+        }
         try { await StatsSheet.buildSN(statsWsSN, { idx: SN_IDX }); }
         catch (e) { if (logEl) log(logEl, 'warn', timer.fmt() + ' Hoja Estadísticas omitida: ' + (e && e.message)); }
       }
