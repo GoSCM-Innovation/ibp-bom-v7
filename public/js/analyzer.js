@@ -512,6 +512,9 @@
       document.getElementById('progStatusSN').style.cssText = 'display:flex;font-size:12px;color:var(--text2);margin-top:4px;align-items:center;gap:8px;';
       document.getElementById('btnFetchSN').disabled = true;
       document.getElementById('snSuccessBanner').classList.add('hidden');
+      var _snResPanel0 = document.getElementById('snResultsPanel');
+      if (_snResPanel0) { _snResPanel0.classList.add('hidden'); _snResPanel0.innerHTML = ''; }
+      window.SN_WEB_RESULT = null;
       var timer = createTimer();
 
       var locationEntity = document.getElementById('selSNLocation').value;
@@ -547,6 +550,18 @@
           document.getElementById('btnFetchSN').disabled = false;
           log(logEl, 'error', I18n.t('analyzer.error.pendingCorrections'));
           if (typeof toggleMappingBody === 'function') toggleMappingBody('bodySNMDT', 'arrSNMDT', true);
+          return;
+        }
+      }
+
+      // ── Modo de salida: vista web / Excel / ambos (piloto SN) ──
+      var snOutMode = 'excel';
+      if (typeof SnWebView !== 'undefined' && SnWebView.askOutputMode) {
+        snOutMode = await SnWebView.askOutputMode();
+        if (!snOutMode) {
+          document.getElementById('btnFetchSN').disabled = false;
+          document.getElementById('progBarSN').classList.add('hidden');
+          var _psCancel = document.getElementById('progStatusSN'); if (_psCancel) _psCancel.style.display = 'none';
           return;
         }
       }
@@ -739,14 +754,21 @@
         // ── PHASE 2+3: Análisis + exportación (50 → 100%) ──────────────
         function onProg(pct) { progEl.style.width = pct + '%'; }
         function onStat(msg) { setStatusSN('info', msg); }
-        var summary = await analyzeAndStreamExcel(onProg, onStat, timer, logEl, SN_EXEC_META);
+        var summary = await analyzeAndStreamExcel(onProg, onStat, timer, logEl, SN_EXEC_META, snOutMode);
         progEl.style.width = '100%';
 
         var _dur = fmtDuration(timer.ms());
         var _n   = summary.totalProducts.toLocaleString('es-CL');
-        log(logEl, 'ok', timer.fmt() + ' Análisis completado. ' + _n + ' productos analizados · Excel descargado · ' + _dur + '.');
+        var _wantWeb = (snOutMode === 'web' || snOutMode === 'both');
+        var _doneMsg = (_wantWeb && snOutMode === 'both') ? 'Excel descargado + vista web'
+                     : _wantWeb ? 'vista web generada' : 'Excel descargado';
+        log(logEl, 'ok', timer.fmt() + ' Análisis completado. ' + _n + ' productos analizados · ' + _doneMsg + ' · ' + _dur + '.');
         setStatusSN('ok', I18n.t('analyzer.status.complete', { n: _n, dur: _dur }));
-        document.getElementById('snSuccessBanner').classList.remove('hidden');
+        if (_wantWeb && typeof SnWebView !== 'undefined' && window.SN_WEB_RESULT) {
+          try { SnWebView.render(window.SN_WEB_RESULT); }
+          catch (e) { log(logEl, 'warn', timer.fmt() + ' Vista web no disponible: ' + (e && e.message)); }
+        }
+        if (!_wantWeb) document.getElementById('snSuccessBanner').classList.remove('hidden');
 
       } catch (e) {
         log(logEl, 'err', timer.fmt() + ' Error: ' + e.message);
@@ -1189,7 +1211,7 @@
        7 grupos de hojas orientados a entidad (con auto-split >900k).
        Las filas se escriben como XML directo — sin modelo de objetos.
        ═══════════════════════════════════════════════════════════════ */
-    async function analyzeAndStreamExcel(onProgress, onStatus, timer, logEl, execMeta) {
+    async function analyzeAndStreamExcel(onProgress, onStatus, timer, logEl, execMeta, mode) {
       /* ── micro-helpers ── */
       function pd(id)      { var p = SN_IDX.prdLookup[id]  || {}; return str(p.PRDDESCR  || ''); }
       function pm(id)      { var p = SN_IDX.prdLookup[id]  || {}; return str(p.MATTYPEID || ''); }
@@ -1221,9 +1243,24 @@
       var STATS = {};
       function initStat(name) { STATS[name] = { total: 0, red: 0, yel: 0, ok: 0 }; }
 
+      /* ── Captura para vista web (modo 'web' | 'both') ──
+         Hojas acotadas se capturan completas; las grandes (Location/Customer
+         Source) con tope, para no inflar el heap. El Excel siempre recibe todo. */
+      var webMode = (mode === 'web' || mode === 'both');
+      var SN_WEB = null, _BIG = {}, WEB_CAP_STD = 50000, WEB_CAP_BIG = 20000;
+      if (webMode) {
+        _BIG[I18n.t('xls.sheet.locationSource')] = 1;
+        _BIG[I18n.t('xls.sheet.customerSource')]  = 1;
+        SN_WEB = { generatedAt: today, sheets: {}, order: [], summary: [], meta: execMeta || null, downloadExcel: null };
+      }
+
       /* ── Factory: grupo de hojas con auto-split, notas y grupos de color ── */
       function makeGroup(baseName, tabArgb, headers, notes, groups) {
         initStat(baseName);
+        if (SN_WEB) {
+          SN_WEB.sheets[baseName] = { name: baseName, headers: headers.slice(), rows: [], total: 0, red: 0, yel: 0, ok: 0, capped: false, cap: (_BIG[baseName] ? WEB_CAP_BIG : WEB_CAP_STD) };
+          SN_WEB.order.push(baseName);
+        }
         var sheetIdx = 0, allSheets = [], cur = null;
 
         function newSheet() {
@@ -1271,6 +1308,16 @@
             });
             var s = STATS[baseName];
             if (s) { s.total++; if (fill === C_RED) s.red++; else if (fill === C_YEL) s.yel++; else s.ok++; }
+            if (SN_WEB) {
+              var _w = SN_WEB.sheets[baseName];
+              if (_w) {
+                _w.total++;
+                var _sev = (fill === C_RED) ? 'red' : (fill === C_YEL) ? 'yel' : 'ok';
+                if (_sev === 'red') _w.red++; else if (_sev === 'yel') _w.yel++; else _w.ok++;
+                if (_w.rows.length < _w.cap) _w.rows.push({ c: data.map(function (v) { return v == null ? '' : String(v); }), s: _sev });
+                else _w.capped = true;
+              }
+            }
           },
           checkSplit: function (margin) { if (cur.rowCount >= ROW_LIMIT - (margin || 0)) newSheet(); },
           finalize: function () {
@@ -2171,6 +2218,7 @@
         var pct  = s.total > 0 ? Math.round((s.ok / s.total) * 100) : 100;
         var row  = [d.num, _sheetKeyMap[d.key] || d.key, s.total, s.red, s.yel, s.ok, pct + '%'];
         var fill  = s.red > 0 ? C_RED : s.yel > 0 ? C_YEL : null;
+        if (SN_WEB) SN_WEB.summary.push({ name: _sheetKeyMap[d.key] || d.key, key: d.key, total: s.total, red: s.red, yel: s.yel, ok: s.ok, pct: pct });
         var exRow = s0ws.addRow(row);
         if (fill) exRow.eachCell(function (cell) { cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: fill } }; });
         row.forEach(function (v, ci) { var len = v != null ? String(v).length : 0; if (len > s0colW[ci]) s0colW[ci] = len; });
@@ -2213,14 +2261,25 @@
       }
 
       if (onProgress) onProgress(97);
-      if (onStatus)   onStatus(I18n.t('xls.log.genFile'));
-      var buf  = await wb.xlsx.writeBuffer();
-      var blob = new Blob([buf], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
-      var dlUrl = URL.createObjectURL(blob);
-      var a = document.createElement('a');
-      a.href = dlUrl; a.download = 'SupplyNetworkAnalysis_' + today + '.xlsx';
-      document.body.appendChild(a); a.click();
-      document.body.removeChild(a); URL.revokeObjectURL(dlUrl);
+
+      async function _dlWorkbook() {
+        if (onStatus) onStatus(I18n.t('xls.log.genFile'));
+        var buf  = await wb.xlsx.writeBuffer();
+        var blob = new Blob([buf], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+        var dlUrl = URL.createObjectURL(blob);
+        var a = document.createElement('a');
+        a.href = dlUrl; a.download = 'SupplyNetworkAnalysis_' + today + '.xlsx';
+        document.body.appendChild(a); a.click();
+        document.body.removeChild(a); URL.revokeObjectURL(dlUrl);
+      }
+
+      if (mode !== 'web') {
+        await _dlWorkbook();
+      } else if (SN_WEB) {
+        // Web-only: diferir el empaquetado/zip hasta que el usuario pida el Excel
+        SN_WEB.downloadExcel = async function () { await _dlWorkbook(); SN_WEB.downloadExcel = null; };
+      }
+      if (SN_WEB) window.SN_WEB_RESULT = SN_WEB;
 
       return {
         totalProducts: n, completeProducts: completeCount, totalPaths: totalPaths,
