@@ -1,27 +1,49 @@
 /* ══════════════════════════════════════════════════════════════════
    snWebView.js — Vista web del Supply Network Analyzer (piloto)
    Renderiza el mismo análisis que el Excel directamente en la web, sin
-   descargar nada. Los datos los captura analyzer.js en window.SN_WEB_RESULT
-   (hojas acotadas completas; hojas grandes con tope + fallback Excel).
-   100% frontend. Usa las variables CSS del tema (claro/oscuro) y los
-   helpers globales escH / str. Sin dependencias externas.
+   descargar nada. Los datos los captura analyzer.js en window.SN_WEB_RESULT.
+   - Hojas acotadas (Resumen/Product/Location/Customer): completas en memoria.
+   - Hojas grandes (Location/Customer Source): 100% paginadas desde IndexedDB
+     (stores sn_loc_web/sn_cust_web). Si IDB no está listo, degrada a la vista
+     en memoria (capada) + fallback Excel.
+   - Estadísticas: secciones + tablas capturadas de StatsSheet.
+   i18n vía I18n.t con fallback en español + re-render en 'i18n:change'.
+   100% frontend, sin dependencias externas.
    ══════════════════════════════════════════════════════════════════ */
 (function () {
   'use strict';
 
   var PAGE_SIZE   = 50;
-  var _data       = null;   // window.SN_WEB_RESULT
-  var _activeSheet = null;  // baseName de la hoja activa
-  var _sev        = 'all';  // 'all' | 'red' | 'yel' | 'ok'
-  var _q          = '';     // texto de búsqueda
-  var _page       = 1;
+  var MAX_SEARCH  = 2000;     // máx coincidencias recogidas al buscar en hojas grandes
+  var MAX_SCAN    = 300000;   // máx filas revisadas por búsqueda (cota de tiempo)
+
+  var _data        = null;    // window.SN_WEB_RESULT
+  var _activeSheet = null;    // baseName de la hoja activa ('__stats__' para Estadísticas)
+  var _sev         = 'all';   // 'all' | 'red' | 'yel' | 'ok'
+  var _q           = '';      // texto de búsqueda
+  var _page        = 1;
   var _searchTimer = null;
+  var _reqSeq      = 0;       // token anti-carrera para render asíncrono (IDB)
+  var _searchCache = null;   // { key, rows, truncated } cache de búsqueda en hoja grande
 
   var SEV = {
-    red: { label: 'Alerta',      icon: '⛔', cls: 'snwv-red' },
-    yel: { label: 'Advertencia', icon: '⚠', cls: 'snwv-yel' },
-    ok:  { label: 'OK',          icon: '✅', cls: 'snwv-ok'  }
+    red: { icon: '⛔', cls: 'snwv-red' },
+    yel: { icon: '⚠', cls: 'snwv-yel' },
+    ok:  { icon: '✅', cls: 'snwv-ok'  }
   };
+
+  /* ── i18n: traducción con fallback en español + interpolación {var} ── */
+  function t(key, fallback, vars) {
+    if (window.I18n && I18n.has && I18n.t && I18n.has(key)) return I18n.t(key, vars || undefined);
+    var s = fallback != null ? fallback : key;
+    if (vars) s = s.replace(/\{(\w+)\}/g, function (_m, k) { return vars[k] != null ? vars[k] : '{' + k + '}'; });
+    return s;
+  }
+  function sevLabel(sv) {
+    return sv === 'red' ? t('snweb.sev.red', 'Alerta')
+         : sv === 'yel' ? t('snweb.sev.yel', 'Advertencia')
+         : t('snweb.sev.ok', 'OK');
+  }
 
   /* ── helpers ── */
   function esc(s)  { return (typeof escH === 'function') ? escH(s) : String(s == null ? '' : s); }
@@ -36,6 +58,12 @@
       node = node.parentNode;
     }
     return null;
+  }
+  function idbAvailable() {
+    return typeof IDB !== 'undefined' && IDB && typeof idbCursorPage === 'function';
+  }
+  function isIdbSheet(sh) {
+    return !!(sh && sh.idbStore && sh.idbReady && idbAvailable());
   }
 
   /* ── CSS scoped (inyectado una vez) ── */
@@ -85,6 +113,7 @@
     '.snwv-pager{display:flex;align-items:center;gap:8px}' +
     '.snwv-count{font-size:12px;color:var(--text2)}' +
     '.snwv-cap{font-size:11px;color:var(--accent2);margin-top:4px}' +
+    '.snwv-note{font-size:11px;color:var(--text3);margin-top:4px}' +
     '.snwv-empty{padding:30px;text-align:center;color:var(--text2);font-size:13px}' +
     '.snwv-statsbox{padding:16px 18px}' +
     '.snwv-st-h{font-size:13px;font-weight:700;color:var(--accent);margin:18px 0 8px;padding-bottom:4px;border-bottom:1px solid var(--border)}' +
@@ -114,15 +143,15 @@
       var ov = document.createElement('div');
       ov.className = 'snwv-ov';
       ov.innerHTML =
-        '<div class="snwv-modal" role="dialog" aria-modal="true" aria-label="Modo de salida">' +
-          '<h3>¿Cómo quieres ver el análisis?</h3>' +
-          '<p>Puedes explorar el resultado directamente en la web, descargar el Excel, o ambos.</p>' +
+        '<div class="snwv-modal" role="dialog" aria-modal="true">' +
+          '<h3>' + esc(t('snweb.modal.title', '¿Cómo quieres ver el análisis?')) + '</h3>' +
+          '<p>' + esc(t('snweb.modal.desc', 'Puedes explorar el resultado directamente en la web, descargar el Excel, o ambos.')) + '</p>' +
           '<div class="snwv-opts">' +
-            '<button class="snwv-opt" data-m="web"><b>🖥️ Ver en la web</b><span>Explora el análisis en pantalla sin descargar nada.</span></button>' +
-            '<button class="snwv-opt" data-m="excel"><b>⬇️ Descargar Excel</b><span>Genera y descarga el informe .xlsx (comportamiento actual).</span></button>' +
-            '<button class="snwv-opt" data-m="both"><b>📊 Ambos</b><span>Descarga el Excel y además muestra la vista web.</span></button>' +
+            '<button class="snwv-opt" data-m="web"><b>🖥️ ' + esc(t('snweb.modal.web', 'Ver en la web')) + '</b><span>' + esc(t('snweb.modal.webDesc', 'Explora el análisis en pantalla sin descargar nada.')) + '</span></button>' +
+            '<button class="snwv-opt" data-m="excel"><b>⬇️ ' + esc(t('snweb.modal.excel', 'Descargar Excel')) + '</b><span>' + esc(t('snweb.modal.excelDesc', 'Genera y descarga el informe .xlsx (comportamiento actual).')) + '</span></button>' +
+            '<button class="snwv-opt" data-m="both"><b>📊 ' + esc(t('snweb.modal.both', 'Ambos')) + '</b><span>' + esc(t('snweb.modal.bothDesc', 'Descarga el Excel y además muestra la vista web.')) + '</span></button>' +
           '</div>' +
-          '<div class="snwv-modal-foot"><button class="snwv-btn" data-m="cancel">Cancelar</button></div>' +
+          '<div class="snwv-modal-foot"><button class="snwv-btn" data-m="cancel">' + esc(t('snweb.modal.cancel', 'Cancelar')) + '</button></div>' +
         '</div>';
       function done(m) {
         document.removeEventListener('keydown', onKey);
@@ -149,14 +178,18 @@
     var panel = el('snResultsPanel');
     if (!panel) return;
     _data = data;
-    _sev = 'all'; _q = ''; _page = 1;
+    _sev = 'all'; _q = ''; _page = 1; _searchCache = null;
 
     if (!data || !data.order || !data.order.length) {
       panel.classList.remove('hidden');
-      panel.innerHTML = '<div class="snwv-wrap"><div class="snwv-empty">No hay datos para mostrar en la vista web.</div></div>';
+      panel.innerHTML = '<div class="snwv-wrap"><div class="snwv-empty">' + esc(t('snweb.empty', 'No hay datos para mostrar en la vista web.')) + '</div></div>';
       return;
     }
-    _activeSheet = data.order[0];
+    // Preservar hoja activa entre re-renders (p.ej. cambio de idioma)
+    var keep = _activeSheet;
+    var keepOk = keep && (keep === '__stats__' ? (data.stats && data.stats.length) : data.sheets[keep]);
+    _activeSheet = keepOk ? keep : data.order[0];
+
     panel.classList.remove('hidden');
     panel.innerHTML = buildShell(data);
     wireShell();
@@ -170,11 +203,11 @@
     var h = '';
     h += '<div class="snwv-wrap">';
     h += '<div class="snwv-head"><div>';
-    h += '<div class="snwv-title">🌐 Supply Network Analyzer — vista web</div>';
-    h += '<div class="snwv-sub">Mismo análisis que el Excel, explorable en pantalla' + gen + '</div>';
+    h += '<div class="snwv-title">🌐 ' + esc(t('snweb.title', 'Supply Network Analyzer — vista web')) + '</div>';
+    h += '<div class="snwv-sub">' + esc(t('snweb.subtitle', 'Mismo análisis que el Excel, explorable en pantalla')) + gen + '</div>';
     h += '</div><div class="snwv-actions">';
-    if (canDl) h += '<button class="snwv-btn snwv-btn-primary" id="snwv-dl">⬇️ Descargar Excel</button>';
-    h += '<button class="snwv-btn" id="snwv-close">Cerrar</button>';
+    if (canDl) h += '<button class="snwv-btn snwv-btn-primary" id="snwv-dl">⬇️ ' + esc(t('snweb.downloadExcel', 'Descargar Excel')) + '</button>';
+    h += '<button class="snwv-btn" id="snwv-close">' + esc(t('snweb.close', 'Cerrar')) + '</button>';
     h += '</div></div>';
     h += '<div class="snwv-cards" id="snwv-cards">' + buildCards(data) + '</div>';
     h += '<div class="snwv-tabs" id="snwv-tabs">' + buildTabs(data) + '</div>';
@@ -209,7 +242,7 @@
     }).join('');
     if (data.stats && data.stats.length) {
       var sact = (_activeSheet === '__stats__') ? ' active' : '';
-      h += '<div class="snwv-tab' + sact + '" data-sheet="__stats__">📈 ' + esc(data.statsName || 'Estadísticas') + '</div>';
+      h += '<div class="snwv-tab' + sact + '" data-sheet="__stats__">📈 ' + esc(data.statsName || t('snweb.stats', 'Estadísticas')) + '</div>';
     }
     return h;
   }
@@ -218,12 +251,12 @@
     var dl = el('snwv-dl');
     if (dl) dl.addEventListener('click', function () {
       if (!_data || typeof _data.downloadExcel !== 'function') return;
-      dl.disabled = true; dl.textContent = 'Generando...';
+      dl.disabled = true; dl.textContent = t('snweb.generating', 'Generando...');
       _data.downloadExcel().then(function () {
-        dl.textContent = '✅ Excel descargado';
+        dl.textContent = '✅ ' + t('snweb.downloaded', 'Excel descargado');
       }).catch(function (e) {
-        dl.disabled = false; dl.textContent = '⬇️ Descargar Excel';
-        alert('No se pudo generar el Excel: ' + (e && e.message ? e.message : e));
+        dl.disabled = false; dl.textContent = '⬇️ ' + t('snweb.downloadExcel', 'Descargar Excel');
+        alert(t('snweb.dlError', 'No se pudo generar el Excel: ') + (e && e.message ? e.message : e));
       });
     });
     var cl = el('snwv-close');
@@ -235,13 +268,13 @@
     });
     var tabs = el('snwv-tabs');
     if (tabs) tabs.addEventListener('click', function (e) {
-      var t = closestAttr(e.target, 'data-sheet'); if (t) setSheet(t.getAttribute('data-sheet'));
+      var t2 = closestAttr(e.target, 'data-sheet'); if (t2) setSheet(t2.getAttribute('data-sheet'));
     });
   }
 
   function setSheet(name) {
     if (name !== '__stats__' && !_data.sheets[name]) return;
-    _activeSheet = name; _sev = 'all'; _q = ''; _page = 1;
+    _activeSheet = name; _sev = 'all'; _q = ''; _page = 1; _searchCache = null;
     var nodes = document.querySelectorAll('#snwv-cards .snwv-card, #snwv-tabs .snwv-tab');
     Array.prototype.forEach.call(nodes, function (nd) {
       nd.classList.toggle('active', nd.getAttribute('data-sheet') === _activeSheet);
@@ -258,12 +291,12 @@
     var h = '';
     h += '<div class="snwv-toolbar">';
     h += '<div class="snwv-chips" id="snwv-chips">' +
-           chip('all', 'Todos', sh.total) +
-           chip('red', '⛔ Alertas', sh.red) +
-           chip('yel', '⚠ Advertencias', sh.yel) +
-           chip('ok',  '✅ OK', sh.ok) +
+           chip('all', t('snweb.all', 'Todos'), sh.total) +
+           chip('red', '⛔ ' + t('snweb.alerts', 'Alertas'), sh.red) +
+           chip('yel', '⚠ ' + t('snweb.warnings', 'Advertencias'), sh.yel) +
+           chip('ok',  '✅ ' + t('snweb.ok', 'OK'), sh.ok) +
          '</div>';
-    h += '<input class="snwv-search" id="snwv-q" type="text" placeholder="Buscar en ' + esc(sh.name) + '..." value="' + esc(_q) + '">';
+    h += '<input class="snwv-search" id="snwv-q" type="text" placeholder="' + esc(t('snweb.searchPh', 'Buscar en {sheet}...', { sheet: sh.name })) + '" value="' + esc(_q) + '">';
     h += '</div>';
     h += '<div id="snwv-tablearea"></div>';
     body.innerHTML = h;
@@ -271,7 +304,7 @@
     var chips = el('snwv-chips');
     chips.addEventListener('click', function (e) {
       var c = closestAttr(e.target, 'data-sev'); if (!c) return;
-      _sev = c.getAttribute('data-sev'); _page = 1;
+      _sev = c.getAttribute('data-sev'); _page = 1; _searchCache = null;
       Array.prototype.forEach.call(chips.children, function (ch) {
         ch.classList.toggle('active', ch.getAttribute('data-sev') === _sev);
       });
@@ -280,17 +313,15 @@
     var q = el('snwv-q');
     q.addEventListener('input', function () {
       if (_searchTimer) clearTimeout(_searchTimer);
-      _searchTimer = setTimeout(function () { _q = q.value; _page = 1; renderTable(); }, 200);
+      _searchTimer = setTimeout(function () { _q = q.value; _page = 1; renderTable(); }, 220);
     });
     renderTable();
   }
 
-  /* ── Estadísticas (descriptiva): secuencia de títulos + tablas ──
-     Filas capturadas de StatsSheet: [] = separador, [x] = título de sección,
-     [a,b,...] = fila de tabla (la primera de cada bloque se toma como cabecera). */
+  /* ── Estadísticas (descriptiva): secuencia de títulos + tablas ── */
   function renderStats() {
     var rows = _data.stats || [];
-    if (!rows.length) return '<div class="snwv-empty">Estadísticas no disponibles.</div>';
+    if (!rows.length) return '<div class="snwv-empty">' + esc(t('snweb.statsEmpty', 'Estadísticas no disponibles.')) + '</div>';
     var h = '<div class="snwv-statsbox">';
     var i = 0, n = rows.length;
     while (i < n) {
@@ -321,8 +352,76 @@
     return '<span class="snwv-chip' + act + '" data-sev="' + key + '">' + label + ' (' + fmtN(count) + ')</span>';
   }
 
-  function getFiltered() {
-    var rows = _data.sheets[_activeSheet].rows;
+  /* ══════════════════════════════════════════════════════════════════
+     Tabla: dispatch entre memoria (hojas acotadas / fallback) e IDB (grandes)
+     ══════════════════════════════════════════════════════════════════ */
+  function renderTable() {
+    var sh = _data.sheets[_activeSheet];
+    if (!sh) return;
+    if (isIdbSheet(sh)) renderTableIdb(sh);
+    else                renderTableMem(sh, false);
+  }
+
+  /* ── filas de display → HTML tabla + footer (compartido mem/IDB) ── */
+  function buildTableHtml(sh, recs, opts) {
+    var h = '';
+    if (!recs.length) {
+      h += '<div class="snwv-empty">' + esc(t('snweb.noMatch', 'Sin filas que coincidan con el filtro.')) + '</div>';
+    } else {
+      h += '<div class="snwv-tablewrap"><table class="snwv-table"><thead><tr>';
+      for (var k = 0; k < sh.headers.length; k++) h += '<th>' + esc(sh.headers[k]) + '</th>';
+      h += '</tr></thead><tbody>';
+      for (var ri = 0; ri < recs.length; ri++) {
+        var row  = recs[ri];
+        var meta = SEV[row.s] || SEV.ok;
+        h += '<tr class="' + meta.cls + '">';
+        for (var ci = 0; ci < sh.headers.length; ci++) {
+          var v = (row.c && row.c[ci] != null) ? row.c[ci] : '';
+          if (ci === 0) {
+            // Componer siempre desde la severidad para que siga el idioma activo (no usar el texto capturado).
+            h += '<td class="snwv-sevcell ' + meta.cls + '">' + meta.icon + ' ' + esc(sevLabel(row.s)) + '</td>';
+          } else {
+            h += '<td>' + esc(v) + '</td>';
+          }
+        }
+        h += '</tr>';
+      }
+      h += '</tbody></table></div>';
+    }
+
+    var shownFrom = opts.filteredCount ? (opts.offset + 1) : 0;
+    var shownTo   = Math.min(opts.offset + PAGE_SIZE, opts.filteredCount);
+    h += '<div class="snwv-foot"><div>';
+    h += '<div class="snwv-count">' + esc(t('snweb.showing', 'Mostrando {a}–{b} de {n}', { a: fmtN(shownFrom), b: fmtN(shownTo), n: fmtN(opts.filteredCount) })) +
+         (opts.filteredCount !== sh.total ? ' ' + esc(t('snweb.filteredOf', '(filtrado de {n})', { n: fmtN(sh.total) })) : '') + '</div>';
+    if (opts.idb) {
+      if (opts.searching && opts.truncated) {
+        h += '<div class="snwv-cap">⚠ ' + esc(t('snweb.searchTrunc', 'Búsqueda limitada a las primeras {n} coincidencias. Afina el filtro o descarga el Excel.', { n: fmtN(opts.filteredCount) })) + '</div>';
+      } else {
+        h += '<div class="snwv-note">' + esc(t('snweb.idbNote', 'Navegando el 100% de las filas desde el almacenamiento local del navegador.')) + '</div>';
+      }
+    } else if (opts.fellBack) {
+      h += '<div class="snwv-cap">⚠ ' + esc(t('snweb.idbFail', 'No se pudo leer el detalle completo; mostrando vista parcial.')) + '</div>';
+    } else if (sh.capped) {
+      h += '<div class="snwv-cap">⚠ ' + esc(t('snweb.capped', 'Vista limitada a {shown} filas (de {total}). Descarga el Excel para el detalle completo.', { shown: fmtN(sh.rows.length), total: fmtN(sh.total) })) + '</div>';
+    }
+    h += '</div>';
+    h += '<div class="snwv-pager">';
+    h += '<button class="snwv-btn" id="snwv-prev"' + (_page <= 1 ? ' disabled' : '') + '>‹ ' + esc(t('snweb.prev', 'Anterior')) + '</button>';
+    h += '<span class="snwv-count">' + esc(t('snweb.page', 'Página {p} / {t}', { p: fmtN(_page), t: fmtN(opts.totalPages) })) + '</span>';
+    h += '<button class="snwv-btn" id="snwv-next"' + (_page >= opts.totalPages ? ' disabled' : '') + '>' + esc(t('snweb.next', 'Siguiente')) + ' ›</button>';
+    h += '</div></div>';
+    return h;
+  }
+
+  function wirePager() {
+    var prev = el('snwv-prev'); if (prev) prev.addEventListener('click', function () { if (_page > 1) { _page--; renderTable(); } });
+    var next = el('snwv-next'); if (next) next.addEventListener('click', function () { _page++; renderTable(); });
+  }
+
+  /* ── Memoria: hojas acotadas (completas) o fallback de hojas grandes ── */
+  function getFiltered(sh) {
+    var rows = sh.rows || [];
     var q = _q.trim().toLowerCase();
     var out = [];
     for (var i = 0; i < rows.length; i++) {
@@ -340,63 +439,98 @@
     return out;
   }
 
-  /* ── tabla + footer — se re-renderiza al filtrar / buscar / paginar ── */
-  function renderTable() {
+  function renderTableMem(sh, fellBack) {
     var area = el('snwv-tablearea');
     if (!area) return;
-    var sh = _data.sheets[_activeSheet];
-    var filtered = getFiltered();
+    var filtered = getFiltered(sh);
     var totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
     if (_page > totalPages) _page = totalPages;
     if (_page < 1) _page = 1;
-    var start = (_page - 1) * PAGE_SIZE;
-    var pageRows = filtered.slice(start, start + PAGE_SIZE);
-
-    var h = '';
-    if (!pageRows.length) {
-      h += '<div class="snwv-empty">Sin filas que coincidan con el filtro.</div>';
-    } else {
-      h += '<div class="snwv-tablewrap"><table class="snwv-table"><thead><tr>';
-      for (var k = 0; k < sh.headers.length; k++) h += '<th>' + esc(sh.headers[k]) + '</th>';
-      h += '</tr></thead><tbody>';
-      for (var ri = 0; ri < pageRows.length; ri++) {
-        var row  = pageRows[ri];
-        var meta = SEV[row.s] || SEV.ok;
-        h += '<tr class="' + meta.cls + '">';
-        for (var ci = 0; ci < sh.headers.length; ci++) {
-          var v = (row.c[ci] != null) ? row.c[ci] : '';
-          if (ci === 0) {
-            // El valor ya trae el icono de severidad (p.ej. "⛔ Alerta"); no duplicar.
-            h += '<td class="snwv-sevcell ' + meta.cls + '">' + esc(v || (meta.icon + ' ' + meta.label)) + '</td>';
-          } else {
-            h += '<td>' + esc(v) + '</td>';
-          }
-        }
-        h += '</tr>';
-      }
-      h += '</tbody></table></div>';
-    }
-
-    var shownFrom = filtered.length ? (start + 1) : 0;
-    var shownTo   = Math.min(start + PAGE_SIZE, filtered.length);
-    h += '<div class="snwv-foot"><div>';
-    h += '<div class="snwv-count">Mostrando ' + fmtN(shownFrom) + '–' + fmtN(shownTo) + ' de ' + fmtN(filtered.length) +
-         (filtered.length !== sh.total ? ' (filtrado de ' + fmtN(sh.total) + ')' : '') + '</div>';
-    if (sh.capped) {
-      h += '<div class="snwv-cap">⚠ Vista limitada a ' + fmtN(sh.rows.length) + ' filas (de ' + fmtN(sh.total) +
-           '). Descarga el Excel para el detalle completo.</div>';
-    }
-    h += '</div>';
-    h += '<div class="snwv-pager">';
-    h += '<button class="snwv-btn" id="snwv-prev"' + (_page <= 1 ? ' disabled' : '') + '>‹ Anterior</button>';
-    h += '<span class="snwv-count">Página ' + fmtN(_page) + ' / ' + fmtN(totalPages) + '</span>';
-    h += '<button class="snwv-btn" id="snwv-next"' + (_page >= totalPages ? ' disabled' : '') + '>Siguiente ›</button>';
-    h += '</div></div>';
-
-    area.innerHTML = h;
-    var prev = el('snwv-prev'); if (prev) prev.addEventListener('click', function () { if (_page > 1) { _page--; renderTable(); } });
-    var next = el('snwv-next'); if (next) next.addEventListener('click', function () { _page++; renderTable(); });
+    var offset = (_page - 1) * PAGE_SIZE;
+    var pageRows = filtered.slice(offset, offset + PAGE_SIZE);
+    area.innerHTML = buildTableHtml(sh, pageRows, {
+      filteredCount: filtered.length, totalPages: totalPages, offset: offset,
+      idb: false, fellBack: !!fellBack
+    });
+    wirePager();
   }
+
+  /* ── IDB: hojas grandes paginadas al 100% (sin búsqueda) ── */
+  function renderTableIdb(sh) {
+    var area = el('snwv-tablearea');
+    if (!area) return;
+    var myReq = ++_reqSeq;
+    var q = _q.trim().toLowerCase();
+    if (q) { renderTableIdbSearch(sh, q, myReq); return; }
+
+    area.innerHTML = '<div class="snwv-empty">' + esc(t('snweb.loading', 'Cargando...')) + '</div>';
+    var filteredCount = (_sev === 'all') ? sh.total : (sh[_sev] || 0);
+    var totalPages = Math.max(1, Math.ceil(filteredCount / PAGE_SIZE));
+    if (_page > totalPages) _page = totalPages;
+    if (_page < 1) _page = 1;
+    var offset = (_page - 1) * PAGE_SIZE;
+    var pager = (_sev === 'all')
+      ? idbCursorPage(sh.idbStore, null, null, offset, PAGE_SIZE)
+      : idbCursorPage(sh.idbStore, 'by_severity', _sev, offset, PAGE_SIZE);
+    pager.then(function (recs) {
+      if (myReq !== _reqSeq) return;
+      area.innerHTML = buildTableHtml(sh, recs || [], {
+        filteredCount: filteredCount, totalPages: totalPages, offset: offset,
+        idb: true, searching: false, truncated: false
+      });
+      wirePager();
+    }).catch(function (e) {
+      if (myReq !== _reqSeq) return;
+      renderTableMem(sh, true);   // degradación elegante a la vista en memoria
+    });
+  }
+
+  /* ── IDB: búsqueda acotada (scan con tope) + paginación cliente ── */
+  function renderTableIdbSearch(sh, q, myReq) {
+    var area = el('snwv-tablearea');
+    if (!area) return;
+    var cacheKey = _activeSheet + '|' + _sev + '|' + q;
+    if (_searchCache && _searchCache.key === cacheKey) { paintSearchPage(sh); return; }
+
+    area.innerHTML = '<div class="snwv-empty">' + esc(t('snweb.searching', 'Buscando...')) + '</div>';
+    var test = function (rec) {
+      var c = rec.c || [];
+      for (var j = 0; j < c.length; j++) { if (c[j] && String(c[j]).toLowerCase().indexOf(q) !== -1) return true; }
+      return false;
+    };
+    var idxName = (_sev === 'all') ? null : 'by_severity';
+    var key     = (_sev === 'all') ? null : _sev;
+    idbCursorScanMatch(sh.idbStore, idxName, key, test, MAX_SEARCH, MAX_SCAN).then(function (res) {
+      if (myReq !== _reqSeq) return;
+      _searchCache = { key: cacheKey, rows: res.rows || [], truncated: !!res.truncated };
+      paintSearchPage(sh);
+    }).catch(function (e) {
+      if (myReq !== _reqSeq) return;
+      renderTableMem(sh, true);
+    });
+  }
+
+  function paintSearchPage(sh) {
+    var area = el('snwv-tablearea');
+    if (!area || !_searchCache) return;
+    var rows = _searchCache.rows;
+    var totalPages = Math.max(1, Math.ceil(rows.length / PAGE_SIZE));
+    if (_page > totalPages) _page = totalPages;
+    if (_page < 1) _page = 1;
+    var offset = (_page - 1) * PAGE_SIZE;
+    var pageRows = rows.slice(offset, offset + PAGE_SIZE);
+    area.innerHTML = buildTableHtml(sh, pageRows, {
+      filteredCount: rows.length, totalPages: totalPages, offset: offset,
+      idb: true, searching: true, truncated: _searchCache.truncated
+    });
+    wirePager();
+  }
+
+  /* Re-render al cambiar idioma (mismo patrón que glosario/explorer). */
+  document.addEventListener('i18n:change', function () {
+    var panel = el('snResultsPanel');
+    if (_data && panel && !panel.classList.contains('hidden')) render(_data);
+  });
 
   window.SnWebView = { askOutputMode: askOutputMode, render: render };
 })();

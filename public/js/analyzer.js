@@ -594,6 +594,8 @@
         // Open IDB and wipe previous SN edge data
         if (!IDB) IDB = await openDB();
         await Promise.all(['sn_loc', 'sn_cust', 'sn_plant', 'sn_psi', 'sn_loc_prod', 'sn_cust_prod'].map(idbClear));
+        // Limpiar stores de la vista web (Fase 3) si existen; no fallar si aún no creados
+        try { await Promise.all(['sn_loc_web', 'sn_cust_web'].map(idbClear)); } catch (e) {}
 
         // ── PHASE 1: Download + store 6 entities (0 → 50%) ──────────────────
 
@@ -1247,10 +1249,18 @@
          Hojas acotadas se capturan completas; las grandes (Location/Customer
          Source) con tope, para no inflar el heap. El Excel siempre recibe todo. */
       var webMode = (mode === 'web' || mode === 'both');
-      var SN_WEB = null, _BIG = {}, WEB_CAP_STD = 50000, WEB_CAP_BIG = 20000;
+      var SN_WEB = null, _BIG = {}, _WEBSTORE = {}, WEB_CAP_STD = 50000, WEB_CAP_BIG = 20000;
+      // Fase 3: doble escritura de las hojas grandes a IDB para paginar el 100% en la web
+      var _LS_NM = '', _CS_NM = '';
+      var _lsWebBuf = [], _lsWebWrites = [], _lsWebOn = false, _lsPending = 0;
+      var _csWebBuf = [], _csWebWrites = [], _csWebOn = false, _csPending = 0;
+      var WEB_IDB_BATCH = 8000, WEB_IDB_MAX_LOTS = 12;  // backpressure: máx ~96k filas en vuelo antes de degradar
       if (webMode) {
-        _BIG[I18n.t('xls.sheet.locationSource')] = 1;
-        _BIG[I18n.t('xls.sheet.customerSource')]  = 1;
+        _LS_NM = I18n.t('xls.sheet.locationSource');
+        _CS_NM = I18n.t('xls.sheet.customerSource');
+        _BIG[_LS_NM] = 1; _BIG[_CS_NM] = 1;
+        _WEBSTORE[_LS_NM] = 'sn_loc_web'; _WEBSTORE[_CS_NM] = 'sn_cust_web';
+        _lsWebOn = _csWebOn = true;
         SN_WEB = { generatedAt: today, sheets: {}, order: [], summary: [], stats: [], statsName: ((typeof StatsSheet !== 'undefined' && StatsSheet.sheetName) ? StatsSheet.sheetName() : 'Estadísticas'), meta: execMeta || null, downloadExcel: null };
       }
 
@@ -1258,7 +1268,7 @@
       function makeGroup(baseName, tabArgb, headers, notes, groups) {
         initStat(baseName);
         if (SN_WEB) {
-          SN_WEB.sheets[baseName] = { name: baseName, headers: headers.slice(), rows: [], total: 0, red: 0, yel: 0, ok: 0, capped: false, cap: (_BIG[baseName] ? WEB_CAP_BIG : WEB_CAP_STD) };
+          SN_WEB.sheets[baseName] = { name: baseName, headers: headers.slice(), rows: [], total: 0, red: 0, yel: 0, ok: 0, capped: false, cap: (_BIG[baseName] ? WEB_CAP_BIG : WEB_CAP_STD), idbStore: (_WEBSTORE[baseName] || null), idbReady: false };
           SN_WEB.order.push(baseName);
         }
         var sheetIdx = 0, allSheets = [], cur = null;
@@ -1314,7 +1324,7 @@
                 _w.total++;
                 var _sev = (fill === C_RED) ? 'red' : (fill === C_YEL) ? 'yel' : 'ok';
                 if (_sev === 'red') _w.red++; else if (_sev === 'yel') _w.yel++; else _w.ok++;
-                if (_w.rows.length < _w.cap) _w.rows.push({ c: data.map(function (v) { return v == null ? '' : String(v); }), s: _sev });
+                if (_w.rows.length < _w.cap) _w.rows.push({ c: data.map(function (v) { var _cv = cleanXml(v); return _cv == null ? '' : String(_cv); }), s: _sev });
                 else _w.capped = true;
               }
             }
@@ -2151,8 +2161,29 @@
           yn(inPath), yn(isInv), ltSt, yn(isSpof)
         ];
         efInjectRow(_lsRow, 'sn', 'locationSource', 9, r);
+        if (_lsWebOn) {
+          _lsWebBuf.push({ c: _lsRow.map(function (v) { var _c = cleanXml(v); return _c == null ? '' : String(_c); }), s: (lsFill === C_RED ? 'red' : lsFill === C_YEL ? 'yel' : 'ok') });
+          if (_lsWebBuf.length >= WEB_IDB_BATCH) {
+            _lsPending++;
+            _lsWebWrites.push(idbBulkPut('sn_loc_web', _lsWebBuf).then(function () { _lsPending--; }, function () { _lsPending--; }));
+            _lsWebBuf = [];
+            if (_lsPending > WEB_IDB_MAX_LOTS) { _lsWebOn = false; if (logEl) log(logEl, 'warn', timer.fmt() + ' Vista web Location Source: volumen alto, se usará vista parcial (descarga Excel para el 100%).'); }
+          }
+        }
         gLS.addRow(_lsRow, lsFill);
       });
+      if (_lsWebOn) {
+        try {
+          if (_lsWebBuf.length) _lsWebWrites.push(idbBulkPut('sn_loc_web', _lsWebBuf));
+          _lsWebBuf = [];
+          await Promise.all(_lsWebWrites);
+          if (SN_WEB && SN_WEB.sheets[_LS_NM]) SN_WEB.sheets[_LS_NM].idbReady = true;
+        } catch (e) {
+          _lsWebOn = false;
+          if (logEl) log(logEl, 'warn', timer.fmt() + ' Vista web (detalle completo Location Source) no disponible: ' + (e && e.message));
+        }
+      }
+      _lsWebWrites = null;
       lsSeenArcs = null; lsArcSet = null; originsPerDest = null;
       if (onProgress) onProgress(94);
 
@@ -2194,8 +2225,29 @@
           yn(inPath2), ltSt2
         ];
         efInjectRow(_csRow, 'sn', 'customerSource', 9, r);
+        if (_csWebOn) {
+          _csWebBuf.push({ c: _csRow.map(function (v) { var _c = cleanXml(v); return _c == null ? '' : String(_c); }), s: (csFill === C_RED ? 'red' : csFill === C_YEL ? 'yel' : 'ok') });
+          if (_csWebBuf.length >= WEB_IDB_BATCH) {
+            _csPending++;
+            _csWebWrites.push(idbBulkPut('sn_cust_web', _csWebBuf).then(function () { _csPending--; }, function () { _csPending--; }));
+            _csWebBuf = [];
+            if (_csPending > WEB_IDB_MAX_LOTS) { _csWebOn = false; if (logEl) log(logEl, 'warn', timer.fmt() + ' Vista web Customer Source: volumen alto, se usará vista parcial (descarga Excel para el 100%).'); }
+          }
+        }
         gCS.addRow(_csRow, csFill);
       });
+      if (_csWebOn) {
+        try {
+          if (_csWebBuf.length) _csWebWrites.push(idbBulkPut('sn_cust_web', _csWebBuf));
+          _csWebBuf = [];
+          await Promise.all(_csWebWrites);
+          if (SN_WEB && SN_WEB.sheets[_CS_NM]) SN_WEB.sheets[_CS_NM].idbReady = true;
+        } catch (e) {
+          _csWebOn = false;
+          if (logEl) log(logEl, 'warn', timer.fmt() + ' Vista web (detalle completo Customer Source) no disponible: ' + (e && e.message));
+        }
+      }
+      _csWebWrites = null;
       arcInCompletePath = null; locProdSet = null; custProdSet = null;
       if (onProgress) onProgress(96);
 
