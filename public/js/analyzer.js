@@ -884,6 +884,7 @@
         this._tab    = pr.tabColor ? pr.tabColor.argb : null;
         this._freeze = vw.ySplit || 0;
         this._chunks = [];
+        this._blobParts = [];   // Blobs ya serializados (disk-backed) — ver _flush
         this._colW   = [];
         this._nCols  = 0;
         this._rn     = 0;
@@ -896,6 +897,14 @@
         var p = this._pend; this._pend = null;
         var si = p._h ? _HDR : _si(p._fill);
         this._chunks.push(_rowXml(p.data, p.rowNum, si, p._ht, p._cellSi));
+        // Volcado incremental: cada 20k filas, los strings XML acumulados pasan
+        // a un Blob (disk-backed por el navegador) y se liberan del heap de JS.
+        // Evita retener ~2M strings de fila en RAM al exportar redes muy grandes
+        // (ej. Location Source con millones de arcos), que disparaba OOM del tab.
+        if (this._chunks.length >= 20000) {
+          this._blobParts.push(new Blob(this._chunks));
+          this._chunks = [];
+        }
         if (p._notes) this._notes[p.rowNum] = p._notes;
         var cw = this._colW, nc = this._nCols;
         p.data.forEach(function (v, ci) {
@@ -1024,12 +1033,14 @@
           hdr.push('</cols>');
         }
         hdr.push('<sheetData>');
-        var chunks = this._chunks || [];
+        var blobParts = this._blobParts || [];   // filas ya volcadas a Blob (en orden)
+        var chunks = this._chunks || [];          // filas residuales del último lote
+        this._blobParts = null;
         this._chunks = null;   // libera refs → GC puede reclamar los strings de filas
         var footer = ['</sheetData>'];
         if (this._hasNotes()) footer.push('<legacyDrawing r:id="rId2"/>');
         footer.push('</worksheet>');
-        return new Blob(hdr.concat(chunks, footer), { type: 'application/xml' });
+        return new Blob(hdr.concat(blobParts, chunks, footer), { type: 'application/xml' });
       };
 
       /* ── Workbook ── */
