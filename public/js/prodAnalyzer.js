@@ -552,6 +552,9 @@ async function doProductionAnalysis() {
     'display:flex;font-size:12px;color:var(--text2);margin-top:4px;align-items:center;gap:8px;';
   document.getElementById('btnFetchPA').disabled = true;
   document.getElementById('paSuccessBanner').classList.add('hidden');
+  var _paResPanel0 = document.getElementById('paResultsPanel');
+  if (_paResPanel0) { _paResPanel0.classList.add('hidden'); _paResPanel0.innerHTML = ''; }
+  window.PA_WEB_RESULT = null;
   var timer = createTimer();
 
   function setStatusPA(msg, pct) {
@@ -607,6 +610,18 @@ async function doProductionAnalysis() {
       document.getElementById('btnFetchPA').disabled = false;
       log(logEl, 'error', I18n.t('xls.log.pendingCorrections'));
       if (typeof toggleMappingBody === 'function') toggleMappingBody('bodyPAMDT', 'arrPAMDT', true);
+      return;
+    }
+  }
+
+  // ── Modo de salida: vista web / Excel / ambos ──
+  var paOutMode = 'excel';
+  if (typeof SnWebView !== 'undefined' && SnWebView.askOutputMode) {
+    paOutMode = await SnWebView.askOutputMode();
+    if (!paOutMode) {
+      document.getElementById('btnFetchPA').disabled = false;
+      document.getElementById('progBarPA').classList.add('hidden');
+      var _paPsCancel = document.getElementById('progStatusPA'); if (_paPsCancel) _paPsCancel.style.display = 'none';
       return;
     }
   }
@@ -788,13 +803,20 @@ async function doProductionAnalysis() {
     await paAnalyzeAndExport(
       ent, PA_PRD, PA_LOC, PA_RES, PA_RES_LOC,
       pshBySid, pshPrdSet,
-      timer, logEl, setStatusPA, progEl, PA_EXEC_META
+      timer, logEl, setStatusPA, progEl, PA_EXEC_META, paOutMode
     );
 
     progEl.style.width = '100%';
-    log(logEl, 'ok', timer.fmt() + ' ¡Excel descargado! Análisis completado en ' + timer.ms() + 'ms.');
+    var _paWantWeb = (paOutMode === 'web' || paOutMode === 'both');
+    var _paDoneMsg = (_paWantWeb && paOutMode === 'both') ? 'Excel descargado + vista web'
+                   : _paWantWeb ? 'vista web generada' : 'Excel descargado';
+    log(logEl, 'ok', timer.fmt() + ' Análisis completado · ' + _paDoneMsg + ' · ' + timer.ms() + 'ms.');
     setStatusPA(I18n.t('xls.log.completedShort', { ms: timer.ms() }), 100);
-    document.getElementById('paSuccessBanner').classList.remove('hidden');
+    if (_paWantWeb && typeof SnWebView !== 'undefined' && window.PA_WEB_RESULT) {
+      try { SnWebView.render(window.PA_WEB_RESULT); }
+      catch (e) { log(logEl, 'warn', timer.fmt() + ' Vista web no disponible: ' + (e && e.message)); }
+    }
+    if (!_paWantWeb) document.getElementById('paSuccessBanner').classList.remove('hidden');
 
   } catch(e) {
     log(logEl, 'err', timer.fmt() + ' Error: ' + e.message);
@@ -989,7 +1011,7 @@ function paModeChange() {} // kept for compatibility — no-op
 async function paAnalyzeAndExport(
   ent, PA_PRD, PA_LOC, PA_RES, PA_RES_LOC,
   pshBySid, pshPrdSet,
-  timer, logEl, setStatusPA, progEl, execMeta
+  timer, logEl, setStatusPA, progEl, execMeta, mode
 ) {
   /* ── Helpers de lookup ── */
   function pd(id)  { var p = PA_PRD[id] || {}; return str(p.PRDDESCR  || ''); }
@@ -1233,6 +1255,18 @@ async function paAnalyzeAndExport(
   var GRP = { control:'FFD1D5DB', ibp:'FFBAE6FD', flag:'FFFDE68A', metric:'FFA7F3D0', detail:'FF99F6E4' };
   var wb    = new StreamingXlsx();
 
+  /* ── Captura para vista web (modo 'web' | 'both'); reusa el módulo SnWebView ── */
+  var paWebMode = (mode === 'web' || mode === 'both');
+  var PA_WEB = null, _PA_SUMMARY_NAME = I18n.t('xls.sheet.summary'), PA_WEB_CAP = 50000;
+  if (paWebMode) {
+    PA_WEB = {
+      panel: 'paResultsPanel', titleKey: 'snweb.titlePA', title: 'Production Analyzer — vista web',
+      generatedAt: today, sheets: {}, order: [], summary: [], stats: [],
+      statsName: ((typeof StatsSheet !== 'undefined' && StatsSheet.sheetName) ? StatsSheet.sheetName() : 'Estadísticas'),
+      meta: execMeta || null, downloadExcel: null
+    };
+  }
+
   function makeSheet(name, tabArgb, hdrs, notes, groups) {
     // Translate Spanish headers to English when lang is 'en' (no-op for keys absent from map)
     hdrs = hdrs.map(_xnPA);
@@ -1256,6 +1290,12 @@ async function paAnalyzeAndExport(
     });
     ws.getRow(1).height = 22;
     var colW = hdrs.map(function(h) { return h.length; });
+    var _webSheet = null;
+    if (PA_WEB && name !== _PA_SUMMARY_NAME) {
+      _webSheet = { name: name, headers: hdrs.slice(), rows: [], total: 0, red: 0, yel: 0, ok: 0, capped: false, cap: PA_WEB_CAP, idbStore: null, idbReady: false };
+      PA_WEB.sheets[name] = _webSheet;
+      PA_WEB.order.push(name);
+    }
     return {
       ws: ws,
       addRow: function(data, fillArgb) {
@@ -1275,6 +1315,13 @@ async function paAnalyzeAndExport(
           var len = v != null ? String(v).length : 0;
           if (len > (colW[ci] || 0)) colW[ci] = len;
         });
+        if (_webSheet) {
+          _webSheet.total++;
+          var _sev = (fillArgb === C_RED) ? 'red' : (fillArgb === C_YEL) ? 'yel' : 'ok';
+          if (_sev === 'red') _webSheet.red++; else if (_sev === 'yel') _webSheet.yel++; else _webSheet.ok++;
+          if (_webSheet.rows.length < _webSheet.cap) _webSheet.rows.push({ c: data.map(function (v2) { var _c = cleanXml(v2); return _c == null ? '' : String(_c); }), s: _sev });
+          else _webSheet.capped = true;
+        }
       },
       finalize: function() {
         ws.columns.forEach(function(col, ci) {
@@ -1340,6 +1387,14 @@ async function paAnalyzeAndExport(
         views: [{ state: 'frozen', ySplit: 1 }],
         properties: { tabColor: { argb: 'FF29ABE2' } }
       });
+      if (PA_WEB) {
+        // Capturar filas de Estadísticas para la vista web (sin afectar el Excel)
+        var _paStatsAdd = statsWsPA.addRow.bind(statsWsPA);
+        statsWsPA.addRow = function (cells) {
+          try { PA_WEB.stats.push(Array.isArray(cells) ? cells.map(function (v) { return v == null ? '' : String(v); }) : []); } catch (e) {}
+          return _paStatsAdd(cells);
+        };
+      }
       StatsSheet.buildPA(statsWsPA, {
         prd: PA_PRD, loc: PA_LOC, res: PA_RES,
         pshBySid: pshBySid, pshSidHasP: pshSidHasP, pshByPrdLoc: pshByPrdLoc, pshPrdSetP: pshPrdSetP,
@@ -2612,6 +2667,7 @@ async function paAnalyzeAndExport(
     var s = STATS[d.key]; if (!s) return;
     var pct  = s.total > 0 ? Math.round((s.ok / s.total) * 100) : 100;
     var fill = s.red > 0 ? C_RED : s.yel > 0 ? C_YEL : null;
+    if (PA_WEB) PA_WEB.summary.push({ name: _paSheetKeyMap[d.key] || d.key, key: d.key, total: s.total, red: s.red, yel: s.yel, ok: s.ok, pct: pct });
     S0.addRow([d.num, _paSheetKeyMap[d.key] || d.key, s.total, s.red, s.yel, s.ok, pct + '%'], fill);
   });
   S0.finalize();
@@ -2643,13 +2699,23 @@ async function paAnalyzeAndExport(
   }
 
   /* ── EXPORT ── */
-  setStatusPA(_xnPA('Generando archivo Excel...'), 99);
-  var buf  = await wb.xlsx.writeBuffer();
-  var blob = new Blob([buf], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
-  var url  = URL.createObjectURL(blob);
-  var a    = document.createElement('a');
-  a.href   = url;
-  a.download = 'ProductionHierarchyAnalysis_' + today + '.xlsx';
-  document.body.appendChild(a); a.click();
-  document.body.removeChild(a); URL.revokeObjectURL(url);
+  async function _paDownload() {
+    setStatusPA(_xnPA('Generando archivo Excel...'), 99);
+    var buf  = await wb.xlsx.writeBuffer();
+    var blob = new Blob([buf], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+    var url  = URL.createObjectURL(blob);
+    var a    = document.createElement('a');
+    a.href   = url;
+    a.download = 'ProductionHierarchyAnalysis_' + today + '.xlsx';
+    document.body.appendChild(a); a.click();
+    document.body.removeChild(a); URL.revokeObjectURL(url);
+  }
+
+  if (mode !== 'web') {
+    await _paDownload();
+  } else if (PA_WEB) {
+    // Web-only: diferir el empaquetado/zip hasta que el usuario pida el Excel
+    PA_WEB.downloadExcel = async function () { await _paDownload(); PA_WEB.downloadExcel = null; };
+  }
+  if (PA_WEB) window.PA_WEB_RESULT = PA_WEB;
 }

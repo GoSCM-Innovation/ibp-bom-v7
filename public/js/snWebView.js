@@ -25,6 +25,8 @@
   var _searchTimer = null;
   var _reqSeq      = 0;       // token anti-carrera para render asíncrono (IDB)
   var _searchCache = null;   // { key, rows, truncated } cache de búsqueda en hoja grande
+  var _panelId     = 'snResultsPanel';  // contenedor destino (SN o PA)
+  var SNWV_PANELS  = ['snResultsPanel', 'paResultsPanel'];  // posibles destinos (solo uno vivo a la vez)
 
   var SEV = {
     red: { icon: '⛔', cls: 'snwv-red' },
@@ -175,7 +177,13 @@
      ══════════════════════════════════════════════════════════════════ */
   function render(data) {
     injectCss();
-    var panel = el('snResultsPanel');
+    _panelId = (data && data.panel) ? data.panel : 'snResultsPanel';
+    // Mantener un solo panel vivo a la vez: limpiar los demás evita IDs internos snwv-* duplicados
+    // (getElementById devolvería el del otro panel y mezclaría SN con PA).
+    SNWV_PANELS.forEach(function (pid) {
+      if (pid !== _panelId) { var _o = el(pid); if (_o) { _o.innerHTML = ''; _o.classList.add('hidden'); } }
+    });
+    var panel = el(_panelId);
     if (!panel) return;
     _data = data;
     _sev = 'all'; _q = ''; _page = 1; _searchCache = null;
@@ -203,7 +211,8 @@
     var h = '';
     h += '<div class="snwv-wrap">';
     h += '<div class="snwv-head"><div>';
-    h += '<div class="snwv-title">🌐 ' + esc(t('snweb.title', 'Supply Network Analyzer — vista web')) + '</div>';
+    var titleTxt = data.titleKey ? t(data.titleKey, data.title || '') : t('snweb.title', 'Supply Network Analyzer — vista web');
+    h += '<div class="snwv-title">🌐 ' + esc(titleTxt) + '</div>';
     h += '<div class="snwv-sub">' + esc(t('snweb.subtitle', 'Mismo análisis que el Excel, explorable en pantalla')) + gen + '</div>';
     h += '</div><div class="snwv-actions">';
     if (canDl) h += '<button class="snwv-btn snwv-btn-primary" id="snwv-dl">⬇️ ' + esc(t('snweb.downloadExcel', 'Descargar Excel')) + '</button>';
@@ -260,7 +269,7 @@
       });
     });
     var cl = el('snwv-close');
-    if (cl) cl.addEventListener('click', function () { var p = el('snResultsPanel'); if (p) p.classList.add('hidden'); });
+    if (cl) cl.addEventListener('click', function () { var p = el(_panelId); if (p) p.classList.add('hidden'); });
 
     var cards = el('snwv-cards');
     if (cards) cards.addEventListener('click', function (e) {
@@ -528,7 +537,7 @@
 
   /* Re-render al cambiar idioma (mismo patrón que glosario/explorer). */
   document.addEventListener('i18n:change', function () {
-    var panel = el('snResultsPanel');
+    var panel = el(_panelId);
     if (_data && panel && !panel.classList.contains('hidden')) render(_data);
   });
 

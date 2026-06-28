@@ -880,6 +880,7 @@
   "mattype.cat.trading.rule4": "PLEADTIME no se evalúa",
   "mattype.cat.trading.example": "TR_ACCESORIO_VALVULA, MER_FILTRO_REPUESTO",
   "snweb.title": "Supply Network Analyzer — vista web",
+  "snweb.titlePA": "Production Analyzer — vista web",
   "snweb.subtitle": "Mismo análisis que el Excel, explorable en pantalla",
   "snweb.downloadExcel": "Descargar Excel",
   "snweb.close": "Cerrar",

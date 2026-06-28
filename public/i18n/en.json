@@ -880,6 +880,7 @@
   "mattype.cat.trading.rule4": "PLEADTIME is not evaluated",
   "mattype.cat.trading.example": "TR_VALVE_ACCESSORY, GD_FILTER_PART",
   "snweb.title": "Supply Network Analyzer — web view",
+  "snweb.titlePA": "Production Analyzer — web view",
   "snweb.subtitle": "Same analysis as the Excel, explorable on screen",
   "snweb.downloadExcel": "Download Excel",
   "snweb.close": "Close",
