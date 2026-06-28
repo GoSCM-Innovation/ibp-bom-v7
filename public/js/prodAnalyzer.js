@@ -1258,13 +1258,18 @@ async function paAnalyzeAndExport(
   /* ── Captura para vista web (modo 'web' | 'both'); reusa el módulo SnWebView ── */
   var paWebMode = (mode === 'web' || mode === 'both');
   var PA_WEB = null, _PA_SUMMARY_NAME = I18n.t('xls.sheet.summary'), PA_WEB_CAP = 50000;
+  // Fase 3 PA: solo Prod Source Item (la hoja que realmente explota) se pagina 100% desde IDB
+  var _PA_IDB = {}, _PSI_NM = '', WEB_IDB_BATCH = 8000, _PA_IDB_FALLBACK_CAP = 2000;
   if (paWebMode) {
+    _PSI_NM = I18n.t('xls.sheet.prodSrcItem');
+    _PA_IDB[_PSI_NM] = 'pa_psi_web';
     PA_WEB = {
       panel: 'paResultsPanel', titleKey: 'snweb.titlePA', title: 'Production Analyzer — vista web',
       generatedAt: today, sheets: {}, order: [], summary: [], stats: [],
       statsName: ((typeof StatsSheet !== 'undefined' && StatsSheet.sheetName) ? StatsSheet.sheetName() : 'Estadísticas'),
       meta: execMeta || null, downloadExcel: null
     };
+    try { await idbClear('pa_psi_web'); } catch (e) {}
   }
 
   function makeSheet(name, tabArgb, hdrs, notes, groups) {
@@ -1292,10 +1297,11 @@ async function paAnalyzeAndExport(
     var colW = hdrs.map(function(h) { return h.length; });
     var _webSheet = null;
     if (PA_WEB && name !== _PA_SUMMARY_NAME) {
-      _webSheet = { name: name, headers: hdrs.slice(), rows: [], total: 0, red: 0, yel: 0, ok: 0, capped: false, cap: PA_WEB_CAP, idbStore: null, idbReady: false };
+      _webSheet = { name: name, headers: hdrs.slice(), rows: [], total: 0, red: 0, yel: 0, ok: 0, capped: false, cap: PA_WEB_CAP, idbStore: (_PA_IDB[name] || null), idbReady: false };
       PA_WEB.sheets[name] = _webSheet;
       PA_WEB.order.push(name);
     }
+    var _webIdbBuf = [];
     return {
       ws: ws,
       addRow: function(data, fillArgb) {
@@ -1319,15 +1325,32 @@ async function paAnalyzeAndExport(
           _webSheet.total++;
           var _sev = (fillArgb === C_RED) ? 'red' : (fillArgb === C_YEL) ? 'yel' : 'ok';
           if (_sev === 'red') _webSheet.red++; else if (_sev === 'yel') _webSheet.yel++; else _webSheet.ok++;
-          if (_webSheet.rows.length < _webSheet.cap) _webSheet.rows.push({ c: data.map(function (v2) { var _c = cleanXml(v2); return _c == null ? '' : String(_c); }), s: _sev });
-          else _webSheet.capped = true;
+          var _rec = { c: data.map(function (v2) { var _c = cleanXml(v2); return _c == null ? '' : String(_c); }), s: _sev };
+          if (_webSheet.idbStore) {
+            _webIdbBuf.push(_rec);
+            if (_webSheet.rows.length < _PA_IDB_FALLBACK_CAP) _webSheet.rows.push(_rec);  // fallback pequeño si IDB falla
+            else _webSheet.capped = true;  // marca para que el fallback en memoria avise truncación
+          } else if (_webSheet.rows.length < _webSheet.cap) {
+            _webSheet.rows.push(_rec);
+          } else {
+            _webSheet.capped = true;
+          }
         }
       },
       finalize: function() {
         ws.columns.forEach(function(col, ci) {
           col.width = Math.min(Math.max((colW[ci] || 10) + 2, 10), 60);
         });
-      }
+      },
+      // Vuelca el buffer IDB de la hoja (backpressure: el caller hace await). force=true vacía el resto.
+      flushWeb: function(force) {
+        if (!_webSheet || !_webSheet.idbStore || !_webIdbBuf.length) return Promise.resolve();
+        if (!force && _webIdbBuf.length < WEB_IDB_BATCH) return Promise.resolve();
+        var b = _webIdbBuf; _webIdbBuf = [];
+        return idbBulkPut(_webSheet.idbStore, b);
+      },
+      // Desactiva la persistencia IDB de esta hoja (ante error de escritura) -> fallback a memoria
+      disableWeb: function() { if (_webSheet) _webSheet.idbStore = null; _webIdbBuf = []; }
     };
   }
 
@@ -2380,6 +2403,7 @@ async function paAnalyzeAndExport(
     }
 
     var PSI_CHUNK = 300;
+    var _psiWebOk = true;
     for (var pii = 0; pii < allPsi.length; pii += PSI_CHUNK) {
       allPsi.slice(pii, pii + PSI_CHUNK).forEach(function(r) {
         var sid    = str(r.SOURCEID);
@@ -2478,6 +2502,11 @@ async function paAnalyzeAndExport(
         track('Prod Source Item', fill);
       });
       await new Promise(function(r){ setTimeout(r, 0); });
+      if (_psiWebOk) {
+        // backpressure: vuelca a IDB cuando el buffer llega al lote; ante error degrada a memoria
+        try { await S7.flushWeb(); }
+        catch (e) { _psiWebOk = false; S7.disableWeb(); if (logEl) log(logEl, 'warn', timer.fmt() + ' Vista web Prod Source Item: error de escritura, se usará vista parcial.'); }
+      }
       setStatusPA(
         _xnPA('Hoja Prod Source Item: {done}/{total}...')
           .replace('{done}', Math.min(pii + PSI_CHUNK, allPsi.length))
@@ -2485,6 +2514,10 @@ async function paAnalyzeAndExport(
         88 + Math.round((Math.min(pii + PSI_CHUNK, allPsi.length) / Math.max(allPsi.length, 1)) * 3));
     }
     S7.finalize();
+    if (PA_WEB && _psiWebOk) {
+      try { await S7.flushWeb(true); if (PA_WEB.sheets[_PSI_NM]) PA_WEB.sheets[_PSI_NM].idbReady = true; }
+      catch (e) { if (logEl) log(logEl, 'warn', timer.fmt() + ' Vista web Prod Source Item (detalle completo) no disponible: ' + (e && e.message)); }
+    }
     setStatusPA(_xnPA('Hoja Prod Source Item lista...'), 91);
     await new Promise(function(r){ setTimeout(r, 0); });
   }

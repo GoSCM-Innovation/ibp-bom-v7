@@ -5,7 +5,7 @@
        ═══════════════════════════════════════════════════════════════ */
     function openDB() {
       return new Promise(function (resolve, reject) {
-        var req = indexedDB.open('ibp_data', 6);
+        var req = indexedDB.open('ibp_data', 7);
         req.onupgradeneeded = function (e) {
           var db = e.target.result;
           // BOM stores
@@ -107,6 +107,11 @@
           }
           if (!db.objectStoreNames.contains('sn_cust_web')) {
             db.createObjectStore('sn_cust_web', { autoIncrement: true })
+              .createIndex('by_severity', 's', { unique: false });
+          }
+          // PA vista web — Prod Source Item precomputado (la hoja grande de PA)
+          if (!db.objectStoreNames.contains('pa_psi_web')) {
+            db.createObjectStore('pa_psi_web', { autoIncrement: true })
               .createIndex('by_severity', 's', { unique: false });
           }
         };
