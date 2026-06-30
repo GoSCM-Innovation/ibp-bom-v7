@@ -595,7 +595,7 @@
         if (!IDB) IDB = await openDB();
         await Promise.all(['sn_loc', 'sn_cust', 'sn_plant', 'sn_psi', 'sn_loc_prod', 'sn_cust_prod'].map(idbClear));
         // Limpiar stores de la vista web (Fase 3) si existen; no fallar si aún no creados
-        try { await Promise.all(['sn_loc_web', 'sn_cust_web'].map(idbClear)); } catch (e) {}
+        try { await Promise.all(['sn_loc_web', 'sn_cust_web', 'sn_product_web', 'sn_location_web', 'sn_customer_web'].map(idbClear)); } catch (e) {}
 
         // ── PHASE 1: Download + store 6 entities (0 → 50%) ──────────────────
 
@@ -1249,7 +1249,7 @@
          Hojas acotadas se capturan completas; las grandes (Location/Customer
          Source) con tope, para no inflar el heap. El Excel siempre recibe todo. */
       var webMode = (mode === 'web' || mode === 'both');
-      var SN_WEB = null, _BIG = {}, _WEBSTORE = {}, WEB_CAP_STD = 50000, WEB_CAP_BIG = 20000;
+      var SN_WEB = null, _BIG = {}, _WEBSTORE = {}, WEB_CAP_STD = 50000, WEB_CAP_BIG = 20000, WEB_GRP_FALLBACK_CAP = 2000;
       // Fase 3: doble escritura de las hojas grandes a IDB para paginar el 100% en la web
       var _LS_NM = '', _CS_NM = '';
       var _lsWebBuf = [], _lsWebWrites = [], _lsWebOn = false, _lsPending = 0;
@@ -1260,6 +1260,10 @@
         _CS_NM = I18n.t('xls.sheet.customerSource');
         _BIG[_LS_NM] = 1; _BIG[_CS_NM] = 1;
         _WEBSTORE[_LS_NM] = 'sn_loc_web'; _WEBSTORE[_CS_NM] = 'sn_cust_web';
+        // Hojas acotadas tambien al 100% desde disco (gestionadas por makeGroup, no por cursor)
+        _WEBSTORE[I18n.t('xls.sheet.product')]  = 'sn_product_web';
+        _WEBSTORE[I18n.t('xls.sheet.location')] = 'sn_location_web';
+        _WEBSTORE[I18n.t('xls.sheet.customer')] = 'sn_customer_web';
         _lsWebOn = _csWebOn = true;
         SN_WEB = { generatedAt: today, sheets: {}, order: [], summary: [], stats: [], statsName: ((typeof StatsSheet !== 'undefined' && StatsSheet.sheetName) ? StatsSheet.sheetName() : 'Estadísticas'), meta: execMeta || null, downloadExcel: null };
       }
@@ -1271,6 +1275,9 @@
           SN_WEB.sheets[baseName] = { name: baseName, headers: headers.slice(), rows: [], total: 0, red: 0, yel: 0, ok: 0, capped: false, cap: (_BIG[baseName] ? WEB_CAP_BIG : WEB_CAP_STD), idbStore: (_WEBSTORE[baseName] || null), idbReady: false };
           SN_WEB.order.push(baseName);
         }
+        var _ws = SN_WEB ? SN_WEB.sheets[baseName] : null;
+        var _grpIdb = !!(_ws && _ws.idbStore && !_BIG[baseName]);  // IDB gestionada por makeGroup (hojas acotadas); LS/CS usan cursor
+        var _webIdbBuf = [];
         var sheetIdx = 0, allSheets = [], cur = null;
 
         function newSheet() {
@@ -1318,15 +1325,17 @@
             });
             var s = STATS[baseName];
             if (s) { s.total++; if (fill === C_RED) s.red++; else if (fill === C_YEL) s.yel++; else s.ok++; }
-            if (SN_WEB) {
-              var _w = SN_WEB.sheets[baseName];
-              if (_w) {
-                _w.total++;
-                var _sev = (fill === C_RED) ? 'red' : (fill === C_YEL) ? 'yel' : 'ok';
-                if (_sev === 'red') _w.red++; else if (_sev === 'yel') _w.yel++; else _w.ok++;
-                if (_w.rows.length < _w.cap) _w.rows.push({ c: data.map(function (v) { var _cv = cleanXml(v); return _cv == null ? '' : String(_cv); }), s: _sev });
-                else _w.capped = true;
-              }
+            if (_ws) {
+              _ws.total++;
+              var _sev = (fill === C_RED) ? 'red' : (fill === C_YEL) ? 'yel' : 'ok';
+              if (_sev === 'red') _ws.red++; else if (_sev === 'yel') _ws.yel++; else _ws.ok++;
+              var _rec = { c: data.map(function (v) { var _cv = cleanXml(v); return _cv == null ? '' : String(_cv); }), s: _sev };
+              if (_grpIdb) {
+                _webIdbBuf.push(_rec);                                  // hoja acotada -> disco (100%)
+                if (_ws.rows.length < WEB_GRP_FALLBACK_CAP) _ws.rows.push(_rec); else _ws.capped = true;  // fallback pequeño
+              } else if (_ws.rows.length < _ws.cap) {
+                _ws.rows.push(_rec);                                    // LS/CS: fallback en memoria (cursor escribe IDB)
+              } else { _ws.capped = true; }
             }
           },
           checkSplit: function (margin) { if (cur.rowCount >= ROW_LIMIT - (margin || 0)) newSheet(); },
@@ -1336,6 +1345,17 @@
                 col.width = Math.min(Math.max((sh.colW[ci] || 10) + 2, 10), 60);
               });
             });
+          },
+          // Vuelca el buffer de la hoja acotada a IDB en sub-lotes y la marca lista; ante error degrada a memoria.
+          finalizeWeb: function () {
+            if (!_grpIdb) return Promise.resolve();
+            var store = _ws.idbStore, all = _webIdbBuf, i = 0; _webIdbBuf = [];
+            function step() {
+              if (i >= all.length) return Promise.resolve();
+              var slice = all.slice(i, i + WEB_IDB_BATCH); i += WEB_IDB_BATCH;
+              return idbBulkPut(store, slice).then(step);
+            }
+            return step().then(function () { _ws.idbReady = true; }, function (e) { _ws.idbStore = null; _webIdbBuf = []; });
           }
         };
       }
@@ -2277,6 +2297,8 @@
       });
 
       [gPrd, gLoc, gCust, gLS, gCS].forEach(function (g) { g.finalize(); });
+      // Volcar a IDB las hojas acotadas (Product/Location/Customer) para paginar el 100% en la web
+      if (SN_WEB) { try { await gPrd.finalizeWeb(); await gLoc.finalizeWeb(); await gCust.finalizeWeb(); } catch (e) {} }
 
       s0ws.columns.forEach(function (col, ci) { col.width = Math.min(Math.max((s0colW[ci] || 10) + 2, 10), 60); });
 

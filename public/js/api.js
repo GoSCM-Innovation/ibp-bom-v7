@@ -5,7 +5,7 @@
        ═══════════════════════════════════════════════════════════════ */
     function openDB() {
       return new Promise(function (resolve, reject) {
-        var req = indexedDB.open('ibp_data', 7);
+        var req = indexedDB.open('ibp_data', 8);
         req.onupgradeneeded = function (e) {
           var db = e.target.result;
           // BOM stores
@@ -109,11 +109,18 @@
             db.createObjectStore('sn_cust_web', { autoIncrement: true })
               .createIndex('by_severity', 's', { unique: false });
           }
-          // PA vista web — Prod Source Item precomputado (la hoja grande de PA)
-          if (!db.objectStoreNames.contains('pa_psi_web')) {
-            db.createObjectStore('pa_psi_web', { autoIncrement: true })
-              .createIndex('by_severity', 's', { unique: false });
-          }
+          // Vista web — filas de display precomputadas { c:[celdas], s:'red'|'yel'|'ok' }
+          // para paginar el 100% de cada hoja desde disco sin retenerla en RAM.
+          [
+            'pa_psi_web',                                              // PA Prod Source Item
+            'sn_product_web', 'sn_location_web', 'sn_customer_web',    // SN hojas acotadas
+            'pa_product_web', 'pa_location_web', 'pa_resource_web',    // PA hojas acotadas
+            'pa_resloc_web', 'pa_psh_web', 'pa_psr_web'
+          ].forEach(function (st) {
+            if (!db.objectStoreNames.contains(st)) {
+              db.createObjectStore(st, { autoIncrement: true }).createIndex('by_severity', 's', { unique: false });
+            }
+          });
         };
         req.onsuccess = function (e) {
           var db = e.target.result;

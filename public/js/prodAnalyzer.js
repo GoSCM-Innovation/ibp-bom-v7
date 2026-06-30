@@ -1260,16 +1260,24 @@ async function paAnalyzeAndExport(
   var PA_WEB = null, _PA_SUMMARY_NAME = I18n.t('xls.sheet.summary'), PA_WEB_CAP = 50000;
   // Fase 3 PA: solo Prod Source Item (la hoja que realmente explota) se pagina 100% desde IDB
   var _PA_IDB = {}, _PSI_NM = '', WEB_IDB_BATCH = 8000, _PA_IDB_FALLBACK_CAP = 2000;
+  var _PA_WEB_STORES = ['pa_psi_web', 'pa_product_web', 'pa_location_web', 'pa_resource_web', 'pa_resloc_web', 'pa_psh_web', 'pa_psr_web'];
   if (paWebMode) {
     _PSI_NM = I18n.t('xls.sheet.prodSrcItem');
-    _PA_IDB[_PSI_NM] = 'pa_psi_web';
+    // Cada hoja que podria crecer se pagina 100% desde disco (sin tope en RAM)
+    _PA_IDB[_PSI_NM]                              = 'pa_psi_web';
+    _PA_IDB[I18n.t('xls.sheet.product')]          = 'pa_product_web';
+    _PA_IDB[I18n.t('xls.sheet.location')]         = 'pa_location_web';
+    _PA_IDB[I18n.t('xls.sheet.resource')]         = 'pa_resource_web';
+    _PA_IDB[I18n.t('xls.sheet.resourceLocation')] = 'pa_resloc_web';
+    _PA_IDB[I18n.t('xls.sheet.prodSrcHeader')]    = 'pa_psh_web';
+    _PA_IDB[I18n.t('xls.sheet.prodSrcResource')]  = 'pa_psr_web';
     PA_WEB = {
       panel: 'paResultsPanel', titleKey: 'snweb.titlePA', title: 'Production Analyzer — vista web',
       generatedAt: today, sheets: {}, order: [], summary: [], stats: [],
       statsName: ((typeof StatsSheet !== 'undefined' && StatsSheet.sheetName) ? StatsSheet.sheetName() : 'Estadísticas'),
       meta: execMeta || null, downloadExcel: null
     };
-    try { await idbClear('pa_psi_web'); } catch (e) {}
+    try { await Promise.all(_PA_WEB_STORES.map(idbClear)); } catch (e) {}
   }
 
   function makeSheet(name, tabArgb, hdrs, notes, groups) {
@@ -1342,12 +1350,26 @@ async function paAnalyzeAndExport(
           col.width = Math.min(Math.max((colW[ci] || 10) + 2, 10), 60);
         });
       },
-      // Vuelca el buffer IDB de la hoja (backpressure: el caller hace await). force=true vacía el resto.
+      // Vuelca el buffer IDB en sub-lotes con await (backpressure; tx acotadas). force=true vacía el resto.
       flushWeb: function(force) {
-        if (!_webSheet || !_webSheet.idbStore || !_webIdbBuf.length) return Promise.resolve();
+        if (!_webSheet || !_webSheet.idbStore) return Promise.resolve();
         if (!force && _webIdbBuf.length < WEB_IDB_BATCH) return Promise.resolve();
-        var b = _webIdbBuf; _webIdbBuf = [];
-        return idbBulkPut(_webSheet.idbStore, b);
+        var store = _webSheet.idbStore, all = _webIdbBuf, i = 0;
+        _webIdbBuf = [];
+        function step() {
+          if (i >= all.length) return Promise.resolve();
+          var slice = all.slice(i, i + WEB_IDB_BATCH); i += WEB_IDB_BATCH;
+          return idbBulkPut(store, slice).then(step);
+        }
+        return step();
+      },
+      // Vuelca todo lo pendiente y marca la hoja lista para paginar desde IDB; ante error degrada a memoria.
+      finalizeWeb: function() {
+        if (!_webSheet || !_webSheet.idbStore) return Promise.resolve();
+        return this.flushWeb(true).then(
+          function() { if (_webSheet) _webSheet.idbReady = true; },
+          function(e) { if (_webSheet) _webSheet.idbStore = null; _webIdbBuf = []; }
+        );
       },
       // Desactiva la persistencia IDB de esta hoja (ante error de escritura) -> fallback a memoria
       disableWeb: function() { if (_webSheet) _webSheet.idbStore = null; _webIdbBuf = []; }
@@ -1741,6 +1763,7 @@ async function paAnalyzeAndExport(
       track('Product', fill);
     });
     S1.finalize();
+    if (PA_WEB) await S1.finalizeWeb();
     setStatusPA(_xnPA('Hoja Product lista...'), 82);
     await new Promise(function(r){ setTimeout(r, 0); });
   }
@@ -2099,6 +2122,7 @@ async function paAnalyzeAndExport(
       track('Location', fill);
     });
     S9.finalize();
+    if (PA_WEB) await S9.finalizeWeb();
     setStatusPA(_xnPA('Hoja Location lista...'), 84);
     await new Promise(function(r){ setTimeout(r, 0); });
   }
@@ -2193,6 +2217,7 @@ async function paAnalyzeAndExport(
       track('Resource', fill);
     });
     S2.finalize();
+    if (PA_WEB) await S2.finalizeWeb();
     setStatusPA(_xnPA('Hoja Resource lista...'), 84);
     await new Promise(function(r){ setTimeout(r, 0); });
   }
@@ -2236,6 +2261,7 @@ async function paAnalyzeAndExport(
       });
     });
     S3.finalize();
+    if (PA_WEB) await S3.finalizeWeb();
     setStatusPA(_xnPA('Hoja Resource Location lista...'), 85);
     await new Promise(function(r){ setTimeout(r, 0); });
   }
@@ -2336,6 +2362,7 @@ async function paAnalyzeAndExport(
       });
     });
     S6.finalize();
+    if (PA_WEB) await S6.finalizeWeb();
     setStatusPA(_xnPA('Hoja Prod Source Header lista...'), 88);
     await new Promise(function(r){ setTimeout(r, 0); });
   }
@@ -2403,7 +2430,6 @@ async function paAnalyzeAndExport(
     }
 
     var PSI_CHUNK = 300;
-    var _psiWebOk = true;
     for (var pii = 0; pii < allPsi.length; pii += PSI_CHUNK) {
       allPsi.slice(pii, pii + PSI_CHUNK).forEach(function(r) {
         var sid    = str(r.SOURCEID);
@@ -2502,11 +2528,8 @@ async function paAnalyzeAndExport(
         track('Prod Source Item', fill);
       });
       await new Promise(function(r){ setTimeout(r, 0); });
-      if (_psiWebOk) {
-        // backpressure: vuelca a IDB cuando el buffer llega al lote; ante error degrada a memoria
-        try { await S7.flushWeb(); }
-        catch (e) { _psiWebOk = false; S7.disableWeb(); if (logEl) log(logEl, 'warn', timer.fmt() + ' Vista web Prod Source Item: error de escritura, se usará vista parcial.'); }
-      }
+      try { await S7.flushWeb(); }  // backpressure: vuelca a IDB cuando el buffer llega al lote
+      catch (e) { S7.disableWeb(); if (logEl) log(logEl, 'warn', timer.fmt() + ' Vista web Prod Source Item: error de escritura, se usará vista parcial.'); }
       setStatusPA(
         _xnPA('Hoja Prod Source Item: {done}/{total}...')
           .replace('{done}', Math.min(pii + PSI_CHUNK, allPsi.length))
@@ -2514,10 +2537,7 @@ async function paAnalyzeAndExport(
         88 + Math.round((Math.min(pii + PSI_CHUNK, allPsi.length) / Math.max(allPsi.length, 1)) * 3));
     }
     S7.finalize();
-    if (PA_WEB && _psiWebOk) {
-      try { await S7.flushWeb(true); if (PA_WEB.sheets[_PSI_NM]) PA_WEB.sheets[_PSI_NM].idbReady = true; }
-      catch (e) { if (logEl) log(logEl, 'warn', timer.fmt() + ' Vista web Prod Source Item (detalle completo) no disponible: ' + (e && e.message)); }
-    }
+    if (PA_WEB) await S7.finalizeWeb();
     setStatusPA(_xnPA('Hoja Prod Source Item lista...'), 91);
     await new Promise(function(r){ setTimeout(r, 0); });
   }
@@ -2599,6 +2619,7 @@ async function paAnalyzeAndExport(
       track('Prod Source Resource', fill);
     });
     S8.finalize();
+    if (PA_WEB) await S8.finalizeWeb();
     setStatusPA(_xnPA('Hoja Prod Source Resource lista...'), 93);
     await new Promise(function(r){ setTimeout(r, 0); });
   }
