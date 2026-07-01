@@ -139,6 +139,7 @@
         tx.objectStore(storeName).clear();
         tx.oncomplete = resolve;
         tx.onerror = function (e) { reject(e.target.error); };
+        tx.onabort = function () { reject(tx.error || new Error('IDB transaction aborted')); };
       });
     }
 
@@ -150,6 +151,7 @@
         records.forEach(function (r) { store.put(r); });
         tx.oncomplete = resolve;
         tx.onerror = function (e) { reject(e.target.error); };
+        tx.onabort = function () { reject(tx.error || new Error('IDB transaction aborted')); };
       });
     }
 

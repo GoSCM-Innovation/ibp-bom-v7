@@ -1273,7 +1273,7 @@
       function makeGroup(baseName, tabArgb, headers, notes, groups) {
         initStat(baseName);
         if (SN_WEB) {
-          SN_WEB.sheets[baseName] = { name: baseName, headers: headers.slice(), rows: [], total: 0, red: 0, yel: 0, ok: 0, capped: false, cap: (_BIG[baseName] ? WEB_CAP_BIG : WEB_CAP_STD), idbStore: (_WEBSTORE[baseName] || null), idbReady: false };
+          SN_WEB.sheets[baseName] = { name: baseName, headers: headers.slice(), rows: [], total: 0, red: 0, yel: 0, ok: 0, capped: false, cap: (_BIG[baseName] ? WEB_CAP_BIG : WEB_CAP_STD), idbStore: (_WEBSTORE[baseName] || null), idbReady: false, hasStatus: true };
           SN_WEB.order.push(baseName);
         }
         var _ws = SN_WEB ? SN_WEB.sheets[baseName] : null;
@@ -2186,7 +2186,7 @@
           _lsWebBuf.push({ c: _lsRow.map(function (v) { var _c = cleanXml(v); return _c == null ? '' : String(_c); }), s: (lsFill === C_RED ? 'red' : lsFill === C_YEL ? 'yel' : 'ok') });
           if (_lsWebBuf.length >= WEB_IDB_BATCH) {
             _lsPending++;
-            _lsWebWrites.push(idbBulkPut('sn_loc_web', _lsWebBuf).then(function () { _lsPending--; }, function () { _lsPending--; }));
+            _lsWebWrites.push(idbBulkPut('sn_loc_web', _lsWebBuf).then(function () { _lsPending--; }, function (e) { _lsPending--; throw e; }));  // re-lanza: un fallo -> Promise.all rechaza -> idbReady queda false -> fallback
             _lsWebBuf = [];
             if (_lsPending > WEB_IDB_MAX_LOTS) { _lsWebOn = false; if (logEl) log(logEl, 'warn', timer.fmt() + ' Vista web Location Source: volumen alto, se usará vista parcial (descarga Excel para el 100%).'); }
           }
@@ -2250,7 +2250,7 @@
           _csWebBuf.push({ c: _csRow.map(function (v) { var _c = cleanXml(v); return _c == null ? '' : String(_c); }), s: (csFill === C_RED ? 'red' : csFill === C_YEL ? 'yel' : 'ok') });
           if (_csWebBuf.length >= WEB_IDB_BATCH) {
             _csPending++;
-            _csWebWrites.push(idbBulkPut('sn_cust_web', _csWebBuf).then(function () { _csPending--; }, function () { _csPending--; }));
+            _csWebWrites.push(idbBulkPut('sn_cust_web', _csWebBuf).then(function () { _csPending--; }, function (e) { _csPending--; throw e; }));  // re-lanza: un fallo -> Promise.all rechaza -> idbReady queda false -> fallback
             _csWebBuf = [];
             if (_csPending > WEB_IDB_MAX_LOTS) { _csWebOn = false; if (logEl) log(logEl, 'warn', timer.fmt() + ' Vista web Customer Source: volumen alto, se usará vista parcial (descarga Excel para el 100%).'); }
           }

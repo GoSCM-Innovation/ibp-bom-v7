@@ -386,8 +386,9 @@
         h += '<tr class="' + meta.cls + '">';
         for (var ci = 0; ci < sh.headers.length; ci++) {
           var v = (row.c && row.c[ci] != null) ? row.c[ci] : '';
-          if (ci === 0) {
-            // Componer siempre desde la severidad para que siga el idioma activo (no usar el texto capturado).
+          if (ci === 0 && sh.hasStatus !== false) {
+            // Col 0 = Estado: componer desde la severidad (sigue el idioma activo). Hojas sin col Estado
+            // (p.ej. "Tipos Excluidos") NO se sobrescriben; su severidad se ve por el color de fila.
             h += '<td class="snwv-sevcell ' + meta.cls + '">' + meta.icon + ' ' + esc(sevLabel(row.s)) + '</td>';
           } else {
             h += '<td>' + esc(v) + '</td>';

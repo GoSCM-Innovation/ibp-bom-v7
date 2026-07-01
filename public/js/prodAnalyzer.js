@@ -1306,7 +1306,7 @@ async function paAnalyzeAndExport(
     var colW = hdrs.map(function(h) { return h.length; });
     var _webSheet = null;
     if (PA_WEB && name !== _PA_SUMMARY_NAME) {
-      _webSheet = { name: name, headers: hdrs.slice(), rows: [], total: 0, red: 0, yel: 0, ok: 0, capped: false, cap: PA_WEB_CAP, idbStore: (_PA_IDB[name] || null), idbReady: false };
+      _webSheet = { name: name, headers: hdrs.slice(), rows: [], total: 0, red: 0, yel: 0, ok: 0, capped: false, cap: PA_WEB_CAP, idbStore: (_PA_IDB[name] || null), idbReady: false, hasStatus: (name !== I18n.t('xls.sheet.excludedTypes')) };
       PA_WEB.sheets[name] = _webSheet;
       PA_WEB.order.push(name);
     }
