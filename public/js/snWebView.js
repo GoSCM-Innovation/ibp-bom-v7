@@ -398,21 +398,23 @@
       h += '</tbody></table></div>';
     }
 
+    var _hasFilter = (_sev !== 'all') || (_q && _q.trim() !== '');
     var shownFrom = opts.filteredCount ? (opts.offset + 1) : 0;
     var shownTo   = Math.min(opts.offset + PAGE_SIZE, opts.filteredCount);
     h += '<div class="snwv-foot"><div>';
+    // "(filtrado de N)" solo cuando hay un filtro real (severidad o busqueda), no cuando es un tope/parcial
     h += '<div class="snwv-count">' + esc(t('snweb.showing', 'Mostrando {a}–{b} de {n}', { a: fmtN(shownFrom), b: fmtN(shownTo), n: fmtN(opts.filteredCount) })) +
-         (opts.filteredCount !== sh.total ? ' ' + esc(t('snweb.filteredOf', '(filtrado de {n})', { n: fmtN(sh.total) })) : '') + '</div>';
+         (_hasFilter ? ' ' + esc(t('snweb.filteredOf', '(filtrado de {n})', { n: fmtN(sh.total) })) : '') + '</div>';
     if (opts.idb) {
       if (opts.searching && opts.truncated) {
         h += '<div class="snwv-cap">⚠ ' + esc(t('snweb.searchTrunc', 'Búsqueda limitada a las primeras {n} coincidencias. Afina el filtro o descarga el Excel.', { n: fmtN(opts.filteredCount) })) + '</div>';
       } else {
         h += '<div class="snwv-note">' + esc(t('snweb.idbNote', 'Navegando el 100% de las filas desde el almacenamiento local del navegador.')) + '</div>';
       }
-    } else if (opts.fellBack) {
-      h += '<div class="snwv-cap">⚠ ' + esc(t('snweb.idbFail', 'No se pudo leer el detalle completo; mostrando vista parcial.')) + '</div>';
-    } else if (sh.capped) {
-      h += '<div class="snwv-cap">⚠ ' + esc(t('snweb.capped', 'Vista limitada a {shown} filas (de {total}). Descarga el Excel para el detalle completo.', { shown: fmtN(sh.rows.length), total: fmtN(sh.total) })) + '</div>';
+    } else if (opts.fellBack || sh.capped) {
+      // Vista parcial (tope en memoria o degradacion por fallo de disco): decir cuantas de cuantas, no "filtrado"
+      var _pfx = opts.fellBack ? (esc(t('snweb.idbFail', 'No se pudo leer el detalle completo.')) + ' ') : '';
+      h += '<div class="snwv-cap">⚠ ' + _pfx + esc(t('snweb.capped', 'Vista limitada a {shown} filas (de {total}). Descarga el Excel para el detalle completo.', { shown: fmtN(sh.rows.length), total: fmtN(sh.total) })) + '</div>';
     }
     h += '</div>';
     h += '<div class="snwv-pager">';
@@ -438,7 +440,7 @@
       if (_sev !== 'all' && r.s !== _sev) continue;
       if (q) {
         var hit = false, c = r.c;
-        for (var j = 0; j < c.length; j++) {
+        for (var j = 1; j < c.length; j++) {   // j=1: la col 0 (severidad) se filtra con chips, no por texto
           if (c[j] && String(c[j]).toLowerCase().indexOf(q) !== -1) { hit = true; break; }
         }
         if (!hit) continue;
@@ -504,7 +506,7 @@
     area.innerHTML = '<div class="snwv-empty">' + esc(t('snweb.searching', 'Buscando...')) + '</div>';
     var test = function (rec) {
       var c = rec.c || [];
-      for (var j = 0; j < c.length; j++) { if (c[j] && String(c[j]).toLowerCase().indexOf(q) !== -1) return true; }
+      for (var j = 1; j < c.length; j++) { if (c[j] && String(c[j]).toLowerCase().indexOf(q) !== -1) return true; }  // j=1: col 0 (severidad) via chips
       return false;
     };
     var idxName = (_sev === 'all') ? null : 'by_severity';

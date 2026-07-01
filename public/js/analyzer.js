@@ -595,7 +595,8 @@
         if (!IDB) IDB = await openDB();
         await Promise.all(['sn_loc', 'sn_cust', 'sn_plant', 'sn_psi', 'sn_loc_prod', 'sn_cust_prod'].map(idbClear));
         // Limpiar stores de la vista web (Fase 3) si existen; no fallar si aún no creados
-        try { await Promise.all(['sn_loc_web', 'sn_cust_web', 'sn_product_web', 'sn_location_web', 'sn_customer_web'].map(idbClear)); } catch (e) {}
+        try { await Promise.all(['sn_loc_web', 'sn_cust_web', 'sn_product_web', 'sn_location_web', 'sn_customer_web'].map(idbClear)); }
+        catch (e) { log(logEl, 'warn', timer.fmt() + ' No se pudieron limpiar los stores de vista web (se usara vista en memoria si aplica): ' + (e && e.message)); }
 
         // ── PHASE 1: Download + store 6 entities (0 → 50%) ──────────────────
 

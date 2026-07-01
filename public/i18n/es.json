@@ -902,7 +902,7 @@
   "snweb.filteredOf": "(filtrado de {n})",
   "snweb.idbNote": "Navegando el 100% de las filas desde el almacenamiento local del navegador.",
   "snweb.searchTrunc": "Búsqueda limitada a las primeras {n} coincidencias. Afina el filtro o descarga el Excel.",
-  "snweb.idbFail": "No se pudo leer el detalle completo; mostrando vista parcial.",
+  "snweb.idbFail": "No se pudo leer el detalle completo.",
   "snweb.capped": "Vista limitada a {shown} filas (de {total}). Descarga el Excel para el detalle completo.",
   "snweb.prev": "Anterior",
   "snweb.next": "Siguiente",

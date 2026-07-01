@@ -153,9 +153,17 @@
       });
     }
 
+    // Rechaza la promesa si la transaccion se ABORTA (p.ej. la conexion se cierra por
+    // un upgrade en otra pestania) o falla, en vez de dejar la promesa colgada para siempre.
+    function _txReject(tx, reject) {
+      tx.onabort = function () { reject(tx.error || new Error('IDB transaction aborted')); };
+      tx.onerror = function () { reject(tx.error || new Error('IDB transaction error')); };
+    }
+
     function idbGetByIndex(storeName, indexName, key) {
       return new Promise(function (resolve, reject) {
         var tx = IDB.transaction(storeName, 'readonly');
+        _txReject(tx, reject);
         var req = tx.objectStore(storeName).index(indexName).getAll(key);
         req.onsuccess = function (e) { resolve(e.target.result); };
         req.onerror = function (e) { reject(e.target.error); };
@@ -165,6 +173,7 @@
     function idbGet(storeName, key) {
       return new Promise(function (resolve, reject) {
         var tx = IDB.transaction(storeName, 'readonly');
+        _txReject(tx, reject);
         var req = tx.objectStore(storeName).get(key);
         req.onsuccess = function (e) { resolve(e.target.result); };
         req.onerror = function (e) { reject(e.target.error); };
@@ -174,6 +183,7 @@
     function idbGetAll(storeName) {
       return new Promise(function (resolve, reject) {
         var tx = IDB.transaction(storeName, 'readonly');
+        _txReject(tx, reject);
         var req = tx.objectStore(storeName).getAll();
         req.onsuccess = function (e) { resolve(e.target.result || []); };
         req.onerror = function (e) { reject(e.target.error); };
@@ -195,13 +205,16 @@
         };
         req.onerror   = function (e) { reject(e.target.error); };
         tx.onerror    = function (e) { reject(e.target.error); };
+        tx.onabort    = function () { reject(tx.error || new Error('IDB transaction aborted')); };
       });
     }
 
     /* Cuenta total de registros de un store. */
     function idbCount(storeName) {
       return new Promise(function (resolve, reject) {
-        var req = IDB.transaction(storeName, 'readonly').objectStore(storeName).count();
+        var tx = IDB.transaction(storeName, 'readonly');
+        _txReject(tx, reject);
+        var req = tx.objectStore(storeName).count();
         req.onsuccess = function (e) { resolve(e.target.result || 0); };
         req.onerror   = function (e) { reject(e.target.error); };
       });
@@ -210,7 +223,9 @@
     /* Cuenta registros de un índice para una key exacta. */
     function idbCountByIndex(storeName, indexName, key) {
       return new Promise(function (resolve, reject) {
-        var req = IDB.transaction(storeName, 'readonly').objectStore(storeName).index(indexName).count(IDBKeyRange.only(key));
+        var tx = IDB.transaction(storeName, 'readonly');
+        _txReject(tx, reject);
+        var req = tx.objectStore(storeName).index(indexName).count(IDBKeyRange.only(key));
         req.onsuccess = function (e) { resolve(e.target.result || 0); };
         req.onerror   = function (e) { reject(e.target.error); };
       });
@@ -222,6 +237,7 @@
       return new Promise(function (resolve, reject) {
         var out = [], skipped = false;
         var tx  = IDB.transaction(storeName, 'readonly');
+        _txReject(tx, reject);
         var src = indexName ? tx.objectStore(storeName).index(indexName) : tx.objectStore(storeName);
         var range = (key != null) ? IDBKeyRange.only(key) : null;
         var req = src.openCursor(range);
@@ -244,6 +260,7 @@
       return new Promise(function (resolve, reject) {
         var out = [], scanned = 0;
         var tx  = IDB.transaction(storeName, 'readonly');
+        _txReject(tx, reject);
         var src = indexName ? tx.objectStore(storeName).index(indexName) : tx.objectStore(storeName);
         var range = (key != null) ? IDBKeyRange.only(key) : null;
         var req = src.openCursor(range);

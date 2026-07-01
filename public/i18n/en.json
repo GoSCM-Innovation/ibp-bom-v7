@@ -902,7 +902,7 @@
   "snweb.filteredOf": "(filtered from {n})",
   "snweb.idbNote": "Browsing 100% of the rows from the browser's local storage.",
   "snweb.searchTrunc": "Search limited to the first {n} matches. Refine the filter or download the Excel.",
-  "snweb.idbFail": "Couldn't read full detail; showing partial view.",
+  "snweb.idbFail": "Couldn't read full detail.",
   "snweb.capped": "View limited to {shown} rows (of {total}). Download the Excel for full detail.",
   "snweb.prev": "Previous",
   "snweb.next": "Next",

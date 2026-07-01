@@ -1277,7 +1277,8 @@ async function paAnalyzeAndExport(
       statsName: ((typeof StatsSheet !== 'undefined' && StatsSheet.sheetName) ? StatsSheet.sheetName() : 'Estadísticas'),
       meta: execMeta || null, downloadExcel: null
     };
-    try { await Promise.all(_PA_WEB_STORES.map(idbClear)); } catch (e) {}
+    try { await Promise.all(_PA_WEB_STORES.map(idbClear)); }
+    catch (e) { log(logEl, 'warn', timer.fmt() + ' No se pudieron limpiar los stores de vista web (se usara vista en memoria si aplica): ' + (e && e.message)); }
   }
 
   function makeSheet(name, tabArgb, hdrs, notes, groups) {
