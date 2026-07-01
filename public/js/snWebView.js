@@ -27,6 +27,7 @@
   var _searchCache = null;   // { key, rows, truncated } cache de búsqueda en hoja grande
   var _panelId     = 'snResultsPanel';  // contenedor destino (SN o PA)
   var SNWV_PANELS  = ['snResultsPanel', 'paResultsPanel'];  // posibles destinos (solo uno vivo a la vez)
+  var _PANEL_RESULT = { snResultsPanel: 'SN_WEB_RESULT', paResultsPanel: 'PA_WEB_RESULT' };  // global a liberar por panel inactivo
 
   var SEV = {
     red: { icon: '⛔', cls: 'snwv-red' },
@@ -116,6 +117,8 @@
     '.snwv-count{font-size:12px;color:var(--text2)}' +
     '.snwv-cap{font-size:11px;color:var(--accent2);margin-top:4px}' +
     '.snwv-note{font-size:11px;color:var(--text3);margin-top:4px}' +
+    '.snwv-na{color:var(--text3);font-style:italic}' +
+    '.snwv-dlnote{font-size:12px;color:var(--green);font-weight:600;align-self:center}' +
     '.snwv-empty{padding:30px;text-align:center;color:var(--text2);font-size:13px}' +
     '.snwv-statsbox{padding:16px 18px}' +
     '.snwv-st-h{font-size:13px;font-weight:700;color:var(--accent);margin:18px 0 8px;padding-bottom:4px;border-bottom:1px solid var(--border)}' +
@@ -175,27 +178,33 @@
   /* ══════════════════════════════════════════════════════════════════
      Render principal
      ══════════════════════════════════════════════════════════════════ */
-  function render(data) {
+  function render(data, preserve) {
     injectCss();
-    _panelId = (data && data.panel) ? data.panel : 'snResultsPanel';
-    // Mantener un solo panel vivo a la vez: limpiar los demás evita IDs internos snwv-* duplicados
-    // (getElementById devolvería el del otro panel y mezclaría SN con PA).
+    if (_searchTimer) { clearTimeout(_searchTimer); _searchTimer = null; }  // cancelar busqueda pendiente (input viejo)
+    var newPanel = (data && data.panel) ? data.panel : 'snResultsPanel';
+    var panelChanged = (newPanel !== _panelId);
+    // Un solo panel vivo a la vez: limpiar los demás (evita IDs snwv-* duplicados) y liberar el
+    // resultado (workbook) del otro módulo para no retenerlo en memoria.
     SNWV_PANELS.forEach(function (pid) {
-      if (pid !== _panelId) { var _o = el(pid); if (_o) { _o.innerHTML = ''; _o.classList.add('hidden'); } }
+      if (pid === newPanel) return;
+      var _o = el(pid); if (_o) { _o.innerHTML = ''; _o.classList.add('hidden'); }
+      var wv = _PANEL_RESULT[pid]; if (wv) { try { window[wv] = null; } catch (e) {} }
     });
+    _panelId = newPanel;
     var panel = el(_panelId);
     if (!panel) return;
     _data = data;
-    _sev = 'all'; _q = ''; _page = 1; _searchCache = null;
+    // Reset de filtro/busqueda/pagina salvo re-render que preserva estado (cambio de idioma) en el mismo panel
+    if (!preserve || panelChanged) { _sev = 'all'; _q = ''; _page = 1; _searchCache = null; }
 
     if (!data || !data.order || !data.order.length) {
       panel.classList.remove('hidden');
       panel.innerHTML = '<div class="snwv-wrap"><div class="snwv-empty">' + esc(t('snweb.empty', 'No hay datos para mostrar en la vista web.')) + '</div></div>';
       return;
     }
-    // Preservar hoja activa entre re-renders (p.ej. cambio de idioma)
+    // Preservar hoja activa entre re-renders del MISMO panel; al cambiar de panel/modulo ir a la primera hoja
     var keep = _activeSheet;
-    var keepOk = keep && (keep === '__stats__' ? (data.stats && data.stats.length) : data.sheets[keep]);
+    var keepOk = !panelChanged && keep && (keep === '__stats__' ? (data.stats && data.stats.length) : data.sheets[keep]);
     _activeSheet = keepOk ? keep : data.order[0];
 
     panel.classList.remove('hidden');
@@ -216,6 +225,7 @@
     h += '<div class="snwv-sub">' + esc(t('snweb.subtitle', 'Mismo análisis que el Excel, explorable en pantalla')) + gen + '</div>';
     h += '</div><div class="snwv-actions">';
     if (canDl) h += '<button class="snwv-btn snwv-btn-primary" id="snwv-dl">⬇️ ' + esc(t('snweb.downloadExcel', 'Descargar Excel')) + '</button>';
+    else if (data.excelDownloaded) h += '<span class="snwv-dlnote">✅ ' + esc(t('snweb.downloaded', 'Excel descargado')) + '</span>';
     h += '<button class="snwv-btn" id="snwv-close">' + esc(t('snweb.close', 'Cerrar')) + '</button>';
     h += '</div></div>';
     h += '<div class="snwv-cards" id="snwv-cards">' + buildCards(data) + '</div>';
@@ -391,7 +401,7 @@
             // (p.ej. "Tipos Excluidos") NO se sobrescriben; su severidad se ve por el color de fila.
             h += '<td class="snwv-sevcell ' + meta.cls + '">' + meta.icon + ' ' + esc(sevLabel(row.s)) + '</td>';
           } else {
-            h += '<td>' + esc(v) + '</td>';
+            h += '<td' + (v === '—' ? ' class="snwv-na"' : '') + '>' + esc(v) + '</td>';  // celda "no aplica" (—) en gris
           }
         }
         h += '</tr>';
@@ -541,7 +551,7 @@
   /* Re-render al cambiar idioma (mismo patrón que glosario/explorer). */
   document.addEventListener('i18n:change', function () {
     var panel = el(_panelId);
-    if (_data && panel && !panel.classList.contains('hidden')) render(_data);
+    if (_data && panel && !panel.classList.contains('hidden')) render(_data, true);  // preservar filtro/busqueda/pagina
   });
 
   window.SnWebView = { askOutputMode: askOutputMode, render: render };

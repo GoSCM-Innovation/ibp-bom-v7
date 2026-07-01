@@ -776,6 +776,7 @@
       } catch (e) {
         log(logEl, 'err', timer.fmt() + ' Error: ' + e.message);
         setStatusSN('err', 'Error: ' + e.message);
+        var _pbSN = document.getElementById('progBarSN'); if (_pbSN) _pbSN.classList.add('hidden');  // sin barra parcial junto al error
       }
       document.getElementById('btnFetchSN').disabled = false;
     }
@@ -2362,6 +2363,7 @@
         // Web-only: diferir el empaquetado/zip hasta que el usuario pida el Excel
         SN_WEB.downloadExcel = async function () { await _dlWorkbook(); SN_WEB.downloadExcel = null; };
       }
+      if (SN_WEB && mode === 'both') SN_WEB.excelDownloaded = true;  // ya se descargo -> la vista muestra nota, no boton
       if (SN_WEB) window.SN_WEB_RESULT = SN_WEB;
 
       return {

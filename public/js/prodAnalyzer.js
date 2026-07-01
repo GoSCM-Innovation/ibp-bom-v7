@@ -822,6 +822,7 @@ async function doProductionAnalysis() {
     log(logEl, 'err', timer.fmt() + ' Error: ' + e.message);
     var errEl = document.getElementById('progStatusTextPA');
     if (errEl) { errEl.style.color = 'var(--red)'; errEl.textContent = 'Error: ' + e.message; }
+    var _pbPA = document.getElementById('progBarPA'); if (_pbPA) _pbPA.classList.add('hidden');  // sin barra parcial junto al error
   }
   document.getElementById('btnFetchPA').disabled = false;
 }
@@ -1277,9 +1278,11 @@ async function paAnalyzeAndExport(
       statsName: ((typeof StatsSheet !== 'undefined' && StatsSheet.sheetName) ? StatsSheet.sheetName() : 'Estadísticas'),
       meta: execMeta || null, downloadExcel: null
     };
-    try { await Promise.all(_PA_WEB_STORES.map(idbClear)); }
-    catch (e) { log(logEl, 'warn', timer.fmt() + ' No se pudieron limpiar los stores de vista web (se usara vista en memoria si aplica): ' + (e && e.message)); }
   }
+  // Limpiar stores de vista web SIEMPRE (aunque el modo sea excel-only): evita huerfanos si una
+  // corrida web previa es seguida por una excel-only. idbClear no falla si el store esta vacio.
+  try { await Promise.all(_PA_WEB_STORES.map(idbClear)); }
+  catch (e) { log(logEl, 'warn', timer.fmt() + ' No se pudieron limpiar los stores de vista web (se usara vista en memoria si aplica): ' + (e && e.message)); }
 
   function makeSheet(name, tabArgb, hdrs, notes, groups) {
     // Translate Spanish headers to English when lang is 'en' (no-op for keys absent from map)
@@ -2772,5 +2775,6 @@ async function paAnalyzeAndExport(
     // Web-only: diferir el empaquetado/zip hasta que el usuario pida el Excel
     PA_WEB.downloadExcel = async function () { await _paDownload(); PA_WEB.downloadExcel = null; };
   }
+  if (PA_WEB && mode === 'both') PA_WEB.excelDownloaded = true;  // ya se descargo -> la vista muestra nota, no boton
   if (PA_WEB) window.PA_WEB_RESULT = PA_WEB;
 }
