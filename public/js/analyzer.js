@@ -512,6 +512,9 @@
       document.getElementById('progStatusSN').style.cssText = 'display:flex;font-size:12px;color:var(--text2);margin-top:4px;align-items:center;gap:8px;';
       document.getElementById('btnFetchSN').disabled = true;
       document.getElementById('snSuccessBanner').classList.add('hidden');
+      var _snResPanel0 = document.getElementById('snResultsPanel');
+      if (_snResPanel0) { _snResPanel0.classList.add('hidden'); _snResPanel0.innerHTML = ''; }
+      window.SN_WEB_RESULT = null;
       var timer = createTimer();
 
       var locationEntity = document.getElementById('selSNLocation').value;
@@ -551,6 +554,18 @@
         }
       }
 
+      // ── Modo de salida: vista web / Excel / ambos (piloto SN) ──
+      var snOutMode = 'excel';
+      if (typeof SnWebView !== 'undefined' && SnWebView.askOutputMode) {
+        snOutMode = await SnWebView.askOutputMode();
+        if (!snOutMode) {
+          document.getElementById('btnFetchSN').disabled = false;
+          document.getElementById('progBarSN').classList.add('hidden');
+          var _psCancel = document.getElementById('progStatusSN'); if (_psCancel) _psCancel.style.display = 'none';
+          return;
+        }
+      }
+
       var baseOData = CFG.url + '/sap/opu/odata/IBP/' + CFG.service + '/';
       var paFilter = CFG.pa
         ? (CFG.pver
@@ -579,6 +594,9 @@
         // Open IDB and wipe previous SN edge data
         if (!IDB) IDB = await openDB();
         await Promise.all(['sn_loc', 'sn_cust', 'sn_plant', 'sn_psi', 'sn_loc_prod', 'sn_cust_prod'].map(idbClear));
+        // Limpiar stores de la vista web (Fase 3) si existen; no fallar si aún no creados
+        try { await Promise.all(['sn_loc_web', 'sn_cust_web', 'sn_product_web', 'sn_location_web', 'sn_customer_web'].map(idbClear)); }
+        catch (e) { log(logEl, 'warn', timer.fmt() + ' No se pudieron limpiar los stores de vista web (se usara vista en memoria si aplica): ' + (e && e.message)); }
 
         // ── PHASE 1: Download + store 6 entities (0 → 50%) ──────────────────
 
@@ -739,18 +757,26 @@
         // ── PHASE 2+3: Análisis + exportación (50 → 100%) ──────────────
         function onProg(pct) { progEl.style.width = pct + '%'; }
         function onStat(msg) { setStatusSN('info', msg); }
-        var summary = await analyzeAndStreamExcel(onProg, onStat, timer, logEl, SN_EXEC_META);
+        var summary = await analyzeAndStreamExcel(onProg, onStat, timer, logEl, SN_EXEC_META, snOutMode);
         progEl.style.width = '100%';
 
         var _dur = fmtDuration(timer.ms());
         var _n   = summary.totalProducts.toLocaleString('es-CL');
-        log(logEl, 'ok', timer.fmt() + ' Análisis completado. ' + _n + ' productos analizados · Excel descargado · ' + _dur + '.');
+        var _wantWeb = (snOutMode === 'web' || snOutMode === 'both');
+        var _doneMsg = (_wantWeb && snOutMode === 'both') ? 'Excel descargado + vista web'
+                     : _wantWeb ? 'vista web generada' : 'Excel descargado';
+        log(logEl, 'ok', timer.fmt() + ' Análisis completado. ' + _n + ' productos analizados · ' + _doneMsg + ' · ' + _dur + '.');
         setStatusSN('ok', I18n.t('analyzer.status.complete', { n: _n, dur: _dur }));
-        document.getElementById('snSuccessBanner').classList.remove('hidden');
+        if (_wantWeb && typeof SnWebView !== 'undefined' && window.SN_WEB_RESULT) {
+          try { SnWebView.render(window.SN_WEB_RESULT); }
+          catch (e) { log(logEl, 'warn', timer.fmt() + ' Vista web no disponible: ' + (e && e.message)); }
+        }
+        if (!_wantWeb) document.getElementById('snSuccessBanner').classList.remove('hidden');
 
       } catch (e) {
         log(logEl, 'err', timer.fmt() + ' Error: ' + e.message);
         setStatusSN('err', 'Error: ' + e.message);
+        var _pbSN = document.getElementById('progBarSN'); if (_pbSN) _pbSN.classList.add('hidden');  // sin barra parcial junto al error
       }
       document.getElementById('btnFetchSN').disabled = false;
     }
@@ -1189,7 +1215,7 @@
        7 grupos de hojas orientados a entidad (con auto-split >900k).
        Las filas se escriben como XML directo — sin modelo de objetos.
        ═══════════════════════════════════════════════════════════════ */
-    async function analyzeAndStreamExcel(onProgress, onStatus, timer, logEl, execMeta) {
+    async function analyzeAndStreamExcel(onProgress, onStatus, timer, logEl, execMeta, mode) {
       /* ── micro-helpers ── */
       function pd(id)      { var p = SN_IDX.prdLookup[id]  || {}; return str(p.PRDDESCR  || ''); }
       function pm(id)      { var p = SN_IDX.prdLookup[id]  || {}; return str(p.MATTYPEID || ''); }
@@ -1221,9 +1247,39 @@
       var STATS = {};
       function initStat(name) { STATS[name] = { total: 0, red: 0, yel: 0, ok: 0 }; }
 
+      /* ── Captura para vista web (modo 'web' | 'both') ──
+         Hojas acotadas se capturan completas; las grandes (Location/Customer
+         Source) con tope, para no inflar el heap. El Excel siempre recibe todo. */
+      var webMode = (mode === 'web' || mode === 'both');
+      var SN_WEB = null, _BIG = {}, _WEBSTORE = {}, WEB_CAP_STD = 50000, WEB_CAP_BIG = 20000, WEB_GRP_FALLBACK_CAP = 2000;
+      // Fase 3: doble escritura de las hojas grandes a IDB para paginar el 100% en la web
+      var _LS_NM = '', _CS_NM = '';
+      var _lsWebBuf = [], _lsWebWrites = [], _lsWebOn = false, _lsPending = 0;
+      var _csWebBuf = [], _csWebWrites = [], _csWebOn = false, _csPending = 0;
+      var WEB_IDB_BATCH = 8000, WEB_IDB_MAX_LOTS = 12;  // backpressure: máx ~96k filas en vuelo antes de degradar
+      if (webMode) {
+        _LS_NM = I18n.t('xls.sheet.locationSource');
+        _CS_NM = I18n.t('xls.sheet.customerSource');
+        _BIG[_LS_NM] = 1; _BIG[_CS_NM] = 1;
+        _WEBSTORE[_LS_NM] = 'sn_loc_web'; _WEBSTORE[_CS_NM] = 'sn_cust_web';
+        // Hojas acotadas tambien al 100% desde disco (gestionadas por makeGroup, no por cursor)
+        _WEBSTORE[I18n.t('xls.sheet.product')]  = 'sn_product_web';
+        _WEBSTORE[I18n.t('xls.sheet.location')] = 'sn_location_web';
+        _WEBSTORE[I18n.t('xls.sheet.customer')] = 'sn_customer_web';
+        _lsWebOn = _csWebOn = true;
+        SN_WEB = { generatedAt: today, sheets: {}, order: [], summary: [], stats: [], statsName: ((typeof StatsSheet !== 'undefined' && StatsSheet.sheetName) ? StatsSheet.sheetName() : 'Estadísticas'), meta: execMeta || null, downloadExcel: null };
+      }
+
       /* ── Factory: grupo de hojas con auto-split, notas y grupos de color ── */
       function makeGroup(baseName, tabArgb, headers, notes, groups) {
         initStat(baseName);
+        if (SN_WEB) {
+          SN_WEB.sheets[baseName] = { name: baseName, headers: headers.slice(), rows: [], total: 0, red: 0, yel: 0, ok: 0, capped: false, cap: (_BIG[baseName] ? WEB_CAP_BIG : WEB_CAP_STD), idbStore: (_WEBSTORE[baseName] || null), idbReady: false, hasStatus: true };
+          SN_WEB.order.push(baseName);
+        }
+        var _ws = SN_WEB ? SN_WEB.sheets[baseName] : null;
+        var _grpIdb = !!(_ws && _ws.idbStore && !_BIG[baseName]);  // IDB gestionada por makeGroup (hojas acotadas); LS/CS usan cursor
+        var _webIdbBuf = [];
         var sheetIdx = 0, allSheets = [], cur = null;
 
         function newSheet() {
@@ -1271,6 +1327,18 @@
             });
             var s = STATS[baseName];
             if (s) { s.total++; if (fill === C_RED) s.red++; else if (fill === C_YEL) s.yel++; else s.ok++; }
+            if (_ws) {
+              _ws.total++;
+              var _sev = (fill === C_RED) ? 'red' : (fill === C_YEL) ? 'yel' : 'ok';
+              if (_sev === 'red') _ws.red++; else if (_sev === 'yel') _ws.yel++; else _ws.ok++;
+              var _rec = { c: data.map(function (v) { var _cv = cleanXml(v); return _cv == null ? '' : String(_cv); }), s: _sev };
+              if (_grpIdb) {
+                _webIdbBuf.push(_rec);                                  // hoja acotada -> disco (100%)
+                if (_ws.rows.length < WEB_GRP_FALLBACK_CAP) _ws.rows.push(_rec); else _ws.capped = true;  // fallback pequeño
+              } else if (_ws.rows.length < _ws.cap) {
+                _ws.rows.push(_rec);                                    // LS/CS: fallback en memoria (cursor escribe IDB)
+              } else { _ws.capped = true; }
+            }
           },
           checkSplit: function (margin) { if (cur.rowCount >= ROW_LIMIT - (margin || 0)) newSheet(); },
           finalize: function () {
@@ -1279,6 +1347,17 @@
                 col.width = Math.min(Math.max((sh.colW[ci] || 10) + 2, 10), 60);
               });
             });
+          },
+          // Vuelca el buffer de la hoja acotada a IDB en sub-lotes y la marca lista; ante error degrada a memoria.
+          finalizeWeb: function () {
+            if (!_grpIdb) return Promise.resolve();
+            var store = _ws.idbStore, all = _webIdbBuf, i = 0; _webIdbBuf = [];
+            function step() {
+              if (i >= all.length) return Promise.resolve();
+              var slice = all.slice(i, i + WEB_IDB_BATCH); i += WEB_IDB_BATCH;
+              return idbBulkPut(store, slice).then(step);
+            }
+            return step().then(function () { _ws.idbReady = true; }, function (e) { _ws.idbStore = null; _webIdbBuf = []; });
           }
         };
       }
@@ -2104,8 +2183,29 @@
           yn(inPath), yn(isInv), ltSt, yn(isSpof)
         ];
         efInjectRow(_lsRow, 'sn', 'locationSource', 9, r);
+        if (_lsWebOn) {
+          _lsWebBuf.push({ c: _lsRow.map(function (v) { var _c = cleanXml(v); return _c == null ? '' : String(_c); }), s: (lsFill === C_RED ? 'red' : lsFill === C_YEL ? 'yel' : 'ok') });
+          if (_lsWebBuf.length >= WEB_IDB_BATCH) {
+            _lsPending++;
+            _lsWebWrites.push(idbBulkPut('sn_loc_web', _lsWebBuf).then(function () { _lsPending--; }, function (e) { _lsPending--; throw e; }));  // re-lanza: un fallo -> Promise.all rechaza -> idbReady queda false -> fallback
+            _lsWebBuf = [];
+            if (_lsPending > WEB_IDB_MAX_LOTS) { _lsWebOn = false; if (logEl) log(logEl, 'warn', timer.fmt() + ' Vista web Location Source: volumen alto, se usará vista parcial (descarga Excel para el 100%).'); }
+          }
+        }
         gLS.addRow(_lsRow, lsFill);
       });
+      if (_lsWebOn) {
+        try {
+          if (_lsWebBuf.length) _lsWebWrites.push(idbBulkPut('sn_loc_web', _lsWebBuf));
+          _lsWebBuf = [];
+          await Promise.all(_lsWebWrites);
+          if (SN_WEB && SN_WEB.sheets[_LS_NM]) SN_WEB.sheets[_LS_NM].idbReady = true;
+        } catch (e) {
+          _lsWebOn = false;
+          if (logEl) log(logEl, 'warn', timer.fmt() + ' Vista web (detalle completo Location Source) no disponible: ' + (e && e.message));
+        }
+      }
+      _lsWebWrites = null;
       lsSeenArcs = null; lsArcSet = null; originsPerDest = null;
       if (onProgress) onProgress(94);
 
@@ -2147,8 +2247,29 @@
           yn(inPath2), ltSt2
         ];
         efInjectRow(_csRow, 'sn', 'customerSource', 9, r);
+        if (_csWebOn) {
+          _csWebBuf.push({ c: _csRow.map(function (v) { var _c = cleanXml(v); return _c == null ? '' : String(_c); }), s: (csFill === C_RED ? 'red' : csFill === C_YEL ? 'yel' : 'ok') });
+          if (_csWebBuf.length >= WEB_IDB_BATCH) {
+            _csPending++;
+            _csWebWrites.push(idbBulkPut('sn_cust_web', _csWebBuf).then(function () { _csPending--; }, function (e) { _csPending--; throw e; }));  // re-lanza: un fallo -> Promise.all rechaza -> idbReady queda false -> fallback
+            _csWebBuf = [];
+            if (_csPending > WEB_IDB_MAX_LOTS) { _csWebOn = false; if (logEl) log(logEl, 'warn', timer.fmt() + ' Vista web Customer Source: volumen alto, se usará vista parcial (descarga Excel para el 100%).'); }
+          }
+        }
         gCS.addRow(_csRow, csFill);
       });
+      if (_csWebOn) {
+        try {
+          if (_csWebBuf.length) _csWebWrites.push(idbBulkPut('sn_cust_web', _csWebBuf));
+          _csWebBuf = [];
+          await Promise.all(_csWebWrites);
+          if (SN_WEB && SN_WEB.sheets[_CS_NM]) SN_WEB.sheets[_CS_NM].idbReady = true;
+        } catch (e) {
+          _csWebOn = false;
+          if (logEl) log(logEl, 'warn', timer.fmt() + ' Vista web (detalle completo Customer Source) no disponible: ' + (e && e.message));
+        }
+      }
+      _csWebWrites = null;
       arcInCompletePath = null; locProdSet = null; custProdSet = null;
       if (onProgress) onProgress(96);
 
@@ -2171,12 +2292,15 @@
         var pct  = s.total > 0 ? Math.round((s.ok / s.total) * 100) : 100;
         var row  = [d.num, _sheetKeyMap[d.key] || d.key, s.total, s.red, s.yel, s.ok, pct + '%'];
         var fill  = s.red > 0 ? C_RED : s.yel > 0 ? C_YEL : null;
+        if (SN_WEB) SN_WEB.summary.push({ name: _sheetKeyMap[d.key] || d.key, key: d.key, total: s.total, red: s.red, yel: s.yel, ok: s.ok, pct: pct });
         var exRow = s0ws.addRow(row);
         if (fill) exRow.eachCell(function (cell) { cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: fill } }; });
         row.forEach(function (v, ci) { var len = v != null ? String(v).length : 0; if (len > s0colW[ci]) s0colW[ci] = len; });
       });
 
       [gPrd, gLoc, gCust, gLS, gCS].forEach(function (g) { g.finalize(); });
+      // Volcar a IDB las hojas acotadas (Product/Location/Customer) para paginar el 100% en la web
+      if (SN_WEB) { try { await gPrd.finalizeWeb(); await gLoc.finalizeWeb(); await gCust.finalizeWeb(); } catch (e) {} }
 
       s0ws.columns.forEach(function (col, ci) { col.width = Math.min(Math.max((s0colW[ci] || 10) + 2, 10), 60); });
 
@@ -2208,19 +2332,39 @@
 
       /* ── Llenar hoja Estadísticas (lee los stores IDB vía cursor) ── */
       if (statsWsSN) {
+        if (SN_WEB) {
+          // Capturar filas de Estadísticas para la vista web (sin afectar el Excel)
+          var _statsOrigAdd = statsWsSN.addRow.bind(statsWsSN);
+          statsWsSN.addRow = function (cells) {
+            try { SN_WEB.stats.push(Array.isArray(cells) ? cells.map(function (v) { return v == null ? '' : String(v); }) : []); } catch (e) {}
+            return _statsOrigAdd(cells);
+          };
+        }
         try { await StatsSheet.buildSN(statsWsSN, { idx: SN_IDX }); }
         catch (e) { if (logEl) log(logEl, 'warn', timer.fmt() + ' Hoja Estadísticas omitida: ' + (e && e.message)); }
       }
 
       if (onProgress) onProgress(97);
-      if (onStatus)   onStatus(I18n.t('xls.log.genFile'));
-      var buf  = await wb.xlsx.writeBuffer();
-      var blob = new Blob([buf], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
-      var dlUrl = URL.createObjectURL(blob);
-      var a = document.createElement('a');
-      a.href = dlUrl; a.download = 'SupplyNetworkAnalysis_' + today + '.xlsx';
-      document.body.appendChild(a); a.click();
-      document.body.removeChild(a); URL.revokeObjectURL(dlUrl);
+
+      async function _dlWorkbook() {
+        if (onStatus) onStatus(I18n.t('xls.log.genFile'));
+        var buf  = await wb.xlsx.writeBuffer();
+        var blob = new Blob([buf], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+        var dlUrl = URL.createObjectURL(blob);
+        var a = document.createElement('a');
+        a.href = dlUrl; a.download = 'SupplyNetworkAnalysis_' + today + '.xlsx';
+        document.body.appendChild(a); a.click();
+        document.body.removeChild(a); URL.revokeObjectURL(dlUrl);
+      }
+
+      if (mode !== 'web') {
+        await _dlWorkbook();
+      } else if (SN_WEB) {
+        // Web-only: diferir el empaquetado/zip hasta que el usuario pida el Excel
+        SN_WEB.downloadExcel = async function () { await _dlWorkbook(); SN_WEB.downloadExcel = null; };
+      }
+      if (SN_WEB && mode === 'both') SN_WEB.excelDownloaded = true;  // ya se descargo -> la vista muestra nota, no boton
+      if (SN_WEB) window.SN_WEB_RESULT = SN_WEB;
 
       return {
         totalProducts: n, completeProducts: completeCount, totalPaths: totalPaths,
