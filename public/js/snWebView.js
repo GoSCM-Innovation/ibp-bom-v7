@@ -28,6 +28,7 @@
   var _panelId     = 'snResultsPanel';  // contenedor destino (SN o PA)
   var SNWV_PANELS  = ['snResultsPanel', 'paResultsPanel'];  // posibles destinos (solo uno vivo a la vez)
   var _PANEL_RESULT = { snResultsPanel: 'SN_WEB_RESULT', paResultsPanel: 'PA_WEB_RESULT' };  // global a liberar por panel inactivo
+  var _colW        = {};   // anchos de columna por hoja (persisten al paginar); ajustables por el usuario
 
   var SEV = {
     red: { icon: '⛔', cls: 'snwv-red' },
@@ -119,6 +120,17 @@
     '.snwv-note{font-size:11px;color:var(--text3);margin-top:4px}' +
     '.snwv-na{color:var(--text3);font-style:italic}' +
     '.snwv-dlnote{font-size:12px;color:var(--green);font-weight:600;align-self:center}' +
+    /* tabla de datos: ancho fijo por columna, recorte con elipsis, columnas ajustables */
+    '.snwv-dtable{border-collapse:collapse;table-layout:fixed;font-size:12px}' +
+    '.snwv-dtable th,.snwv-dtable td{padding:6px 10px;border-bottom:1px solid var(--border);border-right:1px solid var(--border);color:var(--text);text-align:left;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;box-sizing:border-box;vertical-align:top}' +
+    '.snwv-dtable th{position:sticky;top:0;background:var(--surface);font-weight:600;z-index:1;border-bottom:2px solid var(--accent2);user-select:none}' +
+    '.snwv-dtable tr.snwv-red{background:rgba(255,107,107,.07)}' +
+    '.snwv-dtable tr.snwv-yel{background:rgba(247,168,0,.07)}' +
+    '.snwv-dtable tr.snwv-red td:first-child{box-shadow:inset 3px 0 0 var(--red)}' +
+    '.snwv-dtable tr.snwv-yel td:first-child{box-shadow:inset 3px 0 0 var(--amber)}' +
+    '.snwv-dtable tr.snwv-ok td:first-child{box-shadow:inset 3px 0 0 var(--green)}' +
+    '.snwv-resizer{position:absolute;top:0;right:0;width:7px;height:100%;cursor:col-resize}' +
+    '.snwv-resizer:hover{background:var(--accent)}' +
     '.snwv-empty{padding:30px;text-align:center;color:var(--text2);font-size:13px}' +
     '.snwv-statsbox{padding:16px 18px}' +
     '.snwv-st-h{font-size:13px;font-weight:700;color:var(--accent);margin:18px 0 8px;padding-bottom:4px;border-bottom:1px solid var(--border)}' +
@@ -387,8 +399,12 @@
     if (!recs.length) {
       h += '<div class="snwv-empty">' + esc(t('snweb.noMatch', 'Sin filas que coincidan con el filtro.')) + '</div>';
     } else {
-      h += '<div class="snwv-tablewrap"><table class="snwv-table"><thead><tr>';
-      for (var k = 0; k < sh.headers.length; k++) h += '<th>' + esc(sh.headers[k]) + '</th>';
+      var widths = _colWidths(sh);
+      var _totalW = 0; for (var tw = 0; tw < widths.length; tw++) _totalW += widths[tw];
+      h += '<div class="snwv-tablewrap"><table class="snwv-dtable" style="width:' + _totalW + 'px"><colgroup>';
+      for (var cw = 0; cw < sh.headers.length; cw++) h += '<col style="width:' + widths[cw] + 'px">';
+      h += '</colgroup><thead><tr>';
+      for (var k = 0; k < sh.headers.length; k++) h += '<th title="' + escAttr(sh.headers[k]) + '">' + esc(sh.headers[k]) + '<span class="snwv-resizer" data-ci="' + k + '"></span></th>';
       h += '</tr></thead><tbody>';
       for (var ri = 0; ri < recs.length; ri++) {
         var row  = recs[ri];
@@ -401,7 +417,7 @@
             // (p.ej. "Tipos Excluidos") NO se sobrescriben; su severidad se ve por el color de fila.
             h += '<td class="snwv-sevcell ' + meta.cls + '">' + meta.icon + ' ' + esc(sevLabel(row.s)) + '</td>';
           } else {
-            h += '<td' + (v === '—' ? ' class="snwv-na"' : '') + '>' + esc(v) + '</td>';  // celda "no aplica" (—) en gris
+            h += '<td' + (v === '—' ? ' class="snwv-na"' : '') + ' title="' + escAttr(v) + '">' + esc(v) + '</td>';  // recorte con "…"; tooltip = valor completo
           }
         }
         h += '</tr>';
@@ -439,6 +455,56 @@
   function wirePager() {
     var prev = el('snwv-prev'); if (prev) prev.addEventListener('click', function () { if (_page > 1) { _page--; renderTable(); } });
     var next = el('snwv-next'); if (next) next.addEventListener('click', function () { _page++; renderTable(); });
+    var _area = el('snwv-tablearea');
+    var _sh = (_data && _data.sheets) ? _data.sheets[_activeSheet] : null;
+    if (_area && _sh) _wireResizers(_area, _sh);
+  }
+
+  /* Escapa para atributo HTML (title): esc() cubre &<>, faltan las comillas. */
+  function escAttr(s) { return esc(s).replace(/"/g, '&quot;'); }
+
+  /* Anchos de columna por hoja (persisten al paginar): Estado angosto, Obs ancho, resto medio. */
+  function _colWidths(sh) {
+    var key = sh.name, n = sh.headers.length;
+    if (!_colW[key] || _colW[key].length !== n) {
+      _colW[key] = [];
+      for (var i = 0; i < n; i++) _colW[key][i] = (i === 0 ? 90 : (i === 1 ? 300 : 150));
+    }
+    return _colW[key];
+  }
+
+  /* Hace ajustable el ancho de cada columna arrastrando el borde derecho del encabezado. */
+  function _wireResizers(container, sh) {
+    var table = container.querySelector('table.snwv-dtable');
+    if (!table) return;
+    var cols = table.querySelectorAll('colgroup col');
+    var widths = _colW[sh.name];
+    var resizers = table.querySelectorAll('.snwv-resizer');
+    Array.prototype.forEach.call(resizers, function (rz) {
+      rz.addEventListener('mousedown', function (e) {
+        e.preventDefault(); e.stopPropagation();
+        var ci = parseInt(rz.getAttribute('data-ci'), 10);
+        var col = cols[ci]; if (!col) return;
+        var startX = e.clientX, startW = parseInt(col.style.width, 10) || 150;
+        function onMove(ev) {
+          var w = Math.max(40, startW + (ev.clientX - startX));
+          col.style.width = w + 'px';
+          if (widths) {
+            widths[ci] = w;
+            var tot = 0; for (var s = 0; s < widths.length; s++) tot += widths[s];
+            table.style.width = tot + 'px';   // mantener el ancho total en sync (scroll horizontal acotado)
+          }
+        }
+        function onUp() {
+          document.removeEventListener('mousemove', onMove);
+          document.removeEventListener('mouseup', onUp);
+          document.body.style.userSelect = '';
+        }
+        document.body.style.userSelect = 'none';
+        document.addEventListener('mousemove', onMove);
+        document.addEventListener('mouseup', onUp);
+      });
+    });
   }
 
   /* ── Memoria: hojas acotadas (completas) o fallback de hojas grandes ── */
