@@ -30,6 +30,7 @@
   var _PANEL_RESULT = { snResultsPanel: 'SN_WEB_RESULT', paResultsPanel: 'PA_WEB_RESULT' };  // global a liberar por panel inactivo
   var _colW        = {};   // anchos de columna por hoja (persisten al paginar); ajustables por el usuario
   var _fs          = false; // vista web en pantalla completa (se re-aplica al re-render por idioma)
+  var _collapsed   = false; // vista minimizada a barra "Ver resultados" (tras pulsar Cerrar)
 
   var SEV = {
     red: { icon: '⛔', cls: 'snwv-red' },
@@ -152,7 +153,10 @@
     '.snwv-wrap.snwv-fs{position:fixed;inset:0;z-index:9998;margin:0;border:none;border-radius:0;background:var(--bg2);display:flex;flex-direction:column;overflow:auto}' +
     '.snwv-wrap.snwv-fs .snwv-tablewrap{max-height:calc(100vh - 250px)}' +
     '.snwv-cellpop-h{font-size:11px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px;word-break:break-word}' +
-    '.snwv-cellpop-body{font-size:13px;color:var(--text);white-space:pre-wrap;word-break:break-word;max-height:52vh;overflow:auto;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:12px 14px;line-height:1.5}';
+    '.snwv-cellpop-body{font-size:13px;color:var(--text);white-space:pre-wrap;word-break:break-word;max-height:52vh;overflow:auto;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:12px 14px;line-height:1.5}' +
+    /* ── barra minimizada (tras Cerrar) ── */
+    '.snwv-collapsed{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 18px;flex-wrap:wrap}' +
+    '.snwv-collapsed-txt{font-size:13px;font-weight:600;color:var(--text2)}';
     var st = document.createElement('style');
     st.id = 'snwv-styles';
     st.textContent = css;
@@ -218,6 +222,7 @@
     if (!preserve || panelChanged) { _sev = 'all'; _q = ''; _page = 1; _searchCache = null; }
 
     if (!preserve || panelChanged) _fs = false;   // salir de pantalla completa salvo re-render que preserva
+    _collapsed = false;   // render() siempre construye la vista completa (nunca la barra minimizada)
 
     if (!data || !data.order || !data.order.length) {
       panel.classList.remove('hidden');
@@ -305,7 +310,7 @@
     var fs = el('snwv-fs');
     if (fs) fs.addEventListener('click', function () { toggleFullscreen(); });
     var cl = el('snwv-close');
-    if (cl) cl.addEventListener('click', function () { toggleFullscreen(false); var p = el(_panelId); if (p) p.classList.add('hidden'); });
+    if (cl) cl.addEventListener('click', collapse);   // minimiza a barra "Ver resultados" (reabrible sin re-ejecutar)
 
     var cards = el('snwv-cards');
     if (cards) cards.addEventListener('click', function (e) {
@@ -718,11 +723,41 @@
     var btn = ov.querySelector('[data-cp="close"]'); if (btn) btn.focus();
   }
 
+  /* ══════════════════════════════════════════════════════════════════
+     Minimizar / reabrir (Cerrar → barra "Ver resultados", sin re-ejecutar)
+     ══════════════════════════════════════════════════════════════════ */
+  function buildCollapsedBar() {
+    var titleTxt = (_data && _data.titleKey) ? t(_data.titleKey, _data.title || '') : t('snweb.title', 'Supply Network Analyzer — vista web');
+    return '<div class="snwv-wrap"><div class="snwv-collapsed">' +
+      '<span class="snwv-collapsed-txt">🌐 ' + esc(titleTxt) + ' — ' + esc(t('snweb.collapsedNote', 'análisis disponible')) + '</span>' +
+      '<button class="snwv-btn snwv-btn-primary" id="snwv-reopen">' + esc(t('snweb.reopen', 'Ver resultados')) + '</button>' +
+      '</div></div>';
+  }
+  function renderCollapsed() {
+    var panel = el(_panelId);
+    if (!panel) return;
+    panel.classList.remove('hidden');
+    panel.innerHTML = buildCollapsedBar();
+    var btn = el('snwv-reopen');
+    if (btn) btn.addEventListener('click', reopen);
+  }
+  function collapse() {
+    toggleFullscreen(false);   // salir de pantalla completa si estaba activa
+    _collapsed = true;
+    renderCollapsed();
+  }
+  function reopen() {
+    _collapsed = false;
+    if (_data) render(_data, true);   // preserve=true → conserva hoja/filtro/búsqueda/página
+  }
+
   /* Re-render al cambiar idioma (mismo patrón que glosario/explorer). */
   document.addEventListener('i18n:change', function () {
     var panel = el(_panelId);
-    if (_data && panel && !panel.classList.contains('hidden')) render(_data, true);  // preservar filtro/busqueda/pagina
+    if (!_data || !panel || panel.classList.contains('hidden')) return;
+    if (_collapsed) renderCollapsed();     // mantener minimizado: solo retraducir la barra
+    else render(_data, true);              // preservar filtro/busqueda/pagina
   });
 
-  window.SnWebView = { askOutputMode: askOutputMode, render: render };
+  window.SnWebView = { askOutputMode: askOutputMode, render: render, reopen: reopen };
 })();

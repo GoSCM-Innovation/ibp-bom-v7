@@ -929,5 +929,7 @@
   "snweb.fullscreen": "Fullscreen",
   "snweb.fullscreenExit": "Exit fullscreen",
   "snweb.copy": "Copy",
-  "snweb.copied": "Copied ✓"
+  "snweb.copied": "Copied ✓",
+  "snweb.reopen": "Show results",
+  "snweb.collapsedNote": "analysis available"
 }
