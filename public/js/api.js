@@ -5,7 +5,7 @@
        ═══════════════════════════════════════════════════════════════ */
     function openDB() {
       return new Promise(function (resolve, reject) {
-        var req = indexedDB.open('ibp_data', 5);
+        var req = indexedDB.open('ibp_data', 8);
         req.onupgradeneeded = function (e) {
           var db = e.target.result;
           // BOM stores
@@ -99,9 +99,37 @@
             paLs.createIndex('by_prdid', 'PRDID', { unique: false });
             paLs.createIndex('by_locfr', 'LOCFR', { unique: false });
           }
+          // SN vista web — filas de display precomputadas (Location/Customer Source)
+          // para paginar el 100% desde disco sin retenerlas en RAM. Registro: { c:[celdas], s:'red'|'yel'|'ok' }
+          if (!db.objectStoreNames.contains('sn_loc_web')) {
+            db.createObjectStore('sn_loc_web', { autoIncrement: true })
+              .createIndex('by_severity', 's', { unique: false });
+          }
+          if (!db.objectStoreNames.contains('sn_cust_web')) {
+            db.createObjectStore('sn_cust_web', { autoIncrement: true })
+              .createIndex('by_severity', 's', { unique: false });
+          }
+          // Vista web — filas de display precomputadas { c:[celdas], s:'red'|'yel'|'ok' }
+          // para paginar el 100% de cada hoja desde disco sin retenerla en RAM.
+          [
+            'pa_psi_web',                                              // PA Prod Source Item
+            'sn_product_web', 'sn_location_web', 'sn_customer_web',    // SN hojas acotadas
+            'pa_product_web', 'pa_location_web', 'pa_resource_web',    // PA hojas acotadas
+            'pa_resloc_web', 'pa_psh_web', 'pa_psr_web'
+          ].forEach(function (st) {
+            if (!db.objectStoreNames.contains(st)) {
+              db.createObjectStore(st, { autoIncrement: true }).createIndex('by_severity', 's', { unique: false });
+            }
+          });
         };
-        req.onsuccess = function (e) { resolve(e.target.result); };
+        req.onsuccess = function (e) {
+          var db = e.target.result;
+          // Cerrar esta conexión si una pestaña futura necesita un upgrade (evita bloqueos).
+          db.onversionchange = function () { try { db.close(); } catch (_) {} };
+          resolve(db);
+        };
         req.onerror = function (e) { reject(e.target.error); };
+        req.onblocked = function () { try { console.warn('[IDB] Actualización bloqueada: cierra otras pestañas de la app para actualizar la base local.'); } catch (_) {} };
       });
     }
 
@@ -111,6 +139,7 @@
         tx.objectStore(storeName).clear();
         tx.oncomplete = resolve;
         tx.onerror = function (e) { reject(e.target.error); };
+        tx.onabort = function () { reject(tx.error || new Error('IDB transaction aborted')); };
       });
     }
 
@@ -122,12 +151,21 @@
         records.forEach(function (r) { store.put(r); });
         tx.oncomplete = resolve;
         tx.onerror = function (e) { reject(e.target.error); };
+        tx.onabort = function () { reject(tx.error || new Error('IDB transaction aborted')); };
       });
+    }
+
+    // Rechaza la promesa si la transaccion se ABORTA (p.ej. la conexion se cierra por
+    // un upgrade en otra pestania) o falla, en vez de dejar la promesa colgada para siempre.
+    function _txReject(tx, reject) {
+      tx.onabort = function () { reject(tx.error || new Error('IDB transaction aborted')); };
+      tx.onerror = function () { reject(tx.error || new Error('IDB transaction error')); };
     }
 
     function idbGetByIndex(storeName, indexName, key) {
       return new Promise(function (resolve, reject) {
         var tx = IDB.transaction(storeName, 'readonly');
+        _txReject(tx, reject);
         var req = tx.objectStore(storeName).index(indexName).getAll(key);
         req.onsuccess = function (e) { resolve(e.target.result); };
         req.onerror = function (e) { reject(e.target.error); };
@@ -137,6 +175,7 @@
     function idbGet(storeName, key) {
       return new Promise(function (resolve, reject) {
         var tx = IDB.transaction(storeName, 'readonly');
+        _txReject(tx, reject);
         var req = tx.objectStore(storeName).get(key);
         req.onsuccess = function (e) { resolve(e.target.result); };
         req.onerror = function (e) { reject(e.target.error); };
@@ -146,6 +185,7 @@
     function idbGetAll(storeName) {
       return new Promise(function (resolve, reject) {
         var tx = IDB.transaction(storeName, 'readonly');
+        _txReject(tx, reject);
         var req = tx.objectStore(storeName).getAll();
         req.onsuccess = function (e) { resolve(e.target.result || []); };
         req.onerror = function (e) { reject(e.target.error); };
@@ -167,6 +207,75 @@
         };
         req.onerror   = function (e) { reject(e.target.error); };
         tx.onerror    = function (e) { reject(e.target.error); };
+        tx.onabort    = function () { reject(tx.error || new Error('IDB transaction aborted')); };
+      });
+    }
+
+    /* Cuenta total de registros de un store. */
+    function idbCount(storeName) {
+      return new Promise(function (resolve, reject) {
+        var tx = IDB.transaction(storeName, 'readonly');
+        _txReject(tx, reject);
+        var req = tx.objectStore(storeName).count();
+        req.onsuccess = function (e) { resolve(e.target.result || 0); };
+        req.onerror   = function (e) { reject(e.target.error); };
+      });
+    }
+
+    /* Cuenta registros de un índice para una key exacta. */
+    function idbCountByIndex(storeName, indexName, key) {
+      return new Promise(function (resolve, reject) {
+        var tx = IDB.transaction(storeName, 'readonly');
+        _txReject(tx, reject);
+        var req = tx.objectStore(storeName).index(indexName).count(IDBKeyRange.only(key));
+        req.onsuccess = function (e) { resolve(e.target.result || 0); };
+        req.onerror   = function (e) { reject(e.target.error); };
+      });
+    }
+
+    /* Lee una página de registros (offset/limit) por cursor, opcionalmente por
+       índice + key exacta. Memoria acotada: solo retiene la página pedida. */
+    function idbCursorPage(storeName, indexName, key, offset, limit) {
+      return new Promise(function (resolve, reject) {
+        var out = [], skipped = false;
+        var tx  = IDB.transaction(storeName, 'readonly');
+        _txReject(tx, reject);
+        var src = indexName ? tx.objectStore(storeName).index(indexName) : tx.objectStore(storeName);
+        var range = (key != null) ? IDBKeyRange.only(key) : null;
+        var req = src.openCursor(range);
+        req.onsuccess = function (e) {
+          var cur = e.target.result;
+          if (!cur) { resolve(out); return; }
+          if (offset > 0 && !skipped) { skipped = true; cur.advance(offset); return; }
+          out.push(cur.value);
+          if (out.length >= limit) { resolve(out); return; }
+          cur.continue();
+        };
+        req.onerror = function (e) { reject(e.target.error); };
+      });
+    }
+
+    /* Escanea por cursor recogiendo hasta maxMatches registros que cumplan test(),
+       deteniéndose tras maxScan registros revisados. Devuelve { rows, truncated }.
+       Memoria acotada por maxMatches. */
+    function idbCursorScanMatch(storeName, indexName, key, test, maxMatches, maxScan) {
+      return new Promise(function (resolve, reject) {
+        var out = [], scanned = 0;
+        var tx  = IDB.transaction(storeName, 'readonly');
+        _txReject(tx, reject);
+        var src = indexName ? tx.objectStore(storeName).index(indexName) : tx.objectStore(storeName);
+        var range = (key != null) ? IDBKeyRange.only(key) : null;
+        var req = src.openCursor(range);
+        req.onsuccess = function (e) {
+          var cur = e.target.result;
+          if (!cur) { resolve({ rows: out, truncated: false }); return; }
+          scanned++;
+          if (test(cur.value)) out.push(cur.value);
+          if (out.length >= maxMatches) { resolve({ rows: out, truncated: true }); return; }
+          if (scanned >= maxScan)       { resolve({ rows: out, truncated: true }); return; }
+          cur.continue();
+        };
+        req.onerror = function (e) { reject(e.target.error); };
       });
     }
 
