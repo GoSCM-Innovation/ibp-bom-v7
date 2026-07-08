@@ -29,6 +29,7 @@
   var SNWV_PANELS  = ['snResultsPanel', 'paResultsPanel'];  // posibles destinos (solo uno vivo a la vez)
   var _PANEL_RESULT = { snResultsPanel: 'SN_WEB_RESULT', paResultsPanel: 'PA_WEB_RESULT' };  // global a liberar por panel inactivo
   var _colW        = {};   // anchos de columna por hoja (persisten al paginar); ajustables por el usuario
+  var _fs          = false; // vista web en pantalla completa (se re-aplica al re-render por idioma)
 
   var SEV = {
     red: { icon: '⛔', cls: 'snwv-red' },
@@ -89,8 +90,8 @@
     '.snwv-card.active{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent) inset}' +
     '.snwv-card-name{font-size:12px;color:var(--text2);font-weight:600}' +
     '.snwv-card-total{font-size:22px;font-weight:700;color:var(--text);margin:3px 0}' +
-    '.snwv-card-sev{display:flex;gap:8px;font-size:11px}' +
-    '.snwv-dot{display:inline-flex;align-items:center;gap:3px}' +
+    '.snwv-card-sev{display:flex;gap:6px 8px;font-size:11px;flex-wrap:wrap}' +
+    '.snwv-dot{display:inline-flex;align-items:center;gap:3px;white-space:nowrap}' +
     '.snwv-dot b{font-weight:700}' +
     '.snwv-tabs{display:flex;gap:4px;padding:12px 18px 0;flex-wrap:wrap}' +
     '.snwv-tab{cursor:pointer;border:1px solid var(--border);border-bottom:none;background:var(--bg);color:var(--text2);font-size:12px;padding:7px 14px;border-radius:6px 6px 0 0}' +
@@ -103,7 +104,7 @@
     '.snwv-tablewrap{overflow:auto;max-height:62vh}' +
     '.snwv-table{border-collapse:collapse;width:100%;font-size:12px}' +
     '.snwv-table th{position:sticky;top:0;background:var(--surface);color:var(--text);text-align:left;padding:8px 10px;border-bottom:2px solid var(--accent2);white-space:nowrap;font-weight:600;z-index:1}' +
-    '.snwv-table td{padding:6px 10px;border-bottom:1px solid var(--border);color:var(--text);vertical-align:top;max-width:340px}' +
+    '.snwv-table td{padding:6px 10px;border-bottom:1px solid var(--border);color:var(--text);vertical-align:top;max-width:340px;overflow-wrap:anywhere;word-break:break-word}' +
     '.snwv-table tr.snwv-red td:first-child{box-shadow:inset 3px 0 0 var(--red)}' +
     '.snwv-table tr.snwv-yel td:first-child{box-shadow:inset 3px 0 0 var(--amber)}' +
     '.snwv-table tr.snwv-ok td:first-child{box-shadow:inset 3px 0 0 var(--green)}' +
@@ -144,7 +145,14 @@
     '.snwv-opt:hover{border-color:var(--accent)}' +
     '.snwv-opt b{display:block;font-size:13px;margin-bottom:2px}' +
     '.snwv-opt span{font-size:11px;color:var(--text2)}' +
-    '.snwv-modal-foot{margin-top:14px;text-align:right}';
+    '.snwv-modal-foot{margin-top:14px;text-align:right}' +
+    /* ── clip clickeable, pantalla completa, popup de contenido de celda ── */
+    '.snwv-clip{cursor:pointer}' +
+    '.snwv-clip:hover{text-decoration:underline dotted;text-underline-offset:2px}' +
+    '.snwv-wrap.snwv-fs{position:fixed;inset:0;z-index:9998;margin:0;border:none;border-radius:0;background:var(--bg2);display:flex;flex-direction:column;overflow:auto}' +
+    '.snwv-wrap.snwv-fs .snwv-tablewrap{max-height:calc(100vh - 250px)}' +
+    '.snwv-cellpop-h{font-size:11px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px;word-break:break-word}' +
+    '.snwv-cellpop-body{font-size:13px;color:var(--text);white-space:pre-wrap;word-break:break-word;max-height:52vh;overflow:auto;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:12px 14px;line-height:1.5}';
     var st = document.createElement('style');
     st.id = 'snwv-styles';
     st.textContent = css;
@@ -209,6 +217,8 @@
     // Reset de filtro/busqueda/pagina salvo re-render que preserva estado (cambio de idioma) en el mismo panel
     if (!preserve || panelChanged) { _sev = 'all'; _q = ''; _page = 1; _searchCache = null; }
 
+    if (!preserve || panelChanged) _fs = false;   // salir de pantalla completa salvo re-render que preserva
+
     if (!data || !data.order || !data.order.length) {
       panel.classList.remove('hidden');
       panel.innerHTML = '<div class="snwv-wrap"><div class="snwv-empty">' + esc(t('snweb.empty', 'No hay datos para mostrar en la vista web.')) + '</div></div>';
@@ -223,7 +233,8 @@
     panel.innerHTML = buildShell(data);
     wireShell();
     renderActive();
-    try { panel.scrollIntoView({ behavior: 'smooth', block: 'start' }); } catch (e) {}
+    if (_fs) { _fs = false; toggleFullscreen(true); }   // re-aplicar pantalla completa tras re-render (idioma)
+    try { if (!_fs) panel.scrollIntoView({ behavior: 'smooth', block: 'start' }); } catch (e) {}
   }
 
   function buildShell(data) {
@@ -238,6 +249,7 @@
     h += '</div><div class="snwv-actions">';
     if (canDl) h += '<button class="snwv-btn snwv-btn-primary" id="snwv-dl">⬇️ ' + esc(t('snweb.downloadExcel', 'Descargar Excel')) + '</button>';
     else if (data.excelDownloaded) h += '<span class="snwv-dlnote">✅ ' + esc(t('snweb.downloaded', 'Excel descargado')) + '</span>';
+    h += '<button class="snwv-btn" id="snwv-fs" aria-pressed="false" title="' + escAttr(t('snweb.fullscreen', 'Pantalla completa')) + '">⛶ ' + esc(t('snweb.fullscreen', 'Pantalla completa')) + '</button>';
     h += '<button class="snwv-btn" id="snwv-close">' + esc(t('snweb.close', 'Cerrar')) + '</button>';
     h += '</div></div>';
     h += '<div class="snwv-cards" id="snwv-cards">' + buildCards(data) + '</div>';
@@ -290,8 +302,10 @@
         alert(t('snweb.dlError', 'No se pudo generar el Excel: ') + (e && e.message ? e.message : e));
       });
     });
+    var fs = el('snwv-fs');
+    if (fs) fs.addEventListener('click', function () { toggleFullscreen(); });
     var cl = el('snwv-close');
-    if (cl) cl.addEventListener('click', function () { var p = el(_panelId); if (p) p.classList.add('hidden'); });
+    if (cl) cl.addEventListener('click', function () { toggleFullscreen(false); var p = el(_panelId); if (p) p.classList.add('hidden'); });
 
     var cards = el('snwv-cards');
     if (cards) cards.addEventListener('click', function (e) {
@@ -331,6 +345,9 @@
     h += '</div>';
     h += '<div id="snwv-tablearea"></div>';
     body.innerHTML = h;
+
+    var _ta = el('snwv-tablearea');
+    if (_ta) _ta.addEventListener('click', _onCellClick);   // delegación: click en celda recortada → popup
 
     var chips = el('snwv-chips');
     chips.addEventListener('click', function (e) {
@@ -457,7 +474,7 @@
     var next = el('snwv-next'); if (next) next.addEventListener('click', function () { _page++; renderTable(); });
     var _area = el('snwv-tablearea');
     var _sh = (_data && _data.sheets) ? _data.sheets[_activeSheet] : null;
-    if (_area && _sh) _wireResizers(_area, _sh);
+    if (_area && _sh) { _wireResizers(_area, _sh); _markClipped(_area); }
   }
 
   /* Escapa para atributo HTML (title): esc() cubre &<>, faltan las comillas. */
@@ -499,6 +516,7 @@
           document.removeEventListener('mousemove', onMove);
           document.removeEventListener('mouseup', onUp);
           document.body.style.userSelect = '';
+          _markClipped(container);   // re-evaluar recorte (clickeable) tras cambiar el ancho
         }
         document.body.style.userSelect = 'none';
         document.addEventListener('mousemove', onMove);
@@ -612,6 +630,92 @@
       idb: true, searching: true, truncated: _searchCache.truncated
     });
     wirePager();
+  }
+
+  /* ══════════════════════════════════════════════════════════════════
+     Pantalla completa + popup de contenido de celda recortada
+     ══════════════════════════════════════════════════════════════════ */
+  function closestTag(node, tag) {
+    while (node && node !== document) {
+      if (node.nodeName === tag) return node;
+      node = node.parentNode;
+    }
+    return null;
+  }
+
+  function _wrapEl() { var p = el(_panelId); return p ? p.querySelector('.snwv-wrap') : null; }
+
+  function toggleFullscreen(force) {
+    var w = _wrapEl(); if (!w) return;
+    var on = (force != null) ? force : !w.classList.contains('snwv-fs');
+    _fs = on;
+    w.classList.toggle('snwv-fs', on);
+    try { document.body.style.overflow = on ? 'hidden' : ''; } catch (e) {}
+    var btn = el('snwv-fs');
+    if (btn) {
+      btn.setAttribute('aria-pressed', on ? 'true' : 'false');
+      var lbl = on ? t('snweb.fullscreenExit', 'Salir de pantalla completa') : t('snweb.fullscreen', 'Pantalla completa');
+      btn.innerHTML = '⛶ ' + esc(lbl);
+      btn.setAttribute('title', lbl);
+    }
+    document.removeEventListener('keydown', _fsEsc);   // idempotente: evita duplicados tras re-render
+    if (on) document.addEventListener('keydown', _fsEsc);
+  }
+  function _fsEsc(e) {
+    if (document.querySelector('.snwv-cellpop')) return;   // un popup abierto captura el Escape
+    if (e.key === 'Escape' || e.keyCode === 27) toggleFullscreen(false);
+  }
+
+  /* Marca las celdas cuyo texto quedó recortado (…) para hacerlas clickeables. */
+  function _markClipped(area) {
+    if (!area) return;
+    var tds = area.querySelectorAll('table.snwv-dtable td');
+    Array.prototype.forEach.call(tds, function (td) {
+      td.classList.toggle('snwv-clip', td.scrollWidth > td.clientWidth + 1);
+    });
+  }
+
+  /* Click en celda recortada → popup con el contenido completo. */
+  function _onCellClick(e) {
+    var td = closestTag(e.target, 'TD');
+    if (!td || !td.classList.contains('snwv-clip')) return;
+    var sh = (_data && _data.sheets) ? _data.sheets[_activeSheet] : null;
+    var header = (sh && sh.headers && sh.headers[td.cellIndex] != null) ? sh.headers[td.cellIndex] : '';
+    var full = td.getAttribute('title');
+    if (full == null) full = td.textContent || '';
+    showCellPopup(header, full);
+  }
+
+  function showCellPopup(header, value) {
+    injectCss();
+    var ov = document.createElement('div');
+    ov.className = 'snwv-ov snwv-cellpop';
+    ov.innerHTML =
+      '<div class="snwv-modal" role="dialog" aria-modal="true">' +
+        (header ? '<div class="snwv-cellpop-h">' + esc(header) + '</div>' : '') +
+        '<div class="snwv-cellpop-body">' + esc(value) + '</div>' +
+        '<div class="snwv-modal-foot">' +
+          '<button class="snwv-btn" data-cp="copy">' + esc(t('snweb.copy', 'Copiar')) + '</button> ' +
+          '<button class="snwv-btn snwv-btn-primary" data-cp="close">' + esc(t('snweb.close', 'Cerrar')) + '</button>' +
+        '</div>' +
+      '</div>';
+    function done() { document.removeEventListener('keydown', onKey); if (ov.parentNode) ov.parentNode.removeChild(ov); }
+    function onKey(e) { if (e.key === 'Escape' || e.keyCode === 27) { e.stopPropagation(); done(); } }
+    ov.addEventListener('click', function (e) {
+      var b = closestAttr(e.target, 'data-cp');
+      if (b) {
+        var act = b.getAttribute('data-cp');
+        if (act === 'copy') {
+          try { navigator.clipboard.writeText(value); b.textContent = t('snweb.copied', 'Copiado ✓'); } catch (e2) {}
+          return;
+        }
+        done(); return;
+      }
+      if (e.target === ov) done();
+    });
+    document.addEventListener('keydown', onKey);
+    document.body.appendChild(ov);
+    var btn = ov.querySelector('[data-cp="close"]'); if (btn) btn.focus();
   }
 
   /* Re-render al cambiar idioma (mismo patrón que glosario/explorer). */

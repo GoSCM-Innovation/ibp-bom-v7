@@ -75,6 +75,15 @@
     <div class="connect-dialog-body">
       <!-- Paso 1: Credenciales -->
       <div class="conn-step active" id="connStep1">
+        <div class="form-group full" id="savedConnWrap" style="display:none;max-width:800px;margin-bottom:14px;">
+          <label data-i18n="connDlg.saved">Conexiones guardadas</label>
+          <div style="display:flex;gap:8px;align-items:center;">
+            <select id="savedConnSelect" class="conn-select" onchange="applySavedConn()" style="flex:1;min-width:0;"></select>
+            <button type="button" class="btn btn-secondary" onclick="deleteSavedConn()" title="Eliminar conexión guardada"
+              data-i18n-title="connDlg.savedDelete" data-i18n-aria-label="connDlg.savedDelete" aria-label="Eliminar conexión guardada"
+              style="flex:none;padding:8px 12px;">🗑</button>
+          </div>
+        </div>
         <div class="form-grid" style="max-width:800px;">
           <div class="form-group full">
             <label>API Base URL</label>
@@ -91,6 +100,10 @@
             <input type="password" id="inpPass" name="password" autocomplete="current-password" placeholder="••••••••" required>
           </div>
         </div>
+        <label class="conn-save-check" style="display:flex;align-items:center;gap:8px;margin-top:14px;font-size:12px;color:var(--text2);cursor:pointer;">
+          <input type="checkbox" id="chkSaveConn" style="width:auto;margin:0;flex:none;">
+          <span data-i18n="connDlg.saveThis">Guardar esta conexión (sin contraseña)</span>
+        </label>
         <div class="btn-row" style="margin-top:20px;">
           <button type="button" class="btn btn-primary" id="btnConnStep1" onclick="doConnStep1()" data-i18n="common.continue">Continuar &#8594;</button>
           <button type="button" class="btn btn-secondary" onclick="closeConnectDialog()" data-i18n="common.cancel">Cancelar</button>
@@ -430,6 +443,10 @@
   <!-- ═══ APP SHELL ═══ -->
   <div class="app-shell">
 
+    <!-- Reabrir panel (escritorio, visible solo cuando está colapsado) -->
+    <button type="button" class="sidebar-reopen" id="sidebarReopen" onclick="toggleSidebarCollapse()"
+      data-i18n-aria-label="sidebar.show" aria-label="Mostrar panel" title="Mostrar panel">☰</button>
+
     <!-- ── Sidebar ── -->
     <aside class="sidebar" id="sidebar">
 
@@ -437,6 +454,8 @@
       <div class="sidebar-brand">
         <img src="logo-goscm.png" alt="GoSCM" class="logo-img" style="height:28px;">
         <div class="app-title" data-i18n="app.title">Applications Hub</div>
+        <button type="button" class="sidebar-collapse-btn" id="sidebarCollapseBtn" onclick="toggleSidebarCollapse()"
+          data-i18n-aria-label="sidebar.hide" aria-label="Ocultar panel" title="Ocultar panel">&#171;</button>
       </div>
 
       <!-- Language toggle -->

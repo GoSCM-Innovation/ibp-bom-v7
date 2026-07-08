@@ -3,6 +3,7 @@
        ═══════════════════════════════════════════════════════════════ */
     var CONN_CACHE      = { metaText: null, vsmt: [] };
     var CONN_SAVED_CFG  = null; // snapshot de la conexión previa al iniciar una reconexión
+    var _pendingProfile = null; // perfil de conexión guardado seleccionado (pre-selecciona PA/versión)
 
     /* ═══════════════════════════════════════════════════════════════
        TAB NAVIGATION
@@ -363,6 +364,7 @@
         if (typeof fmLoad === 'function') fmLoad();
 
         setConnected(true);
+        maybeSaveCurrentConn();   // guarda el perfil (sin contraseña) si el usuario marcó la casilla
         setConnStatus('ok', I18n.t('main.conn.connected', { count: ENTITIES.length, pa: CFG.pa, ver: CFG.pver ? ' / ' + CFG.pver : ' (Baseline)' }));
         document.getElementById('panelMDT').classList.remove('hidden');
         document.getElementById('panelSNMDT').classList.remove('hidden');
@@ -439,8 +441,79 @@
       document.getElementById('inpUrl').value  = CFG.url  || '';
       document.getElementById('inpUser').value = CFG.user || '';
       document.getElementById('inpPass').value = '';
+      _pendingProfile = null;
+      var _chk = document.getElementById('chkSaveConn'); if (_chk) _chk.checked = false;
+      renderSavedConns();
       showConnStep(1);
     }
+
+    /* ══════════════════════════════════════════════════════════════════
+       Conexiones guardadas — persistidas en localStorage SIN la contraseña.
+       Riesgo: localStorage es texto plano y legible por cualquier JS de la
+       página (XSS). Por eso NUNCA se guarda la contraseña; el usuario la
+       reingresa en cada reconexión.
+       ══════════════════════════════════════════════════════════════════ */
+    var SAVED_CONNS_KEY = 'goscm.savedConns';
+    function loadSavedConns() {
+      try { var a = JSON.parse(localStorage.getItem(SAVED_CONNS_KEY) || '[]'); return Array.isArray(a) ? a : []; }
+      catch (e) { return []; }
+    }
+    function storeSavedConns(arr) {
+      try { localStorage.setItem(SAVED_CONNS_KEY, JSON.stringify(arr)); } catch (e) {}
+    }
+    function renderSavedConns() {
+      var sel  = document.getElementById('savedConnSelect');
+      var wrap = document.getElementById('savedConnWrap');
+      if (!sel) return;
+      var arr = loadSavedConns();
+      if (wrap) wrap.style.display = arr.length ? '' : 'none';
+      var ph = I18n.t('connDlg.savedPlaceholder');
+      sel.innerHTML = '<option value="">' + escH(ph) + '</option>' +
+        arr.map(function (c, i) {
+          var label = c.name || ((c.pa || '') + ' — ' + (c.url || ''));
+          return '<option value="' + i + '">' + escH(label) + '</option>';
+        }).join('');
+    }
+    function applySavedConn() {
+      var sel = document.getElementById('savedConnSelect');
+      if (!sel) return;
+      var idx = parseInt(sel.value, 10);
+      var arr = loadSavedConns();
+      if (isNaN(idx) || !arr[idx]) { _pendingProfile = null; return; }
+      var c = arr[idx];
+      _pendingProfile = c;
+      var u  = document.getElementById('inpUrl');  if (u)  u.value  = c.url  || '';
+      var us = document.getElementById('inpUser'); if (us) us.value = c.user || '';
+      var pw = document.getElementById('inpPass'); if (pw) { pw.value = ''; try { pw.focus(); } catch (e) {} }
+      var chk = document.getElementById('chkSaveConn'); if (chk) chk.checked = true;
+    }
+    function deleteSavedConn() {
+      var sel = document.getElementById('savedConnSelect');
+      if (!sel) return;
+      var idx = parseInt(sel.value, 10);
+      if (isNaN(idx)) return;
+      var arr = loadSavedConns();
+      if (!arr[idx]) return;
+      if (!window.confirm(I18n.t('connDlg.savedDeleteConfirm'))) return;
+      arr.splice(idx, 1);
+      storeSavedConns(arr);
+      _pendingProfile = null;
+      renderSavedConns();
+    }
+    function maybeSaveCurrentConn() {
+      var chk = document.getElementById('chkSaveConn');
+      if (!chk || !chk.checked) return;
+      var host = (CFG.url || '').replace(/^https?:\/\//, '');
+      var prof = { name: (CFG.pa || '') + ' — ' + host, url: CFG.url, user: CFG.user, pa: CFG.pa, pver: CFG.pver };
+      var keyOf = function (c) { return [c.url, c.user, c.pa, c.pver].join('|'); };
+      var k = keyOf(prof);
+      var arr = loadSavedConns().filter(function (c) { return keyOf(c) !== k; });
+      arr.unshift(prof);
+      if (arr.length > 10) arr = arr.slice(0, 10);
+      storeSavedConns(arr);
+    }
+    window.applySavedConn  = applySavedConn;
+    window.deleteSavedConn = deleteSavedConn;
 
     async function doConnStep1() {
       var logEl = document.getElementById('logConnect');
@@ -495,6 +568,10 @@
         sel.innerHTML = pas.map(function (pa) {
           return '<option value="' + escH(pa) + '">' + escH(pa) + '</option>';
         }).join('');
+        if (_pendingProfile && _pendingProfile.pa) {
+          var _hasPa = Array.prototype.some.call(sel.options, function (o) { return o.value === _pendingProfile.pa; });
+          if (_hasPa) sel.value = _pendingProfile.pa;
+        }
 
         try {
           var arr = JSON.parse(localStorage.getItem('ibp_h_url') || '[]');
@@ -538,6 +615,10 @@
         return '<option value="' + escH(v) + '">' + escH(v) + '</option>';
       }).join('');
       sel.innerHTML = opts;
+      if (_pendingProfile && _pendingProfile.pver != null) {
+        var _hasV = Array.prototype.some.call(sel.options, function (o) { return o.value === _pendingProfile.pver; });
+        if (_hasV) sel.value = _pendingProfile.pver;
+      }
 
       showConnStep(3);
     }
@@ -1176,6 +1257,7 @@
       if (IS_CONNECTED) {
         showConnectedPanel();
       } else {
+        renderSavedConns();
         showConnStep(1);
       }
     }
@@ -1235,6 +1317,15 @@
       if (backdrop) backdrop.classList.remove('visible');
     }
 
+    /* ── Sidebar desktop collapse (oculta el panel para ganar espacio; persistente) ── */
+    function toggleSidebarCollapse() {
+      var shell = document.querySelector('.app-shell');
+      if (!shell) return;
+      var collapsed = shell.classList.toggle('sidebar-collapsed');
+      try { localStorage.setItem('goscm.sidebarCollapsed', collapsed ? '1' : '0'); } catch (e) {}
+    }
+    window.toggleSidebarCollapse = toggleSidebarCollapse;
+
     try {
       function popList(key, listId) {
         var arr = JSON.parse(localStorage.getItem(key) || '[]');
@@ -1245,6 +1336,14 @@
       popList('ibp_h_pa', 'paList');
       popList('ibp_h_pver', 'pverList');
     } catch(e) {}
+
+    // Restaurar estado de sidebar colapsado (solo relevante en escritorio; inerte en móvil)
+    try {
+      if (localStorage.getItem('goscm.sidebarCollapsed') === '1') {
+        var _shellEl = document.querySelector('.app-shell');
+        if (_shellEl) _shellEl.classList.add('sidebar-collapsed');
+      }
+    } catch (e) {}
 
     // Interceptar Escape para que la restauración del snapshot siempre pase por closeConnectDialog
     (function () {

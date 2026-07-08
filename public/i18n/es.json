@@ -35,6 +35,8 @@
   "sidebar.conn.connected": "Conectado",
   "sidebar.conn.button": "🔗 Conectar SAP IBP",
   "sidebar.conn.buttonConnected": "🔗 Reconectar SAP IBP",
+  "sidebar.hide": "Ocultar panel",
+  "sidebar.show": "Mostrar panel",
 
   "nav.bom": "Production Visualizer",
   "nav.pa": "Production Analyzer",
@@ -61,6 +63,11 @@
   "connDlg.versionLbl": "Versión",
   "connDlg.newConn": "Nueva conexión",
   "connDlg.btnClose": "Cerrar",
+  "connDlg.saved": "Conexiones guardadas",
+  "connDlg.savedPlaceholder": "Selecciona una conexión guardada…",
+  "connDlg.saveThis": "Guardar esta conexión (sin contraseña)",
+  "connDlg.savedDelete": "Eliminar conexión guardada",
+  "connDlg.savedDeleteConfirm": "¿Eliminar esta conexión guardada?",
 
   "techReq.title": "Requisitos técnicos",
   "techReq.tab.conexion": "Conexión",
@@ -918,5 +925,9 @@
   "snweb.modal.excelDesc": "Genera y descarga el informe .xlsx (comportamiento actual).",
   "snweb.modal.both": "Ambos",
   "snweb.modal.bothDesc": "Descarga el Excel y además muestra la vista web.",
-  "snweb.modal.cancel": "Cancelar"
+  "snweb.modal.cancel": "Cancelar",
+  "snweb.fullscreen": "Pantalla completa",
+  "snweb.fullscreenExit": "Salir de pantalla completa",
+  "snweb.copy": "Copiar",
+  "snweb.copied": "Copiado ✓"
 }
