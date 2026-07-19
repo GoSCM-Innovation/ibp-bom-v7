@@ -510,6 +510,10 @@
           <span class="nav-icon">📖</span>
           <span class="nav-label" data-i18n="nav.glosario">Glosario Analyzers</span>
         </button>
+        <button class="nav-item nav-padoc" onclick="switchTab('padoc')" id="tabBtn-padoc">
+          <span class="nav-icon">📑</span>
+          <span class="nav-label" data-i18n="nav.padoc">Planning Area Docs</span>
+        </button>
         <div class="nav-divider" style="display:none;"></div>
         <button class="nav-item nav-docs" onclick="switchTab('docs')" id="tabBtn-docs" style="display:none;">
           <span class="nav-icon">📄</span>
@@ -1920,6 +1924,56 @@
     </div>
   </div><!-- /tab-glosario -->
 
+  <!-- ═══ TAB: PA DOCUMENTER ═══ -->
+  <div class="tab-panel" id="tab-padoc">
+    <div class="tab-info-banner" id="infoBannerPadoc">
+      <span class="tab-info-icon">📑</span>
+      <div class="tab-info-content">
+        <div class="tab-info-desc">Genera la documentación Word (.docx) de un Planning Area a partir de los archivos del <b>Download Configuration File</b> de SAP IBP.</div>
+      </div>
+    </div>
+
+    <!-- 1. Carga de CSV -->
+    <div class="panel">
+      <div class="panel-title">📥 Archivos de configuración (CSV)</div>
+      <p class="panel-desc">En SAP IBP, dentro del Planning Area, usa <b>Download Configuration File</b> y arrastra aquí los CSV resultantes (o un ZIP que los contenga).</p>
+      <div class="drop-zone" id="padoc-dz">
+        <input type="file" id="padoc-fi" accept=".csv,.zip" multiple>
+        <span class="drop-icon">🗂️</span>
+        <p class="drop-title">Arrastra los CSV aquí</p>
+        <p class="drop-hint">o haz click para seleccionar &nbsp;·&nbsp; <b>Múltiples archivos</b> permitidos</p>
+      </div>
+      <div id="padoc-status" class="padoc-status"></div>
+    </div>
+
+    <!-- 2. Portada -->
+    <div class="panel">
+      <div class="panel-title">🎨 Portada del documento</div>
+      <div class="padoc-form">
+        <label class="padoc-field"><span>Cliente</span><input type="text" id="padoc-cliente" placeholder="Ej: Claro Colombia"></label>
+        <label class="padoc-field"><span>Autor</span><input type="text" id="padoc-autor" placeholder="Nombre / área"></label>
+        <label class="padoc-field"><span>Versión del documento</span><input type="text" id="padoc-version" value="1.0"></label>
+        <label class="padoc-field"><span>Logo del cliente (PNG/JPG)</span><input type="file" id="padoc-logo-fi" accept="image/png,image/jpeg"></label>
+      </div>
+    </div>
+
+    <!-- 3. Enriquecimiento en vivo (fase 2) -->
+    <div class="panel padoc-phase2">
+      <div class="panel-title">🔌 Enriquecer con datos en vivo · SAP_COM_0720</div>
+      <p class="panel-desc">Al conectar a SAP IBP se añadirá volumetría real (conteos por dato maestro, versiones del área y valores distintos de atributos). <em>En desarrollo — fase 2.</em></p>
+      <label class="padoc-toggle"><input type="checkbox" id="padoc-enrich" disabled> Activar enriquecimiento (no disponible aún)</label>
+    </div>
+
+    <!-- 4. Generar -->
+    <div class="panel">
+      <div class="btn-row">
+        <button class="btn btn-primary" id="padoc-gen-btn" disabled onclick="PADoc.generate()">📝 Generar documento Word</button>
+        <button class="btn btn-secondary" onclick="PADoc.reset()">🗑️ Limpiar</button>
+      </div>
+      <div class="log-area padoc-log" id="padoc-log"></div>
+    </div>
+  </div><!-- /tab-padoc -->
+
     </div><!-- /main-content -->
   </div><!-- /app-shell -->
 
@@ -1942,6 +1996,7 @@
   <script src="js/docs.js"></script>
   <script src="js/explorer.js"></script>
   <script src="js/glosario.js"></script>
+  <script src="js/paDoc.js"></script>
 
   <!-- ═══ EXTRA FIELDS DIALOG ═══ -->
   <dialog id="efModal" class="connect-dialog ef-fields-dialog">
