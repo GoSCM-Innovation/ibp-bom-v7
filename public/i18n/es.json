@@ -43,6 +43,7 @@
   "nav.visualizer": "Network Visualizer",
   "nav.network": "Network Analyzer",
   "nav.glosario": "Glosario Analyzers",
+  "nav.padoc": "Planning Area Documenter",
   "nav.docs": "Mapping Dataflow Generator",
   "nav.explorer": "Integration Explorer",
   "nav.suite": "SUITE GOSCM",
