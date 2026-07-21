@@ -715,10 +715,18 @@
         var fieldMatched = [];
         pool.forEach(function (s) {
           var sc = scoreFields(s, must, nice);
-          if (sc > 0) fieldMatched.push({ name: s.name, sc: sc, fieldCount: s.fields.length });
+          if (sc > 0) fieldMatched.push({ name: s.name, sc: sc, fieldCount: s.fields.length, nsc: nameScore(s, nameKw) });
         });
         if (fieldMatched.length) {
-          sortByScoreAndFields(fieldMatched);
+          // Tiebreak among equally field-scored candidates: prefer name relevance
+          // over arbitrary $metadata order, so a same-field-count decoy (e.g.
+          // TRANSPORTATIONRESOURCE, which also carries RESID+LOCID) can't beat the
+          // intended entity (e.g. RESOURCELOCATION) merely by appearing first.
+          fieldMatched.sort(function (a, b) {
+            if (b.sc !== a.sc) return b.sc - a.sc;
+            if (b.fieldCount !== a.fieldCount) return b.fieldCount - a.fieldCount;
+            return (b.nsc || 0) - (a.nsc || 0);
+          });
           return fieldMatched[0].name;
         }
         // Pass 2 — name match: fallback when no entity satisfies mustHave
