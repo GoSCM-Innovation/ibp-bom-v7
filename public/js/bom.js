@@ -958,6 +958,265 @@
       setStatus('ok', I18n.t('bom.xls.done', { count: flat.length }));
     }
 
+    /* ═══════════════════════════════════════════════════════════════
+       BATCH EXPORT — jerarquía completa de una LISTA de materiales a
+       un único Excel con una sola hoja combinada + hoja Índice.
+       Reutiliza la misma lógica de expansión (loadBomSubtree →
+       finalizeHierarchy → bomBuildAllChildren) y el MISMO formato de
+       fila/columnas que bomExportExcel. Procesa secuencialmente porque
+       loadBomSubtree reemplaza los índices globales en cada llamada.
+       ═══════════════════════════════════════════════════════════════ */
+    function bomOpenBatchDialog() {
+      var dlg = document.getElementById('bomBatchDialog');
+      if (!dlg) return;
+      if (!prodSuggestions || !prodSuggestions.length) {
+        setStatus('warn', I18n.t('bom.batch.notLoaded'));
+        return;
+      }
+      document.getElementById('bomBatchProgress').style.display = 'none';
+      document.getElementById('bomBatchBar').style.display = 'none';
+      document.getElementById('bomBatchBarFill').style.width = '0%';
+      document.getElementById('bomBatchRunBtn').disabled = false;
+      bomBatchUpdateCount();
+      dlg.showModal();
+    }
+
+    /* Parsea la lista pegada: separa por espacios/comas/;/saltos y dedup. */
+    function bomBatchParseList(text) {
+      var seen = {}, out = [];
+      String(text || '').split(/[\s,;]+/).forEach(function (tok) {
+        var p = str(tok);
+        if (p && !seen[p]) { seen[p] = true; out.push(p); }
+      });
+      return out;
+    }
+
+    function bomBatchUpdateCount() {
+      var el = document.getElementById('bomBatchCount');
+      if (!el) return;
+      var n = bomBatchParseList(document.getElementById('bomBatchInput').value).length;
+      el.textContent = I18n.t('bom.batch.countLabel', { n: n });
+    }
+
+    function bomBatchLoadFile(input) {
+      var f = input.files && input.files[0];
+      if (!f) return;
+      var reader = new FileReader();
+      reader.onload = function (e) {
+        var ta = document.getElementById('bomBatchInput');
+        var cur = ta.value.trim();
+        ta.value = (cur ? cur + '\n' : '') + String(e.target.result || '');
+        bomBatchUpdateCount();
+      };
+      reader.readAsText(f);
+      input.value = '';  // permite re-subir el mismo archivo
+    }
+
+    /* Raíces de la jerarquía para un PRDID concreto (equivalente a
+       bomGetRoots pero por producto, sobre el TREE recién construido). */
+    function bomBatchRootsForPrd(prd) {
+      var all = [];
+      TREE.locids.forEach(function (loc) {
+        (TREE.roots[loc] || []).forEach(function (root) {
+          if (root.prdid === prd ||
+            (root.coprods && root.coprods.some(function (cp) { return cp.prdid === prd; }))) {
+            all.push(root);
+          }
+        });
+      });
+      return all;
+    }
+
+    async function bomBatchRun() {
+      if (typeof ExcelJS === 'undefined') { setStatus('err', 'ExcelJS no disponible'); return; }
+      var prds = bomBatchParseList(document.getElementById('bomBatchInput').value);
+      if (!prds.length) { setStatus('warn', I18n.t('bom.batch.empty')); return; }
+
+      var runBtn = document.getElementById('bomBatchRunBtn');
+      var progEl = document.getElementById('bomBatchProgress');
+      var barEl = document.getElementById('bomBatchBar');
+      var barFill = document.getElementById('bomBatchBarFill');
+      runBtn.disabled = true;
+      progEl.style.display = 'block';
+      barEl.style.display = 'block';
+      barFill.style.width = '0%';
+
+      // Estilos idénticos a bomExportExcel
+      var GOLD = 'FFF7A800', ORANGE = 'FFE8622A', NAVY = 'FF0B1120';
+      var FILL_ROOT = 'FFFDE8C8', FILL_COPROD = 'FFEDE9FE';
+
+      function toNum(v) {
+        if (v === '' || v === null || v === undefined) return null;
+        var n = Number(v); return isNaN(n) ? null : n;
+      }
+      function resList(resids) {
+        if (!resids || !resids.length) return '';
+        return resids.map(function (rid) {
+          var d = RES_DESCR[rid]; return d ? rid + ' — ' + d : rid;
+        }).join(', ');
+      }
+
+      var wb = new ExcelJS.Workbook();
+
+      // ── Hoja Índice (primera) ──
+      var wsIdx = wb.addWorksheet(I18n.t('bom.batch.indexSheet'));
+      var idxHead = wsIdx.addRow([
+        I18n.t('bom.batch.idxNum'), I18n.t('bom.batch.idxMat'),
+        I18n.t('bom.batch.idxStatus'), I18n.t('bom.batch.idxRows'), I18n.t('bom.batch.idxPlants')
+      ]);
+      idxHead.height = 20;
+      idxHead.eachCell(function (c) {
+        c.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: GOLD } };
+        c.font = { bold: true, name: 'DM Sans', size: 10, color: { argb: NAVY } };
+        c.alignment = { vertical: 'middle', horizontal: 'center' };
+        c.border = { bottom: { style: 'medium', color: { argb: ORANGE } } };
+      });
+
+      // ── Hoja combinada de datos ──
+      var ws = wb.addWorksheet(I18n.t('bom.xls.sheetTitle'), { views: [{ state: 'frozen', ySplit: 1 }] });
+      try { ws.properties.outlineProperties = { summaryBelow: false, summaryRight: false }; } catch (e) {}
+
+      var headers = [
+        I18n.t('bom.tbl.rootMaterial'), I18n.t('bom.tbl.parentMaterial'), I18n.t('bom.tbl.level'),
+        I18n.t('bom.tbl.plant'), I18n.t('bom.tbl.sourceId'), I18n.t('bom.tbl.material'),
+        I18n.t('bom.xls.description'), I18n.t('bom.tbl.substitute'), I18n.t('bom.xls.coefIn'),
+        I18n.t('bom.xls.coefOut'), I18n.t('bom.xls.uom'), I18n.t('bom.tbl.materialType'),
+        I18n.t('bom.tbl.type'), I18n.t('bom.tbl.workstations')
+      ];
+      if (BOM_VALIDITY_ON) headers.push(I18n.t('bom.tbl.validFrom'), I18n.t('bom.tbl.validTo'));
+      var hRow = ws.addRow(headers);
+      hRow.height = 22;
+      hRow.eachCell(function (cell) {
+        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: GOLD } };
+        cell.font = { bold: true, name: 'DM Sans', size: 10, color: { argb: NAVY } };
+        cell.alignment = { vertical: 'middle', horizontal: 'center', wrapText: true };
+        cell.border = { bottom: { style: 'medium', color: { argb: ORANGE } } };
+      });
+
+      var ST_OK = I18n.t('bom.batch.stOk'), ST_EMPTY = I18n.t('bom.batch.stEmpty'), ST_ERR = I18n.t('bom.batch.stError');
+      var totalRows = 0, okCount = 0, emptyCount = 0, errCount = 0;
+
+      for (var pi = 0; pi < prds.length; pi++) {
+        var prd = prds[pi];
+        progEl.textContent = I18n.t('bom.batch.progress', { i: pi + 1, n: prds.length, prdid: prd });
+        barFill.style.width = Math.round((pi / prds.length) * 100) + '%';
+        // ceder al navegador para repintar el progreso antes del trabajo pesado
+        await new Promise(function (r) { setTimeout(r, 0); });
+
+        var status = '', nRows = 0, plants = '';
+        try {
+          await loadBomSubtree(prd);
+          finalizeHierarchy();
+          var roots = bomBatchRootsForPrd(prd);
+          if (!roots.length) {
+            status = ST_EMPTY; emptyCount++;
+          } else {
+            bomBuildAllChildren(roots);
+
+            // Aplanar en DFS (mismo orden y semántica que bomExportExcel)
+            var flat = [];
+            (function () {
+              function walk(node, rootPrdid, parentPrdid) {
+                flat.push({ node: node, level: node.level, isCoprod: false, rootPrdid: rootPrdid, parentPrdid: parentPrdid });
+                if (node.coprods && node.coprods.length) {
+                  node.coprods.forEach(function (cp) {
+                    flat.push({ node: cp, level: node.level + 1, isCoprod: true, parentLoc: node.locid, rootPrdid: rootPrdid, parentPrdid: node.prdid });
+                  });
+                }
+                if (node.children && node.children.length) {
+                  sortedNodes(node.children).forEach(function (c) { walk(c, rootPrdid, node.prdid); });
+                }
+              }
+              roots.forEach(function (root) { walk(root, root.prdid, ''); });
+            })();
+
+            var plantSet = {};
+            flat.forEach(function (item) {
+              var n = item.node, lvl = item.level, isCo = item.isCoprod;
+              var locid = isCo ? str(item.parentLoc) : str(n.locid);
+              if (locid) plantSet[locid] = true;
+              var sourceid = isCo ? '' : str(n.sourceid);
+              var sub = (!isCo && n.isAltItem === 'X') ? 'X' : '';
+              var coefIn = isCo ? null : toNum(n.inputCoeff);
+              var coefOut = toNum(n.coefficient);
+              var stype = str(n.sourcetype || (isCo ? 'C' : ''));
+              var res = isCo ? '' : resList(n.resids);
+              var dispLvl = isCo ? bomDisplayLevel(lvl - 1) : bomDisplayLevel(lvl);
+              var rowVals = [
+                str(item.rootPrdid || ''), str(item.parentPrdid || ''), dispLvl, locid, sourceid,
+                str(n.prdid), str(n.prddescr), sub, coefIn, coefOut, str(n.uomid),
+                str(n.mattypeid), stype, res
+              ];
+              if (BOM_VALIDITY_ON) {
+                var vv = isCo ? { fr: '', to: '' } : bomGetValidity(VAL_BY_KEY, n._parentSid, n.prdid);
+                rowVals.push(vv.fr, vv.to);
+              }
+              var row = ws.addRow(rowVals);
+              row.outlineLevel = Math.min(Math.max(lvl - 1, 0), 7);
+              row.getCell(6).alignment = { indent: Math.min(Math.max(lvl - 1, 0), 15) };
+              row.getCell(9).numFmt = '#,##0.####';
+              row.getCell(10).numFmt = '#,##0.####';
+              var fill = isCo ? FILL_COPROD : (n.type === 'MAIN' ? FILL_ROOT : null);
+              if (fill) {
+                row.eachCell({ includeEmpty: true }, function (cell) {
+                  cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: fill } };
+                });
+              }
+            });
+
+            nRows = flat.length; totalRows += nRows;
+            plants = Object.keys(plantSet).sort().join(', ');
+            status = ST_OK; okCount++;
+          }
+        } catch (e) {
+          status = ST_ERR + ': ' + (e && e.message ? e.message : e);
+          errCount++;
+          console.warn('[bom batch]', prd, e);
+        }
+
+        var ir = wsIdx.addRow([pi + 1, prd, status, nRows, plants]);
+        var stCell = ir.getCell(3);
+        if (status === ST_OK) stCell.font = { color: { argb: 'FF1B7A3D' } };
+        else if (status.indexOf(ST_ERR) === 0) stCell.font = { color: { argb: 'FFB00020' }, bold: true };
+        else stCell.font = { color: { argb: 'FF9A6A00' } };
+      }
+
+      // Anchos + autofiltro (idéntico a la app)
+      var widths = [18, 18, 7, 18, 16, 30, 32, 12, 14, 14, 8, 16, 7, 32];
+      if (BOM_VALIDITY_ON) widths.push(16, 16);
+      ws.columns.forEach(function (col, i) { col.width = widths[i] || 12; });
+      ws.autoFilter = 'A1:' + bomColLetter(headers.length) + '1';
+
+      var idxWidths = [6, 16, 26, 8, 44];
+      wsIdx.columns.forEach(function (col, i) { col.width = idxWidths[i] || 12; });
+      wsIdx.autoFilter = 'A1:E1';
+
+      // Resumen al pie del índice
+      wsIdx.addRow([]);
+      wsIdx.addRow(['', I18n.t('bom.batch.sumTotal'), prds.length]);
+      wsIdx.addRow(['', I18n.t('bom.batch.sumOk'), okCount]);
+      wsIdx.addRow(['', I18n.t('bom.batch.sumEmpty'), emptyCount]);
+      wsIdx.addRow(['', I18n.t('bom.batch.sumErr'), errCount]);
+      wsIdx.addRow(['', I18n.t('bom.batch.sumRows'), totalRows]);
+
+      // Descargar
+      barFill.style.width = '100%';
+      var today = new Date().toISOString().slice(0, 10);
+      var fname = 'Jerarquia_lista_' + prds.length + 'materiales_' + today + '.xlsx';
+      var buf = await wb.xlsx.writeBuffer();
+      var blob = new Blob([buf], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+      var url = URL.createObjectURL(blob);
+      var a = document.createElement('a');
+      a.href = url; a.download = fname;
+      document.body.appendChild(a); a.click();
+      document.body.removeChild(a); URL.revokeObjectURL(url);
+
+      var doneMsg = I18n.t('bom.batch.done', { ok: okCount, empty: emptyCount, err: errCount, rows: totalRows });
+      progEl.textContent = doneMsg;
+      setStatus('ok', doneMsg);
+      runBtn.disabled = false;
+    }
+
     function bomRestoreGlobals(tab) {
       if (tab.tree) {
         TREE = tab.tree;
