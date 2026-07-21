@@ -694,12 +694,44 @@
     <div id="bomTreeWrapper">
       <div class="bom-tabs-bar hidden" id="bomTabsBar">
         <div class="bom-tabs-scroll" id="bomTabsScroll"></div>
+        <button class="btn btn-secondary btn-small" id="btnBomBatch" onclick="bomOpenBatchDialog()" title="Exportar la jerarquía de una lista de materiales a un solo Excel" data-i18n-title="bom.batch.btnTitle" data-i18n="bom.batch.btn">📋 Exportar lista</button>
         <button class="btn btn-secondary btn-small bom-fs-btn" id="btnBomFullscreen" onclick="bomToggleFullscreen()" title="Pantalla completa" data-i18n-title="bom.fullscreenTitle" data-i18n="bom.fullscreenBtn">&#x26F6; Pantalla completa</button>
       </div>
 
       <!-- ═══ TAB CONTENT CONTAINER ═══ -->
       <div id="bomTabsContent" class="hidden"></div>
     </div>
+
+    <!-- ═══ BATCH EXPORT DIALOG (lista de materiales → un solo Excel) ═══ -->
+    <dialog id="bomBatchDialog"
+      style="border:none;border-radius:12px;padding:0;width:560px;max-width:95vw;background:var(--surface);box-shadow:0 20px 60px rgba(0,0,0,0.5);">
+      <div
+        style="display:flex;justify-content:space-between;align-items:center;padding:16px 20px;border-bottom:1px solid var(--border);">
+        <span style="font-size:14px;font-weight:600;color:var(--text);" data-i18n="bom.batch.title">Exportar lista de materiales</span>
+        <button onclick="document.getElementById('bomBatchDialog').close()"
+          style="background:none;border:none;cursor:pointer;color:var(--text2);font-size:18px;line-height:1;padding:0;">✕</button>
+      </div>
+      <div style="padding:16px 20px;display:flex;flex-direction:column;gap:12px;">
+        <div style="font-size:12px;color:var(--text2);line-height:1.5;" data-i18n="bom.batch.intro">Pega los códigos de material (uno por línea o separados por coma/espacio) o sube un archivo .txt. Se genera un único Excel con una hoja combinada más un índice.</div>
+        <textarea id="bomBatchInput" oninput="bomBatchUpdateCount()" placeholder="30000574&#10;30001693&#10;30001670"
+          style="width:100%;box-sizing:border-box;height:180px;resize:vertical;padding:10px;border-radius:6px;border:1px solid var(--border);background:var(--bg);color:var(--text);font-family:var(--mono);font-size:12px;outline:none;"></textarea>
+        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+          <label class="btn btn-secondary btn-small" style="margin:0;cursor:pointer;">
+            <span data-i18n="bom.batch.uploadBtn">Subir .txt</span>
+            <input type="file" accept=".txt,.csv,text/plain" style="display:none;" onchange="bomBatchLoadFile(this)">
+          </label>
+          <span id="bomBatchCount" style="font-size:12px;color:var(--text3);"></span>
+        </div>
+        <div id="bomBatchProgress" style="display:none;font-size:12px;color:var(--text2);"></div>
+        <div id="bomBatchBar" style="display:none;height:6px;border-radius:3px;background:var(--border);overflow:hidden;">
+          <div id="bomBatchBarFill" style="height:100%;width:0%;background:var(--accent);transition:width .2s;"></div>
+        </div>
+      </div>
+      <div style="padding:14px 20px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;gap:8px;">
+        <button class="btn btn-secondary btn-small" onclick="document.getElementById('bomBatchDialog').close()" data-i18n="bom.batch.cancel">Cerrar</button>
+        <button class="btn btn-primary btn-small" id="bomBatchRunBtn" onclick="bomBatchRun()" data-i18n="bom.batch.export">⬇ Generar Excel</button>
+      </div>
+    </dialog>
 
   </div><!-- /tab-bom -->
 
