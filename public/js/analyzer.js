@@ -750,6 +750,15 @@
         }
         progEl.style.width = '50%';
 
+        // Aviso visible: entidades configuradas que devolvieron 0 registros.
+        // Suele indicar una entidad OData mal detectada o seleccionada para esta Planning Area.
+        SN_EXEC_META.entities.forEach(function(e) {
+          if (e.downloaded === 0) {
+            log(logEl, 'warn', timer.fmt() + ' ⚠️ ' + e.name + ' (' + (e.entityName || '?') +
+                '): 0 registros. Verificá que la entidad OData seleccionada sea la correcta para esta Planning Area.');
+          }
+        });
+
         var totalPrds = Object.keys(SN_IDX.allPrds).length;
         log(logEl, 'ok', timer.fmt() + ' Índices listos. ' + totalPrds + ' productos en la red. Iniciando análisis...');
         setStatusSN('info', 'Analizando red (' + totalPrds + ' productos)...');

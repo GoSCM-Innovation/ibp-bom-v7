@@ -794,6 +794,15 @@ async function doProductionAnalysis() {
     }
     progEl.style.width = '75%';
 
+    // Aviso visible: entidades configuradas que devolvieron 0 registros.
+    // Suele indicar una entidad OData mal detectada o seleccionada para esta Planning Area.
+    PA_EXEC_META.entities.forEach(function(e) {
+      if (e.downloaded === 0) {
+        log(logEl, 'warn', timer.fmt() + ' ⚠️ ' + e.name + ' (' + (e.entityName || '?') +
+            '): 0 registros. Verificá que la entidad OData seleccionada sea la correcta para esta Planning Area.');
+      }
+    });
+
     /* ── Init mattype config after PA_PRD is ready ── */
     if (Object.keys(PA_PRD).length) mattyeInit(PA_PRD);
 

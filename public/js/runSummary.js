@@ -56,7 +56,9 @@ function buildResumenMeta(ws, opts) {
     kvRow(I18n.t('xls.resumen.noEntities'), '');
   } else {
     ents.forEach(function(e) {
-      if (e.downloaded == null) { kvRow(e.name, I18n.t('xls.resumen.notAvailable')); return; }
+      // Nombre amigable + entidad OData técnica usada (permite detectar entidades mal detectadas/seleccionadas)
+      var _label = e.entityName ? (e.name + ' [' + e.entityName + ']') : e.name;
+      if (e.downloaded == null) { kvRow(_label, I18n.t('xls.resumen.notAvailable')); return; }
       // Cadena: descargados -> retenidos (filtros automaticos) -> analizados (exclusion tipo de material)
       var steps = [ I18n.t('xls.resumen.recordsDownloaded', { n: e.downloaded.toLocaleString(_lang) }) ];
       var prev  = e.downloaded;
@@ -72,7 +74,7 @@ function buildResumenMeta(ws, opts) {
       var detail = steps.join(' → ');
       // Si la nota no se adjunto en el paso "retenidos", agregarla al final
       if (e.note && !(e.retained != null && e.retained !== e.downloaded)) detail += ' — ' + e.note;
-      kvRow(e.name, detail);
+      kvRow(_label, detail);
     });
   }
 
