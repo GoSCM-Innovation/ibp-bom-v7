@@ -10,9 +10,9 @@
    - Prosa explicativa por sección + tablas de datos + anexos exhaustivos.
    - Logo del cliente (subido en la UI) + logo GoSCM embebido en la portada.
 
-   Fase 1 (este archivo): 100% offline, a partir de los CSV.
-   Fase 2 (pendiente): enriquecimiento en vivo (SAP_COM_0720 volumetría de
-   datos, SAP_COM_0326 procesos/Application Jobs).
+   Fase 1: generación 100% offline a partir de los CSV.
+   Fase 2: enriquecimiento en vivo opcional — SAP_COM_0720 (volumetría de datos
+   maestros) y SAP_COM_0326 (Application Jobs).
 
    Namespace: PADoc (IIFE).
    ════════════════════════════════════════════════════════════════════════ */
