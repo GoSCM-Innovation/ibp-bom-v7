@@ -10,9 +10,9 @@
    - Prosa explicativa por sección + tablas de datos + anexos exhaustivos.
    - Logo del cliente (subido en la UI) + logo GoSCM embebido en la portada.
 
-   Fase 1 (este archivo): 100% offline, a partir de los CSV.
-   Fase 2 (pendiente): enriquecimiento en vivo (SAP_COM_0720 volumetría de
-   datos, SAP_COM_0326 procesos/Application Jobs).
+   Fase 1: generación 100% offline a partir de los CSV.
+   Fase 2: enriquecimiento en vivo opcional — SAP_COM_0720 (volumetría de datos
+   maestros) y SAP_COM_0326 (Application Jobs).
 
    Namespace: PADoc (IIFE).
    ════════════════════════════════════════════════════════════════════════ */
@@ -32,6 +32,12 @@ const PADoc = (function () {
   let padPaId = '';
   let padLogo = null;    // logo cliente  { b64, ext, w, h }
   let padGoscm = null;   // logo GoSCM    { b64, ext, w, h }
+  let padEnrich = null;  // datos en vivo (fase 2): { appJobs: [{name, text, steps:[]}] }
+
+  // Fase 2 — enriquecimiento en vivo (Application Jobs vía SAP_COM_0326).
+  // Mismo servicio/patrón ya validado en producción por docs.js.
+  const SVC_APPJOB   = '/sap/opu/odata/sap/BC_EXT_APPJOB_MANAGEMENT;v=0002';
+  const JCE_DATA_INT = 'DATA INTEGRATION';  // JceText que marca un paso CI-DS
 
   /* ══════════════════════════════════════════════════════════════════════
      0. IDIOMA / DICCIONARIO DEL DOCUMENTO
@@ -104,6 +110,14 @@ const PADoc = (function () {
       s9noUom: 'No hay conversiones de unidad de medida configuradas en este Planning Area.',
       s9noCur: 'No hay conversiones de moneda configuradas en este Planning Area.',
 
+      s10: '10. Application Jobs y procesos programados',
+      s10intro: 'Los Application Jobs son las tareas programables del tenant de SAP IBP (copias de versión, ejecución de operadores, integración de datos CI-DS, etc.). Se leyeron en vivo {n} plantillas de job vía SAP_COM_0326. Para cada una se listan sus pasos en orden de ejecución; los pasos de integración de datos (CI-DS) se marcan con "Sí".',
+      s10none: 'No se obtuvieron Application Jobs: se requiere conexión a SAP IBP y que el servicio SAP_COM_0326 devuelva plantillas.',
+      s10sum: '10.1 Resumen de plantillas',
+      s10cols: ['Job', 'Descripción', 'N.º pasos', 'Pasos CI-DS'],
+      s10stepCols: ['#', 'Paso', 'Tipo de paso', 'CI-DS'],
+      s10yes: 'Sí',
+
       anexoA: 'Anexo A. Índice completo de Key Figures',
       anexoAintro: 'Listado de las {n} key figures con su nivel base, tipo, modo de agregación y expresión de cálculo.',
       anexoAcols: ['ID', 'Nombre', 'Nivel base', 'Tipo', 'Agregación', 'Definición de cálculo'],
@@ -111,6 +125,8 @@ const PADoc = (function () {
       anexoBintro: 'Detalle de todos los atributos de cada tipo de dato maestro, con su tipo, longitud, si es clave, si es obligatorio y la referencia a otros tipos.',
       anexoBcols: ['MDT', 'Atributo', 'Descripción', 'Tipo', 'Long.', 'Key', 'Req.', 'Ref. MDT'],
       s3mdtCols: ['ID', 'Nombre', 'Tipo', 'Atributos', 'En PA'],
+      s3mdtColRows: 'Registros (en vivo)',
+      s3mdtVol: 'Volumetría en vivo (SAP_COM_0720): {n} registros de datos maestros en total. Un guion (—) indica que ese tipo no expone una entidad de datos consultable o no devolvió volumen.',
       s3attrCols: ['MDT', 'Atributo', 'Descripción', 'Tipo', 'Long.', 'Categoría'],
       s4cols: ['Planning Level', 'Descripción', 'N.º attrs', 'Atributos (muestra)'],
       s8cols: ['Perfil', 'Descripción', 'Desde', 'Hasta', 'N.º', 'Operador', 'KF ID', 'KF Nombre']
@@ -180,6 +196,14 @@ const PADoc = (function () {
       s9noUom: 'No unit of measure conversions are configured in this Planning Area.',
       s9noCur: 'No currency conversions are configured in this Planning Area.',
 
+      s10: '10. Application Jobs and scheduled processes',
+      s10intro: 'Application Jobs are the schedulable tasks of the SAP IBP tenant (version copies, operator runs, CI-DS data integration, etc.). {n} job templates were read live via SAP_COM_0326. Each one lists its steps in execution order; data integration (CI-DS) steps are marked with "Yes".',
+      s10none: 'No Application Jobs were retrieved: a SAP IBP connection is required and the SAP_COM_0326 service must return templates.',
+      s10sum: '10.1 Templates summary',
+      s10cols: ['Job', 'Description', 'Steps', 'CI-DS steps'],
+      s10stepCols: ['#', 'Step', 'Step type', 'CI-DS'],
+      s10yes: 'Yes',
+
       anexoA: 'Appendix A. Full Key Figure index',
       anexoAintro: 'List of the {n} key figures with their base level, type, aggregation mode and calculation expression.',
       anexoAcols: ['ID', 'Name', 'Base level', 'Type', 'Aggregation', 'Calculation definition'],
@@ -187,6 +211,8 @@ const PADoc = (function () {
       anexoBintro: 'Detail of every attribute of each master data type, with its type, length, whether it is a key, whether it is required, and the reference to other types.',
       anexoBcols: ['MDT', 'Attribute', 'Description', 'Type', 'Len.', 'Key', 'Req.', 'Ref. MDT'],
       s3mdtCols: ['ID', 'Name', 'Type', 'Attributes', 'In PA'],
+      s3mdtColRows: 'Records (live)',
+      s3mdtVol: 'Live volumetry (SAP_COM_0720): {n} master data records in total. A dash (—) means that type exposes no queryable data entity or returned no volume.',
       s3attrCols: ['MDT', 'Attribute', 'Description', 'Type', 'Len.', 'Category'],
       s4cols: ['Planning Level', 'Description', '# attrs', 'Attributes (sample)'],
       s8cols: ['Profile', 'Description', 'From', 'To', 'Count', 'Operator', 'KF ID', 'KF Name']
@@ -326,7 +352,7 @@ const PADoc = (function () {
     if (btn) btn.disabled = Object.keys(padData).length === 0;
   }
   function reset() {
-    padData = {}; padPaId = ''; padLogo = null;
+    padData = {}; padPaId = ''; padLogo = null; padEnrich = null;
     const l = document.getElementById('padoc-log'); if (l) l.innerHTML = '';
     const fi = document.getElementById('padoc-fi'); if (fi) fi.value = '';
     renderStatus();
@@ -488,8 +514,21 @@ const PADoc = (function () {
       });
       b.push(heading(tr('s3mdt'), 2));
       b.push(prose(trf('s3mdtIntro', { n: Object.keys(byMdt).length, a: md.length })));
-      const rows = Object.keys(byMdt).sort().map(id => [id, byMdt[id].name, byMdt[id].type, String(byMdt[id].attrs), String(byMdt[id].used)]);
-      b.push(table(tr('s3mdtCols'), rows, { fontSize: 8 }));
+      // Volumetría en vivo (fase 2): añade columna de registros reales por MDT.
+      const counts = (padEnrich && padEnrich.mdtCounts) ? padEnrich.mdtCounts : null;
+      const cols = tr('s3mdtCols').slice();
+      if (counts) cols.push(tr('s3mdtColRows'));
+      let total = 0;
+      const rows = Object.keys(byMdt).sort().map(id => {
+        const r = [id, byMdt[id].name, byMdt[id].type, String(byMdt[id].attrs), String(byMdt[id].used)];
+        if (counts) {
+          const c = counts[id];
+          if (typeof c === 'number') { total += c; r.push(nf(c)); } else { r.push('—'); }
+        }
+        return r;
+      });
+      b.push(table(cols, rows, { fontSize: 8 }));
+      if (counts) b.push(prose(trf('s3mdtVol', { n: nf(total) })));
     }
     const paa = objs('PA_ATTRIBUTES');
     if (paa.length) {
@@ -595,6 +634,31 @@ const PADoc = (function () {
     return b;
   }
 
+  // Sección 10 — Application Jobs (fase 2, solo si hubo enriquecimiento en vivo).
+  function bAppJobs() {
+    const b = [heading(tr('s10'), 1)];
+    const jobs = (padEnrich && Array.isArray(padEnrich.appJobs)) ? padEnrich.appJobs : [];
+    if (!jobs.length) { b.push(prose(tr('s10none'))); b.push(pageBreak()); return b; }
+    b.push(prose(trf('s10intro', { n: jobs.length })));
+    b.push(heading(tr('s10sum'), 2));
+    const sumRows = jobs.map(j => {
+      const steps = j.steps || [];
+      const cids = steps.filter(s => s.cids).length;
+      return [j.text || j.name, j.name, String(steps.length), String(cids)];
+    });
+    b.push(table(tr('s10cols'), sumRows, { headerFill: '1F3864', fontSize: 9 }));
+    jobs.forEach((j, i) => {
+      b.push(heading('10.' + (i + 2) + ' ' + (j.text || j.name), 2));
+      const steps = (j.steps || []).slice().sort((a, c) => (a.pos - c.pos));
+      const rows = steps.length
+        ? steps.map(s => [String(s.pos || ''), s.name || '', s.type || '', s.cids ? tr('s10yes') : ''])
+        : [['', '—', '', '']];
+      b.push(table(tr('s10stepCols'), rows, { fontSize: 8 }));
+    });
+    b.push(pageBreak());
+    return b;
+  }
+
   function bAnexoKF() {
     const b = [heading(tr('anexoA'), 1)];
     const kf = objs('KEYFIGURES');
@@ -640,6 +704,7 @@ const PADoc = (function () {
   }
   function shortHdr(h) { return String(h).replace(/Planning Area Attribute/i, 'Attr').replace(/Master Data Type/i, 'MDT'); }
   function clip(s, n) { s = String(s || ''); return s.length > n ? s.slice(0, n) + '…' : s; }
+  function nf(n) { try { return Number(n).toLocaleString(L() === 'en' ? 'en-US' : 'es-CO'); } catch (_) { return String(n); } }
 
   /* ══════════════════════════════════════════════════════════════════════
      6. IMAGEN
@@ -692,7 +757,9 @@ const PADoc = (function () {
     const add = a => { body = body.concat(a); };
     add(bCover(meta)); add(bToc()); add(bResumen()); add(bGeneral()); add(bMasterData());
     add(bPlanningLevels()); add(bKeyFigures()); add(bVersions()); add(bOperators());
-    add(bSnapshots()); add(bConversions()); add(bAnexoKF()); add(bAnexoAttrs());
+    add(bSnapshots()); add(bConversions());
+    if (padEnrich) add(bAppJobs());
+    add(bAnexoKF()); add(bAnexoAttrs());
     return body;
   }
 
@@ -731,7 +798,132 @@ const PADoc = (function () {
   }
 
   /* ══════════════════════════════════════════════════════════════════════
-     8. UI
+     8. ENRIQUECIMIENTO EN VIVO (FASE 2)
+     ══════════════════════════════════════════════════════════════════════ */
+  // ¿Hay una conexión IBP utilizable? Depende de las globales del app (state.js/api.js).
+  function isConnected() {
+    return (typeof IS_CONNECTED !== 'undefined' && IS_CONNECTED) &&
+           (typeof CFG !== 'undefined' && CFG && !!CFG.url && !!CFG.user && !!CFG.pass);
+  }
+
+  // Sincroniza el toggle de enriquecimiento con el estado de conexión.
+  function updateEnrichUI() {
+    if (typeof document === 'undefined') return;
+    const wrap = document.querySelector('.padoc-phase2');
+    const cb   = document.getElementById('padoc-enrich');
+    const hint = document.getElementById('padoc-enrich-hint');
+    const on = isConnected();
+    if (wrap) wrap.classList.toggle('on', on);
+    if (cb) { cb.disabled = !on; if (!on) cb.checked = false; }
+    if (hint) {
+      hint.classList.toggle('ok', on);
+      hint.textContent = on
+        ? 'Conectado a SAP IBP: los Application Jobs se leerán al generar.'
+        : 'Requiere conexión a SAP IBP (pestaña Conexión).';
+    }
+  }
+
+  // Lee los Application Jobs vía SAP_COM_0326 (BC_EXT_APPJOB_MANAGEMENT).
+  // Mismo patrón validado en producción por docs.js: descubrir entity sets por
+  // $metadata (sin adivinar nombres), paginar con fetchAllPages, agrupar por job.
+  // Devuelve [{ name, text, steps:[{ pos, name, type, cids }] }].
+  async function fetchAppJobs(logEl) {
+    if (!isConnected()) throw new Error('Sin conexión a SAP IBP');
+    const base = CFG.url + SVC_APPJOB;
+
+    // 1. $metadata → entity sets reales
+    const entitySets = [];
+    const metaXml = await apiXml(base + '/$metadata');
+    new DOMParser().parseFromString(metaXml, 'text/xml')
+      .querySelectorAll('EntitySet').forEach(es => { const n = es.getAttribute('Name'); if (n) entitySets.push(n); });
+    const pick = (re, def) => entitySets.find(n => re.test(n)) || def;
+    const tmplES = pick(/^JobTemplateSet$/i) || pick(/JobTemplate(Set)?$/i) || 'JobTemplateSet';
+    const seqES  = pick(/^JobTemplateSequenceSet$/i) || pick(/Sequence/i) || 'JobTemplateSequenceSet';
+
+    // 2. Plantillas + pasos
+    if (logEl) log(logEl, 'info', '  ↳ Plantillas de job (' + tmplES + ')…');
+    const templates = await fetchAllPages(base + '/' + tmplES, logEl);
+    if (logEl) log(logEl, 'info', '  ↳ Pasos (' + seqES + ')…');
+    const steps = await fetchAllPages(base + '/' + seqES, logEl);
+
+    // 3. Texto descriptivo por plantilla
+    const textByName = {};
+    templates.forEach(t => {
+      const nm = getLike(t, 'JobTemplateName') || getLike(t, 'TemplateName') || getLike(t, 'Name');
+      if (nm) textByName[nm] = getLike(t, 'JobTemplateText') || getLike(t, 'Text') || nm;
+    });
+
+    // 4. Agrupar pasos por plantilla; marcar pasos CI-DS
+    const byJob = {};
+    steps.forEach(s => {
+      const job = getLike(s, 'JobTemplateName');
+      if (!job) return;
+      const jce = getLike(s, 'JceText') || '';
+      (byJob[job] || (byJob[job] = [])).push({
+        pos:  parseInt(getLike(s, 'JobSequencePosition'), 10) || 0,
+        name: getLike(s, 'JobSequenceText') || getLike(s, 'JobSequenceName') || '',
+        type: jce,
+        cids: jce.toUpperCase().indexOf(JCE_DATA_INT) >= 0
+      });
+    });
+
+    // 5. Lista final — desde plantillas si las hay; si no, desde los pasos
+    let names = templates.length
+      ? templates.map(t => getLike(t, 'JobTemplateName') || getLike(t, 'TemplateName') || getLike(t, 'Name'))
+      : Object.keys(byJob);
+    const seen = {};
+    names = names.filter(n => n && !seen[n] && (seen[n] = true));
+    names.sort();
+    return names.map(name => ({
+      name: name,
+      text: textByName[name] || name,
+      steps: (byJob[name] || []).slice().sort((a, c) => a.pos - c.pos)
+    }));
+  }
+
+  // Cuenta registros reales por Master Data Type vía SAP_COM_0720 (MASTER_DATA_API_SRV).
+  // Descubre las entity sets por $metadata y cruza por nombre EXACTO con los MDT ID de
+  // los CSV: en IBP el EntitySet base de un MDT se llama igual que su technical ID
+  // (validado contra un tenant real). Conteo eficiente OData v2 sin traer filas:
+  // $top=1&$inlinecount=allpages → d.__count. Devuelve { <MDT_ID>: number|null }.
+  async function fetchMdtCounts(logEl) {
+    if (!isConnected()) throw new Error('Sin conexión a SAP IBP');
+    const md = objs('MASTERDATATYPES');
+    const ids = [...new Set(md.map(o => getLike(o, 'Master Data Type ID')).filter(Boolean))];
+    if (!ids.length) return {};
+    const base = CFG.url + '/sap/opu/odata/IBP/MASTER_DATA_API_SRV';
+
+    // $metadata -> entity sets reales (indice case-insensitive), sin adivinar nombres
+    const metaXml = await apiXml(base + '/$metadata');
+    const byUpper = {};
+    new DOMParser().parseFromString(metaXml, 'text/xml')
+      .querySelectorAll('EntitySet').forEach(es => { const n = es.getAttribute('Name'); if (n) byUpper[n.toUpperCase()] = n; });
+
+    const targets = ids.map(id => ({ id: id, es: byUpper[id.toUpperCase()] || null }));
+    const withES = targets.filter(t => t.es).length;
+    if (logEl) log(logEl, 'info', '  ↳ Volumetría de ' + withES + '/' + ids.length + ' tipos de datos maestros…');
+
+    // Conteo con pool de concurrencia acotado (el manual recomienda ~6 en paralelo)
+    const counts = {};
+    const queue = targets.slice();
+    async function worker() {
+      while (queue.length) {
+        const t = queue.shift();
+        if (!t.es) { counts[t.id] = null; continue; }
+        try {
+          const data = await apiJson(base + '/' + t.es + '?$format=json&$top=1&$inlinecount=allpages');
+          const c = (data && data.d) ? data.d.__count : undefined;
+          const n = parseInt(c, 10);
+          counts[t.id] = isNaN(n) ? null : n;
+        } catch (e) { counts[t.id] = null; }
+      }
+    }
+    await Promise.all(Array.from({ length: Math.min(6, targets.length) }, worker));
+    return counts;
+  }
+
+  /* ══════════════════════════════════════════════════════════════════════
+     9. UI
      ══════════════════════════════════════════════════════════════════════ */
   async function generate() {
     if (typeof document === 'undefined') return;
@@ -746,6 +938,32 @@ const PADoc = (function () {
     const btn = document.getElementById('padoc-gen-btn');
     if (btn) { btn.disabled = true; btn.textContent = '⏳ …'; }
     try {
+      // Fase 2 — enriquecimiento en vivo opcional. Cada fuente es independiente y su
+      // fallo NO aborta la generación: se documenta lo offline y se avisa en el log.
+      padEnrich = null;
+      const enrichCb = document.getElementById('padoc-enrich');
+      if (enrichCb && enrichCb.checked && !enrichCb.disabled) {
+        padEnrich = { appJobs: [], mdtCounts: null };
+        // (a) Volumetría de datos maestros — SAP_COM_0720
+        try {
+          if (logEl) log(logEl, 'info', 'Enriqueciendo: volumetría de datos maestros (SAP_COM_0720)…');
+          padEnrich.mdtCounts = await fetchMdtCounts(logEl);
+          const n = Object.values(padEnrich.mdtCounts).filter(v => typeof v === 'number').length;
+          if (logEl) log(logEl, 'ok', 'Volumetría obtenida para ' + n + ' tipo(s) de datos maestros.');
+        } catch (e2) {
+          padEnrich.mdtCounts = null;
+          if (logEl) log(logEl, 'warn', 'No se pudo obtener volumetría de maestros: ' + e2.message + '.');
+        }
+        // (b) Application Jobs — SAP_COM_0326
+        try {
+          if (logEl) log(logEl, 'info', 'Enriqueciendo: Application Jobs (SAP_COM_0326)…');
+          padEnrich.appJobs = await fetchAppJobs(logEl);
+          if (logEl) log(logEl, 'ok', 'Application Jobs leídos: ' + padEnrich.appJobs.length + ' plantilla(s).');
+        } catch (e3) {
+          padEnrich.appJobs = [];
+          if (logEl) log(logEl, 'warn', 'No se pudo leer Application Jobs: ' + e3.message + '.');
+        }
+      }
       if (!padGoscm) padGoscm = await loadAsset('logo-goscm.png');   // marca GoSCM embebida
       if (logEl) log(logEl, 'info', 'Construyendo documento (' + L() + ')…');
       const buf = await buildDocxBuffer(meta);
@@ -771,6 +989,11 @@ const PADoc = (function () {
     }
     const logoFi = document.getElementById('padoc-logo-fi');
     if (logoFi) logoFi.addEventListener('change', e => setLogoFile(e.target.files[0]));
+    // Fase 2: el toggle de enriquecimiento se habilita según el estado de conexión.
+    // Se re-evalúa al abrir la pestaña (la conexión puede establecerse en otra).
+    updateEnrichUI();
+    const tabBtn = document.getElementById('tabBtn-padoc');
+    if (tabBtn) tabBtn.addEventListener('click', updateEnrichUI);
     renderStatus();
   }
   if (typeof document !== 'undefined') {
@@ -779,8 +1002,8 @@ const PADoc = (function () {
   }
 
   return {
-    addFiles, setLogoFile, generate, reset,
-    _test: { ingestCsvText, buildDocxBuffer, parseCSV, detectSection, setLogos: (c, g) => { padLogo = c; padGoscm = g; }, get state() { return { padData, padPaId }; } }
+    addFiles, setLogoFile, generate, reset, refreshConn: updateEnrichUI,
+    _test: { ingestCsvText, buildDocxBuffer, parseCSV, detectSection, setLogos: (c, g) => { padLogo = c; padGoscm = g; }, setEnrich: (e) => { padEnrich = e; }, get state() { return { padData, padPaId, padEnrich }; } }
   };
 })();
 
