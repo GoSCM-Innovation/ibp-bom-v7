@@ -1959,9 +1959,10 @@
 
     <!-- 3. Enriquecimiento en vivo (fase 2) -->
     <div class="panel padoc-phase2">
-      <div class="panel-title">🔌 Enriquecer con datos en vivo · SAP_COM_0720</div>
-      <p class="panel-desc">Al conectar a SAP IBP se añadirá volumetría real (conteos por dato maestro, versiones del área y valores distintos de atributos). <em>En desarrollo — fase 2.</em></p>
-      <label class="padoc-toggle"><input type="checkbox" id="padoc-enrich" disabled> Activar enriquecimiento (no disponible aún)</label>
+      <div class="panel-title">🔌 Enriquecer con datos en vivo · SAP IBP</div>
+      <p class="panel-desc">Con una conexión activa a SAP IBP se añaden al documento los <b>Application Jobs</b> del tenant (SAP_COM_0326): plantillas de proceso y sus pasos, marcando los pasos de integración CI-DS. <em>Volumetría de datos maestros (SAP_COM_0720) en desarrollo.</em></p>
+      <label class="padoc-toggle"><input type="checkbox" id="padoc-enrich" disabled> Añadir Application Jobs al documento</label>
+      <div id="padoc-enrich-hint" class="padoc-enrich-hint">Requiere conexión a SAP IBP (pestaña Conexión).</div>
     </div>
 
     <!-- 4. Generar -->

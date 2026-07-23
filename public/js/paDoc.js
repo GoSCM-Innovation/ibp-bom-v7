@@ -32,6 +32,12 @@ const PADoc = (function () {
   let padPaId = '';
   let padLogo = null;    // logo cliente  { b64, ext, w, h }
   let padGoscm = null;   // logo GoSCM    { b64, ext, w, h }
+  let padEnrich = null;  // datos en vivo (fase 2): { appJobs: [{name, text, steps:[]}] }
+
+  // Fase 2 — enriquecimiento en vivo (Application Jobs vía SAP_COM_0326).
+  // Mismo servicio/patrón ya validado en producción por docs.js.
+  const SVC_APPJOB   = '/sap/opu/odata/sap/BC_EXT_APPJOB_MANAGEMENT;v=0002';
+  const JCE_DATA_INT = 'DATA INTEGRATION';  // JceText que marca un paso CI-DS
 
   /* ══════════════════════════════════════════════════════════════════════
      0. IDIOMA / DICCIONARIO DEL DOCUMENTO
@@ -103,6 +109,14 @@ const PADoc = (function () {
       s9uom: '9.1 Conversiones de unidad de medida', s9cur: '9.2 Conversiones de moneda',
       s9noUom: 'No hay conversiones de unidad de medida configuradas en este Planning Area.',
       s9noCur: 'No hay conversiones de moneda configuradas en este Planning Area.',
+
+      s10: '10. Application Jobs y procesos programados',
+      s10intro: 'Los Application Jobs son las tareas programables del tenant de SAP IBP (copias de versión, ejecución de operadores, integración de datos CI-DS, etc.). Se leyeron en vivo {n} plantillas de job vía SAP_COM_0326. Para cada una se listan sus pasos en orden de ejecución; los pasos de integración de datos (CI-DS) se marcan con "Sí".',
+      s10none: 'No se obtuvieron Application Jobs: se requiere conexión a SAP IBP y que el servicio SAP_COM_0326 devuelva plantillas.',
+      s10sum: '10.1 Resumen de plantillas',
+      s10cols: ['Job', 'Descripción', 'N.º pasos', 'Pasos CI-DS'],
+      s10stepCols: ['#', 'Paso', 'Tipo de paso', 'CI-DS'],
+      s10yes: 'Sí',
 
       anexoA: 'Anexo A. Índice completo de Key Figures',
       anexoAintro: 'Listado de las {n} key figures con su nivel base, tipo, modo de agregación y expresión de cálculo.',
@@ -179,6 +193,14 @@ const PADoc = (function () {
       s9uom: '9.1 Unit of measure conversions', s9cur: '9.2 Currency conversions',
       s9noUom: 'No unit of measure conversions are configured in this Planning Area.',
       s9noCur: 'No currency conversions are configured in this Planning Area.',
+
+      s10: '10. Application Jobs and scheduled processes',
+      s10intro: 'Application Jobs are the schedulable tasks of the SAP IBP tenant (version copies, operator runs, CI-DS data integration, etc.). {n} job templates were read live via SAP_COM_0326. Each one lists its steps in execution order; data integration (CI-DS) steps are marked with "Yes".',
+      s10none: 'No Application Jobs were retrieved: a SAP IBP connection is required and the SAP_COM_0326 service must return templates.',
+      s10sum: '10.1 Templates summary',
+      s10cols: ['Job', 'Description', 'Steps', 'CI-DS steps'],
+      s10stepCols: ['#', 'Step', 'Step type', 'CI-DS'],
+      s10yes: 'Yes',
 
       anexoA: 'Appendix A. Full Key Figure index',
       anexoAintro: 'List of the {n} key figures with their base level, type, aggregation mode and calculation expression.',
@@ -326,7 +348,7 @@ const PADoc = (function () {
     if (btn) btn.disabled = Object.keys(padData).length === 0;
   }
   function reset() {
-    padData = {}; padPaId = ''; padLogo = null;
+    padData = {}; padPaId = ''; padLogo = null; padEnrich = null;
     const l = document.getElementById('padoc-log'); if (l) l.innerHTML = '';
     const fi = document.getElementById('padoc-fi'); if (fi) fi.value = '';
     renderStatus();
@@ -595,6 +617,31 @@ const PADoc = (function () {
     return b;
   }
 
+  // Sección 10 — Application Jobs (fase 2, solo si hubo enriquecimiento en vivo).
+  function bAppJobs() {
+    const b = [heading(tr('s10'), 1)];
+    const jobs = (padEnrich && Array.isArray(padEnrich.appJobs)) ? padEnrich.appJobs : [];
+    if (!jobs.length) { b.push(prose(tr('s10none'))); b.push(pageBreak()); return b; }
+    b.push(prose(trf('s10intro', { n: jobs.length })));
+    b.push(heading(tr('s10sum'), 2));
+    const sumRows = jobs.map(j => {
+      const steps = j.steps || [];
+      const cids = steps.filter(s => s.cids).length;
+      return [j.text || j.name, j.name, String(steps.length), String(cids)];
+    });
+    b.push(table(tr('s10cols'), sumRows, { headerFill: '1F3864', fontSize: 9 }));
+    jobs.forEach((j, i) => {
+      b.push(heading('10.' + (i + 2) + ' ' + (j.text || j.name), 2));
+      const steps = (j.steps || []).slice().sort((a, c) => (a.pos - c.pos));
+      const rows = steps.length
+        ? steps.map(s => [String(s.pos || ''), s.name || '', s.type || '', s.cids ? tr('s10yes') : ''])
+        : [['', '—', '', '']];
+      b.push(table(tr('s10stepCols'), rows, { fontSize: 8 }));
+    });
+    b.push(pageBreak());
+    return b;
+  }
+
   function bAnexoKF() {
     const b = [heading(tr('anexoA'), 1)];
     const kf = objs('KEYFIGURES');
@@ -692,7 +739,9 @@ const PADoc = (function () {
     const add = a => { body = body.concat(a); };
     add(bCover(meta)); add(bToc()); add(bResumen()); add(bGeneral()); add(bMasterData());
     add(bPlanningLevels()); add(bKeyFigures()); add(bVersions()); add(bOperators());
-    add(bSnapshots()); add(bConversions()); add(bAnexoKF()); add(bAnexoAttrs());
+    add(bSnapshots()); add(bConversions());
+    if (padEnrich) add(bAppJobs());
+    add(bAnexoKF()); add(bAnexoAttrs());
     return body;
   }
 
@@ -731,7 +780,91 @@ const PADoc = (function () {
   }
 
   /* ══════════════════════════════════════════════════════════════════════
-     8. UI
+     8. ENRIQUECIMIENTO EN VIVO (FASE 2)
+     ══════════════════════════════════════════════════════════════════════ */
+  // ¿Hay una conexión IBP utilizable? Depende de las globales del app (state.js/api.js).
+  function isConnected() {
+    return (typeof IS_CONNECTED !== 'undefined' && IS_CONNECTED) &&
+           (typeof CFG !== 'undefined' && CFG && !!CFG.url && !!CFG.user && !!CFG.pass);
+  }
+
+  // Sincroniza el toggle de enriquecimiento con el estado de conexión.
+  function updateEnrichUI() {
+    if (typeof document === 'undefined') return;
+    const wrap = document.querySelector('.padoc-phase2');
+    const cb   = document.getElementById('padoc-enrich');
+    const hint = document.getElementById('padoc-enrich-hint');
+    const on = isConnected();
+    if (wrap) wrap.classList.toggle('on', on);
+    if (cb) { cb.disabled = !on; if (!on) cb.checked = false; }
+    if (hint) {
+      hint.classList.toggle('ok', on);
+      hint.textContent = on
+        ? 'Conectado a SAP IBP: los Application Jobs se leerán al generar.'
+        : 'Requiere conexión a SAP IBP (pestaña Conexión).';
+    }
+  }
+
+  // Lee los Application Jobs vía SAP_COM_0326 (BC_EXT_APPJOB_MANAGEMENT).
+  // Mismo patrón validado en producción por docs.js: descubrir entity sets por
+  // $metadata (sin adivinar nombres), paginar con fetchAllPages, agrupar por job.
+  // Devuelve [{ name, text, steps:[{ pos, name, type, cids }] }].
+  async function fetchAppJobs(logEl) {
+    if (!isConnected()) throw new Error('Sin conexión a SAP IBP');
+    const base = CFG.url + SVC_APPJOB;
+
+    // 1. $metadata → entity sets reales
+    const entitySets = [];
+    const metaXml = await apiXml(base + '/$metadata');
+    new DOMParser().parseFromString(metaXml, 'text/xml')
+      .querySelectorAll('EntitySet').forEach(es => { const n = es.getAttribute('Name'); if (n) entitySets.push(n); });
+    const pick = (re, def) => entitySets.find(n => re.test(n)) || def;
+    const tmplES = pick(/^JobTemplateSet$/i) || pick(/JobTemplate(Set)?$/i) || 'JobTemplateSet';
+    const seqES  = pick(/^JobTemplateSequenceSet$/i) || pick(/Sequence/i) || 'JobTemplateSequenceSet';
+
+    // 2. Plantillas + pasos
+    if (logEl) log(logEl, 'info', '  ↳ Plantillas de job (' + tmplES + ')…');
+    const templates = await fetchAllPages(base + '/' + tmplES, logEl);
+    if (logEl) log(logEl, 'info', '  ↳ Pasos (' + seqES + ')…');
+    const steps = await fetchAllPages(base + '/' + seqES, logEl);
+
+    // 3. Texto descriptivo por plantilla
+    const textByName = {};
+    templates.forEach(t => {
+      const nm = getLike(t, 'JobTemplateName') || getLike(t, 'TemplateName') || getLike(t, 'Name');
+      if (nm) textByName[nm] = getLike(t, 'JobTemplateText') || getLike(t, 'Text') || nm;
+    });
+
+    // 4. Agrupar pasos por plantilla; marcar pasos CI-DS
+    const byJob = {};
+    steps.forEach(s => {
+      const job = getLike(s, 'JobTemplateName');
+      if (!job) return;
+      const jce = getLike(s, 'JceText') || '';
+      (byJob[job] || (byJob[job] = [])).push({
+        pos:  parseInt(getLike(s, 'JobSequencePosition'), 10) || 0,
+        name: getLike(s, 'JobSequenceText') || getLike(s, 'JobSequenceName') || '',
+        type: jce,
+        cids: jce.toUpperCase().indexOf(JCE_DATA_INT) >= 0
+      });
+    });
+
+    // 5. Lista final — desde plantillas si las hay; si no, desde los pasos
+    let names = templates.length
+      ? templates.map(t => getLike(t, 'JobTemplateName') || getLike(t, 'TemplateName') || getLike(t, 'Name'))
+      : Object.keys(byJob);
+    const seen = {};
+    names = names.filter(n => n && !seen[n] && (seen[n] = true));
+    names.sort();
+    return names.map(name => ({
+      name: name,
+      text: textByName[name] || name,
+      steps: (byJob[name] || []).slice().sort((a, c) => a.pos - c.pos)
+    }));
+  }
+
+  /* ══════════════════════════════════════════════════════════════════════
+     9. UI
      ══════════════════════════════════════════════════════════════════════ */
   async function generate() {
     if (typeof document === 'undefined') return;
@@ -746,6 +879,21 @@ const PADoc = (function () {
     const btn = document.getElementById('padoc-gen-btn');
     if (btn) { btn.disabled = true; btn.textContent = '⏳ …'; }
     try {
+      // Fase 2 — enriquecimiento en vivo opcional (Application Jobs vía SAP_COM_0326).
+      // Un fallo de red NO aborta la generación: se documenta lo offline y se avisa.
+      padEnrich = null;
+      const enrichCb = document.getElementById('padoc-enrich');
+      if (enrichCb && enrichCb.checked && !enrichCb.disabled) {
+        try {
+          if (logEl) log(logEl, 'info', 'Enriqueciendo con Application Jobs (SAP_COM_0326)…');
+          const jobs = await fetchAppJobs(logEl);
+          padEnrich = { appJobs: jobs };
+          if (logEl) log(logEl, 'ok', 'Application Jobs leídos: ' + jobs.length + ' plantilla(s).');
+        } catch (e2) {
+          padEnrich = null;
+          if (logEl) log(logEl, 'warn', 'No se pudo enriquecer con Application Jobs: ' + e2.message + '. Se genera sin esa sección.');
+        }
+      }
       if (!padGoscm) padGoscm = await loadAsset('logo-goscm.png');   // marca GoSCM embebida
       if (logEl) log(logEl, 'info', 'Construyendo documento (' + L() + ')…');
       const buf = await buildDocxBuffer(meta);
@@ -771,6 +919,11 @@ const PADoc = (function () {
     }
     const logoFi = document.getElementById('padoc-logo-fi');
     if (logoFi) logoFi.addEventListener('change', e => setLogoFile(e.target.files[0]));
+    // Fase 2: el toggle de enriquecimiento se habilita según el estado de conexión.
+    // Se re-evalúa al abrir la pestaña (la conexión puede establecerse en otra).
+    updateEnrichUI();
+    const tabBtn = document.getElementById('tabBtn-padoc');
+    if (tabBtn) tabBtn.addEventListener('click', updateEnrichUI);
     renderStatus();
   }
   if (typeof document !== 'undefined') {
@@ -779,8 +932,8 @@ const PADoc = (function () {
   }
 
   return {
-    addFiles, setLogoFile, generate, reset,
-    _test: { ingestCsvText, buildDocxBuffer, parseCSV, detectSection, setLogos: (c, g) => { padLogo = c; padGoscm = g; }, get state() { return { padData, padPaId }; } }
+    addFiles, setLogoFile, generate, reset, refreshConn: updateEnrichUI,
+    _test: { ingestCsvText, buildDocxBuffer, parseCSV, detectSection, setLogos: (c, g) => { padLogo = c; padGoscm = g; }, setEnrich: (e) => { padEnrich = e; }, get state() { return { padData, padPaId, padEnrich }; } }
   };
 })();
 
