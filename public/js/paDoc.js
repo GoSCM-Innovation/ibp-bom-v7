@@ -125,6 +125,8 @@ const PADoc = (function () {
       anexoBintro: 'Detalle de todos los atributos de cada tipo de dato maestro, con su tipo, longitud, si es clave, si es obligatorio y la referencia a otros tipos.',
       anexoBcols: ['MDT', 'Atributo', 'Descripción', 'Tipo', 'Long.', 'Key', 'Req.', 'Ref. MDT'],
       s3mdtCols: ['ID', 'Nombre', 'Tipo', 'Atributos', 'En PA'],
+      s3mdtColRows: 'Registros (en vivo)',
+      s3mdtVol: 'Volumetría en vivo (SAP_COM_0720): {n} registros de datos maestros en total. Un guion (—) indica que ese tipo no expone una entidad de datos consultable o no devolvió volumen.',
       s3attrCols: ['MDT', 'Atributo', 'Descripción', 'Tipo', 'Long.', 'Categoría'],
       s4cols: ['Planning Level', 'Descripción', 'N.º attrs', 'Atributos (muestra)'],
       s8cols: ['Perfil', 'Descripción', 'Desde', 'Hasta', 'N.º', 'Operador', 'KF ID', 'KF Nombre']
@@ -209,6 +211,8 @@ const PADoc = (function () {
       anexoBintro: 'Detail of every attribute of each master data type, with its type, length, whether it is a key, whether it is required, and the reference to other types.',
       anexoBcols: ['MDT', 'Attribute', 'Description', 'Type', 'Len.', 'Key', 'Req.', 'Ref. MDT'],
       s3mdtCols: ['ID', 'Name', 'Type', 'Attributes', 'In PA'],
+      s3mdtColRows: 'Records (live)',
+      s3mdtVol: 'Live volumetry (SAP_COM_0720): {n} master data records in total. A dash (—) means that type exposes no queryable data entity or returned no volume.',
       s3attrCols: ['MDT', 'Attribute', 'Description', 'Type', 'Len.', 'Category'],
       s4cols: ['Planning Level', 'Description', '# attrs', 'Attributes (sample)'],
       s8cols: ['Profile', 'Description', 'From', 'To', 'Count', 'Operator', 'KF ID', 'KF Name']
@@ -510,8 +514,21 @@ const PADoc = (function () {
       });
       b.push(heading(tr('s3mdt'), 2));
       b.push(prose(trf('s3mdtIntro', { n: Object.keys(byMdt).length, a: md.length })));
-      const rows = Object.keys(byMdt).sort().map(id => [id, byMdt[id].name, byMdt[id].type, String(byMdt[id].attrs), String(byMdt[id].used)]);
-      b.push(table(tr('s3mdtCols'), rows, { fontSize: 8 }));
+      // Volumetría en vivo (fase 2): añade columna de registros reales por MDT.
+      const counts = (padEnrich && padEnrich.mdtCounts) ? padEnrich.mdtCounts : null;
+      const cols = tr('s3mdtCols').slice();
+      if (counts) cols.push(tr('s3mdtColRows'));
+      let total = 0;
+      const rows = Object.keys(byMdt).sort().map(id => {
+        const r = [id, byMdt[id].name, byMdt[id].type, String(byMdt[id].attrs), String(byMdt[id].used)];
+        if (counts) {
+          const c = counts[id];
+          if (typeof c === 'number') { total += c; r.push(nf(c)); } else { r.push('—'); }
+        }
+        return r;
+      });
+      b.push(table(cols, rows, { fontSize: 8 }));
+      if (counts) b.push(prose(trf('s3mdtVol', { n: nf(total) })));
     }
     const paa = objs('PA_ATTRIBUTES');
     if (paa.length) {
@@ -687,6 +704,7 @@ const PADoc = (function () {
   }
   function shortHdr(h) { return String(h).replace(/Planning Area Attribute/i, 'Attr').replace(/Master Data Type/i, 'MDT'); }
   function clip(s, n) { s = String(s || ''); return s.length > n ? s.slice(0, n) + '…' : s; }
+  function nf(n) { try { return Number(n).toLocaleString(L() === 'en' ? 'en-US' : 'es-CO'); } catch (_) { return String(n); } }
 
   /* ══════════════════════════════════════════════════════════════════════
      6. IMAGEN
@@ -863,6 +881,47 @@ const PADoc = (function () {
     }));
   }
 
+  // Cuenta registros reales por Master Data Type vía SAP_COM_0720 (MASTER_DATA_API_SRV).
+  // Descubre las entity sets por $metadata y cruza por nombre EXACTO con los MDT ID de
+  // los CSV: en IBP el EntitySet base de un MDT se llama igual que su technical ID
+  // (validado contra un tenant real). Conteo eficiente OData v2 sin traer filas:
+  // $top=1&$inlinecount=allpages → d.__count. Devuelve { <MDT_ID>: number|null }.
+  async function fetchMdtCounts(logEl) {
+    if (!isConnected()) throw new Error('Sin conexión a SAP IBP');
+    const md = objs('MASTERDATATYPES');
+    const ids = [...new Set(md.map(o => getLike(o, 'Master Data Type ID')).filter(Boolean))];
+    if (!ids.length) return {};
+    const base = CFG.url + '/sap/opu/odata/IBP/MASTER_DATA_API_SRV';
+
+    // $metadata -> entity sets reales (indice case-insensitive), sin adivinar nombres
+    const metaXml = await apiXml(base + '/$metadata');
+    const byUpper = {};
+    new DOMParser().parseFromString(metaXml, 'text/xml')
+      .querySelectorAll('EntitySet').forEach(es => { const n = es.getAttribute('Name'); if (n) byUpper[n.toUpperCase()] = n; });
+
+    const targets = ids.map(id => ({ id: id, es: byUpper[id.toUpperCase()] || null }));
+    const withES = targets.filter(t => t.es).length;
+    if (logEl) log(logEl, 'info', '  ↳ Volumetría de ' + withES + '/' + ids.length + ' tipos de datos maestros…');
+
+    // Conteo con pool de concurrencia acotado (el manual recomienda ~6 en paralelo)
+    const counts = {};
+    const queue = targets.slice();
+    async function worker() {
+      while (queue.length) {
+        const t = queue.shift();
+        if (!t.es) { counts[t.id] = null; continue; }
+        try {
+          const data = await apiJson(base + '/' + t.es + '?$format=json&$top=1&$inlinecount=allpages');
+          const c = (data && data.d) ? data.d.__count : undefined;
+          const n = parseInt(c, 10);
+          counts[t.id] = isNaN(n) ? null : n;
+        } catch (e) { counts[t.id] = null; }
+      }
+    }
+    await Promise.all(Array.from({ length: Math.min(6, targets.length) }, worker));
+    return counts;
+  }
+
   /* ══════════════════════════════════════════════════════════════════════
      9. UI
      ══════════════════════════════════════════════════════════════════════ */
@@ -879,19 +938,30 @@ const PADoc = (function () {
     const btn = document.getElementById('padoc-gen-btn');
     if (btn) { btn.disabled = true; btn.textContent = '⏳ …'; }
     try {
-      // Fase 2 — enriquecimiento en vivo opcional (Application Jobs vía SAP_COM_0326).
-      // Un fallo de red NO aborta la generación: se documenta lo offline y se avisa.
+      // Fase 2 — enriquecimiento en vivo opcional. Cada fuente es independiente y su
+      // fallo NO aborta la generación: se documenta lo offline y se avisa en el log.
       padEnrich = null;
       const enrichCb = document.getElementById('padoc-enrich');
       if (enrichCb && enrichCb.checked && !enrichCb.disabled) {
+        padEnrich = { appJobs: [], mdtCounts: null };
+        // (a) Volumetría de datos maestros — SAP_COM_0720
         try {
-          if (logEl) log(logEl, 'info', 'Enriqueciendo con Application Jobs (SAP_COM_0326)…');
-          const jobs = await fetchAppJobs(logEl);
-          padEnrich = { appJobs: jobs };
-          if (logEl) log(logEl, 'ok', 'Application Jobs leídos: ' + jobs.length + ' plantilla(s).');
+          if (logEl) log(logEl, 'info', 'Enriqueciendo: volumetría de datos maestros (SAP_COM_0720)…');
+          padEnrich.mdtCounts = await fetchMdtCounts(logEl);
+          const n = Object.values(padEnrich.mdtCounts).filter(v => typeof v === 'number').length;
+          if (logEl) log(logEl, 'ok', 'Volumetría obtenida para ' + n + ' tipo(s) de datos maestros.');
         } catch (e2) {
-          padEnrich = null;
-          if (logEl) log(logEl, 'warn', 'No se pudo enriquecer con Application Jobs: ' + e2.message + '. Se genera sin esa sección.');
+          padEnrich.mdtCounts = null;
+          if (logEl) log(logEl, 'warn', 'No se pudo obtener volumetría de maestros: ' + e2.message + '.');
+        }
+        // (b) Application Jobs — SAP_COM_0326
+        try {
+          if (logEl) log(logEl, 'info', 'Enriqueciendo: Application Jobs (SAP_COM_0326)…');
+          padEnrich.appJobs = await fetchAppJobs(logEl);
+          if (logEl) log(logEl, 'ok', 'Application Jobs leídos: ' + padEnrich.appJobs.length + ' plantilla(s).');
+        } catch (e3) {
+          padEnrich.appJobs = [];
+          if (logEl) log(logEl, 'warn', 'No se pudo leer Application Jobs: ' + e3.message + '.');
         }
       }
       if (!padGoscm) padGoscm = await loadAsset('logo-goscm.png');   // marca GoSCM embebida
