@@ -1779,15 +1779,29 @@
   gap: 6px;
 }
 .padoc-chk {
-  display: flex; align-items: baseline; gap: 6px;
-  font-size: 0.78rem; font-family: var(--mono);
-  padding: 6px 10px; border-radius: var(--r-sm);
+  display: flex; align-items: center; gap: 8px;
+  font-size: 0.76rem; font-family: var(--mono);
+  padding: 7px 10px; border-radius: var(--r-sm);
   background: var(--bg); border: 1px solid var(--border);
+  min-width: 0;
 }
 .padoc-chk.on { border-color: rgba(52, 211, 153, .5); color: var(--text); }
-.padoc-chk.on > span:first-child { color: var(--green); font-weight: 700; }
 .padoc-chk.off { color: var(--text3); }
-.padoc-chk em { margin-left: auto; font-style: normal; color: var(--text2); font-size: 0.72rem; }
+.padoc-chk-ico {
+  flex: 0 0 auto; display: inline-flex; align-items: center; justify-content: center;
+  width: 16px; height: 16px; border-radius: 50%; font-size: 0.7rem; line-height: 1;
+  background: var(--border); color: var(--text3);
+}
+.padoc-chk.on .padoc-chk-ico { background: rgba(52, 211, 153, .18); color: var(--green); font-weight: 700; }
+.padoc-chk-name {
+  flex: 1 1 auto; min-width: 0;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.padoc-chk em {
+  flex: 0 0 auto; margin-left: auto; padding-left: 4px;
+  font-style: normal; color: var(--text2); font-size: 0.7rem; white-space: nowrap;
+}
+.padoc-chk.off em { color: var(--text3); }
 
 .padoc-form {
   display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
@@ -1801,6 +1815,40 @@
 }
 .padoc-field input[type="text"]:focus { outline: none; border-color: var(--accent); }
 .padoc-field input[type="file"] { font-size: 0.78rem; color: var(--text2); }
+
+/* Control de logo del cliente — zona de carga estilizada */
+.padoc-field-logo { position: relative; }
+.padoc-field-logo input[type="file"] {
+  position: absolute; inset: 22px 0 0 0; opacity: 0; cursor: pointer;
+  width: 100%; height: calc(100% - 22px);
+}
+.padoc-logo-ctl {
+  display: flex; align-items: center; gap: 12px;
+  border: 1.5px dashed var(--border2); border-radius: var(--r);
+  background: var(--surface2); padding: 12px; min-height: 62px;
+  transition: border-color .2s ease, background .2s ease, box-shadow .2s ease;
+}
+.padoc-field-logo:hover .padoc-logo-ctl {
+  border-color: var(--accent); background: rgba(247, 168, 0, 0.05);
+  box-shadow: 0 0 0 3px rgba(247, 168, 0, 0.12);
+}
+.padoc-logo-ctl.has-logo { border-style: solid; border-color: var(--border); }
+.padoc-logo-ico { font-size: 1.6rem; line-height: 1; flex: 0 0 auto; }
+.padoc-logo-cta, .padoc-logo-meta { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.padoc-logo-cta b, .padoc-logo-meta b { font-size: 0.85rem; color: var(--text); font-weight: 600;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.padoc-logo-cta em, .padoc-logo-meta em { font-style: normal; font-size: 0.74rem; color: var(--text2); }
+.padoc-logo-thumb {
+  flex: 0 0 auto; width: 72px; height: 44px; object-fit: contain;
+  background: #fff; border-radius: var(--r-sm); padding: 3px; border: 1px solid var(--border);
+}
+.padoc-logo-clear {
+  flex: 0 0 auto; margin-left: auto; z-index: 1; position: relative;
+  width: 26px; height: 26px; border-radius: 50%; cursor: pointer;
+  background: var(--bg); border: 1px solid var(--border); color: var(--text2);
+  font-size: 0.8rem; line-height: 1; transition: all .15s ease;
+}
+.padoc-logo-clear:hover { border-color: var(--red); color: var(--red); }
 
 .padoc-phase2 { opacity: .72; }
 .padoc-phase2.on { opacity: 1; }

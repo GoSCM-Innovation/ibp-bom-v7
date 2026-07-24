@@ -318,12 +318,38 @@ const PADoc = (function () {
     return new Promise((res) => { const img = new Image(); img.onload = () => res({ w: img.naturalWidth, h: img.naturalHeight }); img.onerror = () => res({ w: fw, h: fh }); img.src = dataUrl; });
   }
   async function setLogoFile(file) {
-    if (!file) { padLogo = null; renderStatus(); return; }
+    if (!file) { padLogo = null; renderLogoPreview(); renderStatus(); return; }
     const ext = (file.name.match(/\.(png|jpe?g)$/i) || [, 'png'])[1].toLowerCase();
     const b64 = await blobToB64(file);
     const dims = await imgDims('data:image/' + ext + ';base64,' + b64, 200, 80);
-    padLogo = { b64, ext: ext.indexOf('jp') === 0 ? 'jpeg' : 'png', w: dims.w || 200, h: dims.h || 80 };
+    padLogo = { b64, ext: ext.indexOf('jp') === 0 ? 'jpeg' : 'png', w: dims.w || 200, h: dims.h || 80, name: file.name };
+    renderLogoPreview();
     renderStatus();
+  }
+  // Pinta el control de logo: estado vacío (call to action) o miniatura + nombre.
+  function renderLogoPreview() {
+    if (typeof document === 'undefined') return;
+    const box = document.getElementById('padoc-logo-ctl');
+    if (!box) return;
+    if (padLogo) {
+      const src = 'data:image/' + padLogo.ext + ';base64,' + padLogo.b64;
+      box.classList.add('has-logo');
+      box.innerHTML =
+        '<img class="padoc-logo-thumb" src="' + src + '" alt="logo">' +
+        '<span class="padoc-logo-meta"><b>' + escH(padLogo.name || 'Logo cargado') + '</b>' +
+        '<em>' + padLogo.w + '×' + padLogo.h + ' px</em></span>' +
+        '<button type="button" class="padoc-logo-clear" title="Quitar logo" onclick="PADoc.clearLogo()">✕</button>';
+    } else {
+      box.classList.remove('has-logo');
+      box.innerHTML =
+        '<span class="padoc-logo-ico">🖼️</span>' +
+        '<span class="padoc-logo-cta"><b>Subir logo del cliente</b><em>PNG o JPG · click para elegir</em></span>';
+    }
+  }
+  function clearLogo() {
+    padLogo = null;
+    const fi = document.getElementById('padoc-logo-fi'); if (fi) fi.value = '';
+    renderLogoPreview(); renderStatus();
   }
   async function loadAsset(url) {
     try {
@@ -343,7 +369,10 @@ const PADoc = (function () {
     const items = KNOWN_SECTIONS.slice().sort().map(s => {
       const n = rowsFor(s); const ok = n !== null;
       const cnt = ok ? (n + ' filas') : 'no provisto';
-      return '<div class="padoc-chk ' + (ok ? 'on' : 'off') + '"><span>' + (ok ? '✓' : '·') + '</span> ' + escH(s) + ' <em>' + escH(cnt) + '</em></div>';
+      return '<div class="padoc-chk ' + (ok ? 'on' : 'off') + '" title="' + escH(s) + '">' +
+        '<span class="padoc-chk-ico">' + (ok ? '✓' : '·') + '</span>' +
+        '<span class="padoc-chk-name">' + escH(s) + '</span>' +
+        '<em>' + escH(cnt) + '</em></div>';
     }).join('');
     const paLine = padPaId ? ('<b>Planning Area:</b> ' + escH(padPaId)) : '<span class="padoc-muted">Sin PA detectado aún</span>';
     const logoLine = padLogo ? ('· Logo cargado (' + padLogo.w + '×' + padLogo.h + ')') : '';
@@ -355,6 +384,8 @@ const PADoc = (function () {
     padData = {}; padPaId = ''; padLogo = null; padEnrich = null;
     const l = document.getElementById('padoc-log'); if (l) l.innerHTML = '';
     const fi = document.getElementById('padoc-fi'); if (fi) fi.value = '';
+    const lfi = document.getElementById('padoc-logo-fi'); if (lfi) lfi.value = '';
+    renderLogoPreview();
     renderStatus();
   }
 
@@ -944,24 +975,37 @@ const PADoc = (function () {
       const enrichCb = document.getElementById('padoc-enrich');
       if (enrichCb && enrichCb.checked && !enrichCb.disabled) {
         padEnrich = { appJobs: [], mdtCounts: null };
+        // Cada acuerdo de comunicación es un servicio OData independiente sobre la MISMA
+        // base URL / mismo Communication User. Se consultan por separado: si solo tienes
+        // uno activo (720 sin 326, o al revés), el otro falla de forma aislada y el
+        // documento se genera igual con lo disponible.
+        let ok720 = false, ok326 = false;
         // (a) Volumetría de datos maestros — SAP_COM_0720
         try {
           if (logEl) log(logEl, 'info', 'Enriqueciendo: volumetría de datos maestros (SAP_COM_0720)…');
           padEnrich.mdtCounts = await fetchMdtCounts(logEl);
           const n = Object.values(padEnrich.mdtCounts).filter(v => typeof v === 'number').length;
-          if (logEl) log(logEl, 'ok', 'Volumetría obtenida para ' + n + ' tipo(s) de datos maestros.');
+          if (logEl) log(logEl, 'ok', 'SAP_COM_0720 OK: volumetría de ' + n + ' tipo(s) de datos maestros.');
+          ok720 = true;
         } catch (e2) {
           padEnrich.mdtCounts = null;
-          if (logEl) log(logEl, 'warn', 'No se pudo obtener volumetría de maestros: ' + e2.message + '.');
+          if (logEl) log(logEl, 'warn', 'SAP_COM_0720 no disponible con este usuario/tenant (' + e2.message + '). Se omite la volumetría de maestros.');
         }
         // (b) Application Jobs — SAP_COM_0326
         try {
           if (logEl) log(logEl, 'info', 'Enriqueciendo: Application Jobs (SAP_COM_0326)…');
           padEnrich.appJobs = await fetchAppJobs(logEl);
-          if (logEl) log(logEl, 'ok', 'Application Jobs leídos: ' + padEnrich.appJobs.length + ' plantilla(s).');
+          if (logEl) log(logEl, 'ok', 'SAP_COM_0326 OK: ' + padEnrich.appJobs.length + ' plantilla(s) de Application Jobs.');
+          ok326 = true;
         } catch (e3) {
           padEnrich.appJobs = [];
-          if (logEl) log(logEl, 'warn', 'No se pudo leer Application Jobs: ' + e3.message + '.');
+          if (logEl) log(logEl, 'warn', 'SAP_COM_0326 no disponible con este usuario/tenant (' + e3.message + '). Se omiten los Application Jobs.');
+        }
+        // Resumen del enriquecimiento: qué acuerdos respondieron con esta conexión.
+        if (logEl) {
+          if (ok720 && ok326)      log(logEl, 'ok', 'Enriquecimiento completo: ambos acuerdos (SAP_COM_0720 + SAP_COM_0326) respondieron.');
+          else if (ok720 || ok326) log(logEl, 'warn', 'Enriquecimiento parcial: solo respondió ' + (ok720 ? 'SAP_COM_0720' : 'SAP_COM_0326') + '. Verifica que ambos acuerdos estén asignados al mismo Communication User.');
+          else                     log(logEl, 'warn', 'Ningún acuerdo respondió; el documento se genera sin datos en vivo.');
         }
       }
       if (!padGoscm) padGoscm = await loadAsset('logo-goscm.png');   // marca GoSCM embebida
@@ -989,6 +1033,7 @@ const PADoc = (function () {
     }
     const logoFi = document.getElementById('padoc-logo-fi');
     if (logoFi) logoFi.addEventListener('change', e => setLogoFile(e.target.files[0]));
+    renderLogoPreview();
     // Fase 2: el toggle de enriquecimiento se habilita según el estado de conexión.
     // Se re-evalúa al abrir la pestaña (la conexión puede establecerse en otra).
     updateEnrichUI();
@@ -1002,7 +1047,7 @@ const PADoc = (function () {
   }
 
   return {
-    addFiles, setLogoFile, generate, reset, refreshConn: updateEnrichUI,
+    addFiles, setLogoFile, clearLogo, generate, reset, refreshConn: updateEnrichUI,
     _test: { ingestCsvText, buildDocxBuffer, parseCSV, detectSection, setLogos: (c, g) => { padLogo = c; padGoscm = g; }, setEnrich: (e) => { padEnrich = e; }, get state() { return { padData, padPaId, padEnrich }; } }
   };
 })();
